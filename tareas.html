@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tareas · SplitApp ✅</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
+    <link rel="stylesheet" href="css/shared.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+    <div class="topbar-left">
+        <button class="btn-icon" onclick="irAlInicio()">←</button>
+        <h1>✅ Tareas</h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+        <span id="topbar-user" class="topbar-user"></span>
+        <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión">⎋</button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="filter-tabs">
+        <div class="filter-tab active" onclick="setFiltro('pendientes')">Pendientes</div>
+        <div class="filter-tab" onclick="setFiltro('todas')">Todas</div>
+        <div class="filter-tab" onclick="setFiltro('hechas')">Hechas</div>
+    </div>
+    <div id="tareas-stats" class="stats-row"></div>
+    <div id="tareas-items" class="card"></div>
+
+    <div class="add-item-form mt-12">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Nueva tarea</div>
+        <div class="form-group" style="margin-bottom:8px">
+            <input type="text" id="input-titulo-tarea" placeholder="Ej: Pagar el alquiler" class="input-sm"
+                onkeydown="if(event.key==='Enter') agregarTarea()" />
+        </div>
+        <div class="add-item-row">
+            <select id="input-prioridad-tarea" class="input-sm" style="flex:1">
+                <option value="baja">🟢 Prioridad baja</option>
+                <option value="media" selected>🟠 Prioridad media</option>
+                <option value="alta">🔴 Prioridad alta</option>
+            </select>
+            <button class="btn btn-primary" onclick="agregarTarea()" style="white-space:nowrap">＋ Agregar</button>
+        </div>
+    </div>
+
+    <button class="btn btn-ghost btn-full mt-12" id="btn-borrar-hechas" onclick="borrarHechas()" style="display:none;color:var(--danger);border-color:var(--danger)">
+        🗑 Borrar todas las hechas
+    </button>
+</div>
+
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/utils.js"></script>
+<script>
+// =============================================
+// ESTADO GLOBAL
+// =============================================
+let filtroTareas = 'pendientes';
+let todasLasTareas = [];
+const PRIO_LABEL = { alta: 'Alta', media: 'Media', baja: 'Baja' };
+
+requireAuth(() => {
+    cargarTareas();
+});
+
+function setFiltro(f) {
+    filtroTareas = f;
+    document.querySelectorAll('.filter-tab').forEach((t, i) => {
+        t.classList.toggle('active', ['pendientes','todas','hechas'][i] === f);
+    });
+    renderTareas();
+}
+
+async function cargarTareas() {
+    const cont = document.getElementById('tareas-items');
+    cont.innerHTML = '<div class="loader">Cargando tareas...</div>';
+    const { data, error } = await db.from('tareas')
+        .select('*').order('hecha').order('created_at', { ascending: false });
+    if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}<br>¿Ejecutaste el SQL de configuración? Ver README.</div>`; return; }
+    todasLasTareas = data || [];
+    renderTareas();
+}
+
+function renderTareas() {
+    const cont = document.getElementById('tareas-items');
+    const pendientes = todasLasTareas.filter(t => !t.hecha);
+    const hechas     = todasLasTareas.filter(t => t.hecha);
+
+    let items;
+    if (filtroTareas === 'pendientes') items = pendientes;
+    else if (filtroTareas === 'hechas') items = hechas;
+    else items = [...pendientes, ...hechas];
+
+    document.getElementById('tareas-stats').innerHTML =
+        `<span>${pendientes.length} pendiente${pendientes.length !== 1 ? 's' : ''}</span>
+         <span>${hechas.length} hecha${hechas.length !== 1 ? 's' : ''}</span>`;
+
+    document.getElementById('btn-borrar-hechas').style.display =
+        hechas.length > 0 ? 'flex' : 'none';
+
+    if (!items.length) {
+        const msgs = { pendientes: '✅ No hay tareas pendientes.', hechas: 'Sin tareas hechas todavía.', todas: '📋 No hay tareas. Agregá una.' };
+        cont.innerHTML = `<div class="empty" style="padding:24px"><span class="empty-icon">${filtroTareas === 'pendientes' ? '✅' : '📋'}</span>${msgs[filtroTareas]}</div>`;
+        return;
+    }
+
+    cont.innerHTML = items.map(t => `
+        <div class="lista-item ${t.hecha ? 'comprado' : ''}" id="tarea-${t.id}">
+            <div class="lista-check ${t.hecha ? 'checked' : ''}" onclick="toggleTarea(${t.id}, ${t.hecha})">
+                ${t.hecha ? '✓' : ''}
+            </div>
+            <div class="prio-dot prio-${t.prioridad || 'media'}" title="Prioridad ${PRIO_LABEL[t.prioridad] || 'Media'}"></div>
+            <div class="lista-nombre ${t.hecha ? 'tachado' : ''}">${escapeHtml(t.titulo)}</div>
+            <button onclick="borrarTarea(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;flex-shrink:0">✕</button>
+        </div>
+    `).join('');
+}
+
+async function agregarTarea() {
+    const titulo = document.getElementById('input-titulo-tarea').value.trim();
+    const prioridad = document.getElementById('input-prioridad-tarea').value;
+    if (!titulo) { document.getElementById('input-titulo-tarea').focus(); return; }
+
+    const { data, error } = await db.from('tareas').insert({ titulo, prioridad }).select().single();
+    if (error) { alert('Error: ' + error.message); return; }
+
+    document.getElementById('input-titulo-tarea').value = '';
+    document.getElementById('input-titulo-tarea').focus();
+
+    todasLasTareas = [data, ...todasLasTareas];
+    todasLasTareas.sort((a, b) => a.hecha - b.hecha || new Date(b.created_at) - new Date(a.created_at));
+    renderTareas();
+}
+
+async function toggleTarea(id, estaHecha) {
+    const nuevoEstado = !estaHecha;
+    const { error } = await db.from('tareas').update({
+        hecha: nuevoEstado,
+        hecha_at: nuevoEstado ? new Date().toISOString() : null
+    }).eq('id', id);
+    if (error) { alert('Error: ' + error.message); return; }
+    const tarea = todasLasTareas.find(t => t.id === id);
+    if (tarea) { tarea.hecha = nuevoEstado; tarea.hecha_at = nuevoEstado ? new Date().toISOString() : null; }
+    renderTareas();
+}
+
+async function borrarTarea(id) {
+    const { error } = await db.from('tareas').delete().eq('id', id);
+    if (error) { alert('Error: ' + error.message); return; }
+    todasLasTareas = todasLasTareas.filter(t => t.id !== id);
+    renderTareas();
+}
+
+async function borrarHechas() {
+    if (!confirm('¿Borrar todas las tareas hechas?')) return;
+    const ids = todasLasTareas.filter(t => t.hecha).map(t => t.id);
+    const { error } = await db.from('tareas').delete().in('id', ids);
+    if (error) { alert('Error: ' + error.message); return; }
+    todasLasTareas = todasLasTareas.filter(t => !t.hecha);
+    renderTareas();
+}
+</script>
+</body>
+</html>

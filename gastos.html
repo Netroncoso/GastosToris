@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gastos · SplitApp 💸</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💸</text></svg>">
+    <link rel="stylesheet" href="css/shared.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+    <div class="topbar-left">
+        <button id="btn-back" class="btn-icon" onclick="volverAGrupos()">←</button>
+        <h1 id="topbar-title">💸 Gastos</h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+        <span id="topbar-user" class="topbar-user"></span>
+        <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión">⎋</button>
+    </div>
+</div>
+
+<!-- SCREEN: GRUPOS -->
+<div id="screen-grupos" class="screen active">
+    <div class="container">
+        <div id="lista-grupos"><div class="loader">Cargando grupos...</div></div>
+        <button class="btn btn-primary btn-full mt-16" onclick="abrirModalGrupo()">＋ Nuevo Grupo</button>
+    </div>
+</div>
+
+<!-- SCREEN: GRUPO DETAIL -->
+<div id="screen-grupo" class="screen">
+    <div class="tabs">
+        <div class="tab active" onclick="cambiarTab('gastos')">💸 Gastos</div>
+        <div class="tab" onclick="cambiarTab('participantes')">👥 Personas</div>
+        <div class="tab" onclick="cambiarTab('balance')">⚖️ Balance</div>
+    </div>
+    <div class="container">
+        <div id="tab-gastos" class="tab-content active">
+            <div id="lista-gastos"><div class="loader">Cargando...</div></div>
+            <div style="display:flex;gap:8px;margin-top:16px">
+                <button class="btn btn-primary btn-full" onclick="abrirModalGasto()">＋ Gasto</button>
+                <button class="btn btn-ghost btn-full" onclick="abrirModalReembolso()">🔄 Reembolso</button>
+            </div>
+        </div>
+        <div id="tab-participantes" class="tab-content">
+            <div id="lista-participantes"><div class="loader">Cargando...</div></div>
+            <button class="btn btn-ghost btn-full mt-16" onclick="abrirModalParticipante()">＋ Agregar Persona</button>
+        </div>
+        <div id="tab-balance" class="tab-content">
+            <div id="contenido-balance"><div class="loader">Calculando...</div></div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: NUEVO GRUPO -->
+<div id="modal-grupo" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Nuevo Grupo</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-grupo')">✕</button>
+        </div>
+        <div class="form-group">
+            <label>Nombre del grupo</label>
+            <input type="text" id="input-nombre-grupo" placeholder="Ej: Viaje a Bariloche" />
+        </div>
+        <button class="btn btn-primary btn-full" onclick="crearGrupo()">Crear Grupo</button>
+    </div>
+</div>
+
+<!-- MODAL: NUEVA PERSONA -->
+<div id="modal-participante" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Agregar Persona</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-participante')">✕</button>
+        </div>
+        <div class="form-group">
+            <label>Nombre</label>
+            <input type="text" id="input-nombre-participante" placeholder="Ej: Martín" />
+        </div>
+        <div class="form-group">
+            <label>Email (opcional — para invitarla)</label>
+            <input type="email" id="input-email-participante" placeholder="martin@email.com" />
+        </div>
+        <div id="invite-info" class="alert alert-info" style="display:none">
+            📧 Se le enviará un link al correo para que pueda ingresar a la app y ver los gastos del grupo.
+        </div>
+        <button class="btn btn-primary btn-full" onclick="agregarParticipante()">Agregar y Enviar Invitación</button>
+    </div>
+</div>
+
+<!-- MODAL: REEMBOLSO -->
+<div id="modal-reembolso" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>🔄 Registrar Reembolso</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-reembolso')">✕</button>
+        </div>
+        <div class="alert alert-info" style="margin-bottom:16px">
+            Registrá cuando alguien le devuelve plata a otro. Esto actualiza el balance automáticamente.
+        </div>
+        <div class="form-group">
+            <label>¿Quién pagó / devolvió?</label>
+            <select id="reembolso-de"></select>
+        </div>
+        <div class="form-group">
+            <label>¿A quién le pagó?</label>
+            <select id="reembolso-para"></select>
+        </div>
+        <div class="form-group">
+            <label>Monto ($)</label>
+            <input type="number" id="reembolso-monto" placeholder="0" step="1" min="0" />
+        </div>
+        <button class="btn btn-primary btn-full" onclick="guardarReembolso()">Registrar Reembolso</button>
+    </div>
+</div>
+
+<!-- MODAL: NUEVO GASTO -->
+<div id="modal-gasto" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Agregar Gasto</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-gasto')">✕</button>
+        </div>
+        <div class="form-group">
+            <label>Concepto</label>
+            <input type="text" id="input-concepto" placeholder="Ej: Cena en restaurante" />
+        </div>
+        <div class="form-group">
+            <label>Monto total ($)</label>
+            <input type="number" id="input-monto" placeholder="0.00" step="0.01" min="0" oninput="actualizarTotalSplit()" />
+        </div>
+        <div class="form-group">
+            <label>Tipo</label>
+            <select id="input-tipo">
+                <option value="Comida">🍽️ Comida</option>
+                <option value="Transporte">🚗 Transporte</option>
+                <option value="Alojamiento">🏠 Alojamiento</option>
+                <option value="Entretenimiento">🎉 Entretenimiento</option>
+                <option value="Compras">🛒 Compras</option>
+                <option value="Otro">📦 Otro</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>¿Quién pagó?</label>
+            <select id="input-pagador"></select>
+        </div>
+        <div class="form-group">
+            <label>División por persona ($)</label>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+                <button class="btn btn-ghost btn-sm" onclick="repartirIgual()">Partes iguales</button>
+                <button class="btn btn-ghost btn-sm" onclick="limpiarSplit()">Limpiar</button>
+            </div>
+            <div id="split-container"></div>
+            <div id="split-total-row" class="split-total-row"></div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="guardarGasto()">Guardar Gasto</button>
+    </div>
+</div>
+
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/utils.js"></script>
+<script>
+// =============================================
+// ESTADO GLOBAL
+// =============================================
+let grupoActual = null;
+let participantesActuales = [];
+
+const TIPO_ICONO = { Comida:'🍽️', Transporte:'🚗', Alojamiento:'🏠', Entretenimiento:'🎉', Compras:'🛒', Otro:'📦', Reembolso:'🔄' };
+
+requireAuth(() => {
+    cargarGrupos();
+});
+
+// =============================================
+// NAVEGACIÓN
+// =============================================
+function mostrarPantalla(nombre) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + nombre).classList.add('active');
+}
+
+function cambiarTab(nombre) {
+    const tabs = ['gastos', 'participantes', 'balance'];
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', tabs[i] === nombre));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('tab-' + nombre).classList.add('active');
+    if (nombre === 'balance') calcularYMostrarBalance();
+}
+
+function abrirGrupo(grupo) {
+    grupoActual = grupo;
+    document.getElementById('topbar-title').textContent = grupo.Nombre;
+    mostrarPantalla('grupo');
+    cambiarTab('gastos');
+    cargarParticipantes();
+    cargarGastos();
+}
+
+function volverAGrupos() {
+    if (!grupoActual) { irAlInicio(); return; }
+    grupoActual = null;
+    participantesActuales = [];
+    document.getElementById('topbar-title').textContent = '💸 Gastos';
+    mostrarPantalla('grupos');
+    cargarGrupos();
+}
+
+// =============================================
+// MODALES
+// =============================================
+function abrirModal(id) { document.getElementById(id).classList.add('open'); }
+function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function abrirModalGrupo() {
+    document.getElementById('input-nombre-grupo').value = '';
+    abrirModal('modal-grupo');
+    setTimeout(() => document.getElementById('input-nombre-grupo').focus(), 100);
+}
+
+function abrirModalParticipante() {
+    document.getElementById('input-nombre-participante').value = '';
+    document.getElementById('input-email-participante').value = '';
+    document.getElementById('invite-info').style.display = 'none';
+    document.querySelector('#modal-participante .btn-primary').textContent = 'Agregar';
+    abrirModal('modal-participante');
+    setTimeout(() => document.getElementById('input-nombre-participante').focus(), 100);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('input-email-participante').addEventListener('input', function() {
+        const tieneEmail = this.value.trim().length > 0;
+        document.getElementById('invite-info').style.display = tieneEmail ? 'block' : 'none';
+        document.querySelector('#modal-participante .btn-primary').textContent =
+            tieneEmail ? 'Agregar y Enviar Invitación' : 'Agregar';
+    });
+});
+
+function abrirModalGasto() {
+    if (participantesActuales.length === 0) {
+        alert('Primero agregá personas al grupo desde la pestaña "Personas".');
+        return;
+    }
+    document.getElementById('input-concepto').value = '';
+    document.getElementById('input-monto').value = '';
+    document.getElementById('input-tipo').value = 'Comida';
+
+    const sel = document.getElementById('input-pagador');
+    sel.innerHTML = participantesActuales.map(p => `<option value="${p.id}">${escapeHtml(p.Name)}</option>`).join('');
+
+    renderSplitContainer();
+    document.getElementById('split-total-row').innerHTML = '';
+    abrirModal('modal-gasto');
+    setTimeout(() => document.getElementById('input-concepto').focus(), 100);
+}
+
+// =============================================
+// SPLIT
+// =============================================
+function renderSplitContainer() {
+    document.getElementById('split-container').innerHTML = participantesActuales.map(p => `
+        <div class="split-row">
+            <div class="split-name">${escapeHtml(p.Name)}</div>
+            <input type="number" class="split-input" id="split-${p.id}"
+                placeholder="$0.00" step="0.01" min="0" oninput="actualizarTotalSplit()" />
+        </div>
+    `).join('');
+}
+
+function repartirIgual() {
+    const monto = parseFloat(document.getElementById('input-monto').value) || 0;
+    const n = participantesActuales.length;
+    if (!monto || n === 0) return;
+    // Repartir y ajustar el centavo sobrante al primero
+    const base = Math.floor((monto / n) * 100) / 100;
+    const resto = Math.round((monto - base * n) * 100) / 100;
+    participantesActuales.forEach((p, i) => {
+        const input = document.getElementById('split-' + p.id);
+        if (input) input.value = i === 0 ? (base + resto).toFixed(2) : base.toFixed(2);
+    });
+    actualizarTotalSplit();
+}
+
+function limpiarSplit() {
+    participantesActuales.forEach(p => {
+        const input = document.getElementById('split-' + p.id);
+        if (input) input.value = '';
+    });
+    document.getElementById('split-total-row').innerHTML = '';
+}
+
+function actualizarTotalSplit() {
+    const monto = parseFloat(document.getElementById('input-monto').value) || 0;
+    let total = 0;
+    participantesActuales.forEach(p => {
+        total += parseFloat(document.getElementById('split-' + p.id)?.value || 0);
+    });
+    total = Math.round(total * 100) / 100;
+    const row = document.getElementById('split-total-row');
+    if (!monto) { row.innerHTML = ''; return; }
+    const diff = Math.round((total - monto) * 100) / 100;
+    const ok = Math.abs(diff) < 0.02;
+    row.innerHTML = ok
+        ? `<span style="color:var(--success);font-weight:600">✓ Total: $${fmt(total)}</span>`
+        : `<span style="color:var(--danger)">Total: $${fmt(total)} · ${diff > 0 ? '+' : ''}$${fmt(diff)}</span>`;
+}
+
+// =============================================
+// GRUPOS
+// =============================================
+async function cargarGrupos() {
+    const cont = document.getElementById('lista-grupos');
+    cont.innerHTML = '<div class="loader">Cargando grupos...</div>';
+    const { data, error } = await db.from('grupos').select('*').order('created_at', { ascending: false });
+    if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}</div>`; return; }
+    if (!data?.length) {
+        cont.innerHTML = `<div class="empty"><span class="empty-icon">🏠</span>Sin grupos todavía.<br>Creá uno para empezar.</div>`;
+        return;
+    }
+    cont.innerHTML = data.map(g => `
+        <div class="card" style="overflow:visible">
+            <div class="card-body flex-between" style="gap:10px">
+                <div class="card-click" style="flex:1;min-width:0" onclick='abrirGrupo(${JSON.stringify(g)})'>
+                    <div style="font-weight:700;font-size:16px">${escapeHtml(g.Nombre)}</div>
+                    <div class="text-muted">${new Date(g.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })}</div>
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="eliminarGrupo(${g.id}, '${g.Nombre.replace(/'/g,"\\'")}')">🗑</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function crearGrupo() {
+    const nombre = document.getElementById('input-nombre-grupo').value.trim();
+    if (!nombre) { alert('Ingresá un nombre.'); return; }
+    const { error } = await db.from('grupos').insert({ Nombre: nombre });
+    if (error) { alert('Error: ' + error.message); return; }
+    cerrarModal('modal-grupo');
+    cargarGrupos();
+}
+
+async function eliminarGrupo(id, nombre) {
+    if (!confirm(`¿Eliminar el grupo "${nombre}"?\nSe borrarán todos los gastos y participantes.`)) return;
+
+    // Borrar en orden: splits → gastos → participantes → grupo
+    const { data: gastos, error: eg } = await db.from('gastos').select('id').eq('id_grupo', id);
+    if (eg) { alert('Error al leer gastos: ' + eg.message); return; }
+
+    if (gastos?.length) {
+        const { error: es } = await db.from('gastos_participantes').delete().in('id_gasto', gastos.map(g => g.id));
+        if (es) { alert('Error al borrar divisiones: ' + es.message); return; }
+
+        const { error: eg2 } = await db.from('gastos').delete().eq('id_grupo', id);
+        if (eg2) { alert('Error al borrar gastos: ' + eg2.message); return; }
+    }
+
+    const { error: ep } = await db.from('participantes').delete().eq('id_grupo', id);
+    if (ep) { alert('Error al borrar participantes: ' + ep.message); return; }
+
+    const { error: egr } = await db.from('grupos').delete().eq('id', id);
+    if (egr) { alert('Error al borrar grupo: ' + egr.message); return; }
+
+    cargarGrupos();
+}
+
+// =============================================
+// PARTICIPANTES
+// =============================================
+async function cargarParticipantes() {
+    const { data, error } = await db.from('participantes')
+        .select('*').eq('id_grupo', grupoActual.id).order('id');
+    participantesActuales = data || [];
+    const cont = document.getElementById('lista-participantes');
+    if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
+    if (!data?.length) {
+        cont.innerHTML = `<div class="empty"><span class="empty-icon">👥</span>Sin personas todavía.<br>Agregá a quienes comparten los gastos.</div>`;
+        return;
+    }
+    cont.innerHTML = `<div class="card">${data.map(p => `
+        <div class="part-item">
+            <div class="avatar">${p.Name.charAt(0).toUpperCase()}</div>
+            <div style="flex:1;min-width:0">
+                <div class="part-name">${escapeHtml(p.Name)}</div>
+                ${p.email ? `<div class="text-muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📧 ${escapeHtml(p.email)}</div>` : ''}
+            </div>
+            ${p.email ? '<span class="badge badge-green" style="font-size:11px">Invitado</span>' : ''}
+        </div>
+    `).join('')}</div>`;
+}
+
+async function agregarParticipante() {
+    const nombre = document.getElementById('input-nombre-participante').value.trim();
+    const email  = document.getElementById('input-email-participante').value.trim().toLowerCase();
+    if (!nombre) { alert('Ingresá un nombre.'); return; }
+
+    // Chequear duplicados
+    const nombreDup = participantesActuales.find(p => p.Name.toLowerCase() === nombre.toLowerCase());
+    if (nombreDup) { alert(`Ya existe un participante llamado "${nombre}" en este grupo.`); return; }
+    if (email) {
+        const emailDup = participantesActuales.find(p => p.email?.toLowerCase() === email);
+        if (emailDup) { alert(`El email ${email} ya está registrado en este grupo (${emailDup.Name}).`); return; }
+    }
+
+    const payload = { id_grupo: grupoActual.id, Name: nombre };
+    if (email) payload.email = email;
+
+    const { error } = await db.from('participantes').insert(payload);
+    if (error) { alert('Error: ' + error.message); return; }
+
+    if (email) {
+        const { error: inviteError } = await db.auth.signInWithOtp({
+            email,
+            options: {
+                emailRedirectTo: APP_BASE_URL,
+                shouldCreateUser: true
+            }
+        });
+        if (inviteError) {
+            alert(`${nombre} fue agregado, pero hubo un error al enviar la invitación: ${inviteError.message}`);
+        } else {
+            alert(`✅ ${nombre} fue agregado y se le envió una invitación a ${email}.`);
+        }
+    }
+
+    cerrarModal('modal-participante');
+    cargarParticipantes();
+}
+
+// =============================================
+// REEMBOLSOS
+// =============================================
+function abrirModalReembolso() {
+    if (participantesActuales.length < 2) {
+        alert('Necesitás al menos 2 personas en el grupo para registrar un reembolso.');
+        return;
+    }
+    const opts = participantesActuales.map(p => `<option value="${p.id}">${escapeHtml(p.Name)}</option>`).join('');
+    document.getElementById('reembolso-de').innerHTML = opts;
+    document.getElementById('reembolso-para').innerHTML = opts;
+    // Preseleccionar distinto
+    if (participantesActuales.length >= 2)
+        document.getElementById('reembolso-para').selectedIndex = 1;
+    document.getElementById('reembolso-monto').value = '';
+    abrirModal('modal-reembolso');
+    setTimeout(() => document.getElementById('reembolso-monto').focus(), 100);
+}
+
+async function guardarReembolso() {
+    const de    = parseInt(document.getElementById('reembolso-de').value);
+    const para  = parseInt(document.getElementById('reembolso-para').value);
+    const monto = parseFloat(document.getElementById('reembolso-monto').value);
+
+    if (de === para) { alert('La persona que paga y la que recibe no pueden ser la misma.'); return; }
+    if (!monto || monto <= 0) { alert('Ingresá un monto válido.'); return; }
+
+    const nombreDe   = participantesActuales.find(p => p.id === de)?.Name;
+    const nombrePara = participantesActuales.find(p => p.id === para)?.Name;
+
+    // Guardar como gasto especial: pagador = quien devuelve, split = quien recibe
+    const { data: gastoData, error: e1 } = await db.from('gastos').insert({
+        id_grupo: grupoActual.id,
+        id_pagador: de,
+        concepto: `Reembolso de ${nombreDe} a ${nombrePara}`,
+        monto,
+        tipo_gasto: 'Reembolso'
+    }).select().single();
+
+    if (e1) { alert('Error: ' + e1.message); return; }
+
+    const { error: e2 } = await db.from('gastos_participantes')
+        .insert({ id_gasto: gastoData.id, id_participante: para, monto });
+
+    if (e2) { alert('Error al guardar división: ' + e2.message); return; }
+
+    cerrarModal('modal-reembolso');
+    cargarGastos();
+}
+
+// =============================================
+// GASTOS
+// =============================================
+async function cargarGastos() {
+    const cont = document.getElementById('lista-gastos');
+    cont.innerHTML = '<div class="loader">Cargando gastos...</div>';
+    const { data, error } = await db.from('gastos')
+        .select('*').eq('id_grupo', grupoActual.id).order('created_at', { ascending: false });
+    if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
+    if (!data?.length) {
+        cont.innerHTML = `<div class="empty"><span class="empty-icon">💸</span>Sin gastos todavía.<br>Agregá el primero.</div>`;
+        return;
+    }
+    const pagMap = {};
+    participantesActuales.forEach(p => pagMap[p.id] = p.Name);
+    const gastos     = data.filter(g => g.tipo_gasto !== 'Reembolso');
+    const reembolsos = data.filter(g => g.tipo_gasto === 'Reembolso');
+    const totalGrupo = gastos.reduce((acc, g) => acc + Number(g.monto), 0);
+
+    const renderItem = g => {
+        const esReembolso = g.tipo_gasto === 'Reembolso';
+        return `
+        <div class="card" style="${esReembolso ? 'opacity:0.8' : ''}">
+            <div class="gasto-item flex-between">
+                <div style="min-width:0">
+                    <div class="gasto-concepto">${TIPO_ICONO[g.tipo_gasto] || '📦'} ${escapeHtml(g.concepto)}</div>
+                    <div class="gasto-meta">${esReembolso ? '' : `Pagó <strong>${escapeHtml(pagMap[g.id_pagador] || '?')}</strong> · `}${new Date(g.created_at).toLocaleDateString('es-AR')}</div>
+                </div>
+                <div class="gasto-monto" style="margin-left:12px;${esReembolso ? 'color:var(--success)' : ''}">$${fmt(g.monto)}</div>
+            </div>
+        </div>`;
+    };
+
+    cont.innerHTML = `
+        <div class="total-card">
+            <div class="total-label">Total gastado (sin reembolsos)</div>
+            <div class="total-monto">$${fmt(totalGrupo)}</div>
+        </div>
+        ${gastos.map(renderItem).join('')}
+        ${reembolsos.length ? `<div class="section-label" style="margin-top:16px">Reembolsos</div>${reembolsos.map(renderItem).join('')}` : ''}
+    `;
+}
+
+async function guardarGasto() {
+    const concepto = document.getElementById('input-concepto').value.trim();
+    const monto    = parseFloat(document.getElementById('input-monto').value);
+    const tipo     = document.getElementById('input-tipo').value;
+    const pagador  = parseInt(document.getElementById('input-pagador').value);
+
+    if (!concepto) { alert('Ingresá un concepto.'); return; }
+    if (!monto || monto <= 0) { alert('Ingresá un monto válido.'); return; }
+
+    const splits = [];
+    let totalSplit = 0;
+    participantesActuales.forEach(p => {
+        const val = parseFloat(document.getElementById('split-' + p.id)?.value || 0);
+        if (val > 0) { splits.push({ id_participante: p.id, monto: val }); totalSplit += val; }
+    });
+
+    if (!splits.length) { alert('Distribuí el gasto entre las personas.'); return; }
+    if (Math.abs(totalSplit - monto) > 0.02) {
+        alert(`La suma de la división ($${fmt(totalSplit)}) no coincide con el monto ($${fmt(monto)}).`);
+        return;
+    }
+
+    // Insertar gasto
+    const { data: gastoData, error: e1 } = await db.from('gastos').insert({
+        id_grupo: grupoActual.id, id_pagador: pagador, concepto, monto, tipo_gasto: tipo
+    }).select().single();
+
+    if (e1) { alert('Error al guardar gasto: ' + e1.message); return; }
+
+    // Insertar splits
+    const { error: e2 } = await db.from('gastos_participantes')
+        .insert(splits.map(s => ({ ...s, id_gasto: gastoData.id })));
+
+    if (e2) alert('Gasto guardado, pero error en la división: ' + e2.message + '\n¿Ejecutaste el SQL de configuración?');
+
+    cerrarModal('modal-gasto');
+    cargarGastos();
+}
+
+// =============================================
+// BALANCE
+// =============================================
+async function calcularYMostrarBalance() {
+    const cont = document.getElementById('contenido-balance');
+    cont.innerHTML = '<div class="loader">Calculando balances...</div>';
+
+    if (!participantesActuales.length) {
+        cont.innerHTML = `<div class="empty"><span class="empty-icon">👥</span>Primero agregá personas al grupo.</div>`;
+        return;
+    }
+
+    const { data: gastos, error: e1 } = await db.from('gastos')
+        .select('id, id_pagador, monto').eq('id_grupo', grupoActual.id);
+    if (e1) { cont.innerHTML = `<div class="alert alert-error">${e1.message}</div>`; return; }
+
+    if (!gastos?.length) {
+        cont.innerHTML = `<div class="empty"><span class="empty-icon">⚖️</span>Sin gastos para calcular.</div>`;
+        return;
+    }
+
+    const { data: splits, error: e2 } = await db.from('gastos_participantes')
+        .select('id_gasto, id_participante, monto')
+        .in('id_gasto', gastos.map(g => g.id));
+    if (e2) {
+        cont.innerHTML = `<div class="alert alert-error">Error al leer divisiones: ${e2.message}<br>¿Ejecutaste el SQL de configuración?</div>`;
+        return;
+    }
+
+    // Calcular balance neto
+    const balance = {};
+    participantesActuales.forEach(p => balance[p.id] = 0);
+    gastos.forEach(g => { balance[g.id_pagador] = (balance[g.id_pagador] || 0) + Number(g.monto); });
+    (splits || []).forEach(s => { balance[s.id_participante] = (balance[s.id_participante] || 0) - Number(s.monto); });
+
+    const nombresMap = {};
+    participantesActuales.forEach(p => nombresMap[p.id] = p.Name);
+
+    const totalGastado = gastos.reduce((acc, g) => acc + Number(g.monto), 0);
+    const deudas = simplificarDeudas(balance);
+
+    cont.innerHTML = `
+        <div class="total-card">
+            <div class="total-label">Total gastado</div>
+            <div class="total-monto">$${fmt(totalGastado)}</div>
+        </div>
+
+        <div class="section-label">Balance por persona</div>
+        <div class="card">
+            ${participantesActuales.map(p => {
+                const bal = Math.round((balance[p.id] || 0) * 100) / 100;
+                const cls = bal > 0.01 ? 'text-positive' : bal < -0.01 ? 'text-negative' : '';
+                const etiqueta = bal > 0.01 ? 'le deben' : bal < -0.01 ? 'debe' : '✓ al día';
+                return `<div class="balance-item">
+                    <div class="avatar">${p.Name.charAt(0).toUpperCase()}</div>
+                    <div style="flex:1">
+                        <div style="font-weight:600">${escapeHtml(p.Name)}</div>
+                        <div class="text-muted">${etiqueta}</div>
+                    </div>
+                    <div class="${cls}" style="font-weight:800;font-size:16px">
+                        ${Math.abs(bal) > 0.01 ? '$' + fmt(Math.abs(bal)) : ''}
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>
+
+        <div class="section-label">Quién le paga a quién</div>
+        ${deudas.length ? `
+            <div class="card">
+                ${deudas.map(d => `
+                    <div class="deuda-row">
+                        <span class="badge badge-red">${escapeHtml(nombresMap[d.from])}</span>
+                        <span style="color:var(--muted)">→</span>
+                        <span class="badge badge-green">${escapeHtml(nombresMap[d.to])}</span>
+                        <span class="deuda-monto">$${fmt(d.amount)}</span>
+                    </div>
+                `).join('')}
+            </div>
+        ` : '<div class="alert alert-success">🎉 ¡Todos están al día! No hay deudas pendientes.</div>'}
+    `;
+}
+
+function simplificarDeudas(balance) {
+    const acreedores = [], deudores = [];
+    Object.entries(balance).forEach(([id, bal]) => {
+        if (bal > 0.01)  acreedores.push({ id: Number(id), amount: bal });
+        if (bal < -0.01) deudores.push({ id: Number(id), amount: -bal });
+    });
+    acreedores.sort((a, b) => b.amount - a.amount);
+    deudores.sort((a, b) => b.amount - a.amount);
+
+    const txs = [];
+    let i = 0, j = 0;
+    while (i < acreedores.length && j < deudores.length) {
+        const amt = Math.min(acreedores[i].amount, deudores[j].amount);
+        txs.push({ from: deudores[j].id, to: acreedores[i].id, amount: Math.round(amt * 100) / 100 });
+        acreedores[i].amount -= amt;
+        deudores[j].amount -= amt;
+        if (acreedores[i].amount < 0.01) i++;
+        if (deudores[j].amount < 0.01) j++;
+    }
+    return txs;
+}
+</script>
+</body>
+</html>

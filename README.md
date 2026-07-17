@@ -1,5 +1,3 @@
-# GastosToris
-Gastos del hogar Compartido
 # SplitApp — estructura multi-página
 
 ## Qué cambió
