@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SplitApp 💰</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -198,19 +199,7 @@
 <!-- SCREEN: GRUPOS -->
 <div id="screen-grupos" class="screen">
     <div class="container">
-        <div id="alert-sql" class="alert alert-info">
-            ⚠️ <strong>Paso previo en Supabase:</strong> Ejecutá este SQL en el SQL Editor antes de usar la app por primera vez:
-            <code>CREATE TABLE gastos_participantes (
-  id bigserial PRIMARY KEY,
-  id_gasto int8 REFERENCES gastos(id) ON DELETE CASCADE,
-  id_participante int8 REFERENCES participantes(id),
-  monto numeric NOT NULL
-);</code>
-            <button class="btn btn-ghost btn-sm mt-12" onclick="document.getElementById('alert-sql').style.display='none'">
-                ✓ Ya lo ejecuté
-            </button>
-        </div>
-        <div id="lista-grupos"><div class="loader">Cargando grupos...</div></div>
+<div id="lista-grupos"><div class="loader">Cargando grupos...</div></div>
         <button class="btn btn-primary btn-full mt-16" onclick="abrirModalGrupo()">＋ Nuevo Grupo</button>
     </div>
 </div>
@@ -570,15 +559,25 @@ async function crearGrupo() {
 
 async function eliminarGrupo(id, nombre) {
     if (!confirm(`¿Eliminar el grupo "${nombre}"?\nSe borrarán todos los gastos y participantes.`)) return;
+
     // Borrar en orden: splits → gastos → participantes → grupo
-    const { data: gastos } = await db.from('gastos').select('id').eq('id_grupo', id);
+    const { data: gastos, error: eg } = await db.from('gastos').select('id').eq('id_grupo', id);
+    if (eg) { alert('Error al leer gastos: ' + eg.message); return; }
+
     if (gastos?.length) {
-        await db.from('gastos_participantes').delete().in('id_gasto', gastos.map(g => g.id));
-        await db.from('gastos').delete().eq('id_grupo', id);
+        const { error: es } = await db.from('gastos_participantes').delete().in('id_gasto', gastos.map(g => g.id));
+        if (es) { alert('Error al borrar divisiones: ' + es.message); return; }
+
+        const { error: eg2 } = await db.from('gastos').delete().eq('id_grupo', id);
+        if (eg2) { alert('Error al borrar gastos: ' + eg2.message); return; }
     }
-    await db.from('participantes').delete().eq('id_grupo', id);
-    const { error } = await db.from('grupos').delete().eq('id', id);
-    if (error) { alert('Error al eliminar: ' + error.message); return; }
+
+    const { error: ep } = await db.from('participantes').delete().eq('id_grupo', id);
+    if (ep) { alert('Error al borrar participantes: ' + ep.message); return; }
+
+    const { error: egr } = await db.from('grupos').delete().eq('id', id);
+    if (egr) { alert('Error al borrar grupo: ' + egr.message); return; }
+
     cargarGrupos();
 }
 
