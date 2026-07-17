@@ -225,7 +225,10 @@
     <div class="container">
         <div id="tab-gastos" class="tab-content active">
             <div id="lista-gastos"><div class="loader">Cargando...</div></div>
-            <button class="btn btn-primary btn-full mt-16" onclick="abrirModalGasto()">＋ Agregar Gasto</button>
+            <div style="display:flex;gap:8px;margin-top:16px">
+                <button class="btn btn-primary btn-full" onclick="abrirModalGasto()">＋ Gasto</button>
+                <button class="btn btn-ghost btn-full" onclick="abrirModalReembolso()">🔄 Reembolso</button>
+            </div>
         </div>
         <div id="tab-participantes" class="tab-content">
             <div id="lista-participantes"><div class="loader">Cargando...</div></div>
@@ -271,6 +274,32 @@
             📧 Se le enviará un link al correo para que pueda ingresar a la app y ver los gastos del grupo.
         </div>
         <button class="btn btn-primary btn-full" onclick="agregarParticipante()">Agregar y Enviar Invitación</button>
+    </div>
+</div>
+
+<!-- MODAL: REEMBOLSO -->
+<div id="modal-reembolso" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>🔄 Registrar Reembolso</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-reembolso')">✕</button>
+        </div>
+        <div class="alert alert-info" style="margin-bottom:16px">
+            Registrá cuando alguien le devuelve plata a otro. Esto actualiza el balance automáticamente.
+        </div>
+        <div class="form-group">
+            <label>¿Quién pagó / devolvió?</label>
+            <select id="reembolso-de"></select>
+        </div>
+        <div class="form-group">
+            <label>¿A quién le pagó?</label>
+            <select id="reembolso-para"></select>
+        </div>
+        <div class="form-group">
+            <label>Monto ($)</label>
+            <input type="number" id="reembolso-monto" placeholder="0" step="1" min="0" />
+        </div>
+        <button class="btn btn-primary btn-full" onclick="guardarReembolso()">Registrar Reembolso</button>
     </div>
 </div>
 
@@ -331,7 +360,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let grupoActual = null;
 let participantesActuales = [];
 
-const TIPO_ICONO = { Comida:'🍽️', Transporte:'🚗', Alojamiento:'🏠', Entretenimiento:'🎉', Compras:'🛒', Otro:'📦' };
+const TIPO_ICONO = { Comida:'🍽️', Transporte:'🚗', Alojamiento:'🏠', Entretenimiento:'🎉', Compras:'🛒', Otro:'📦', Reembolso:'🔄' };
 
 // =============================================
 // AUTH
@@ -518,13 +547,13 @@ async function cargarGrupos() {
         return;
     }
     cont.innerHTML = data.map(g => `
-        <div class="card card-click" onclick='abrirGrupo(${JSON.stringify(g)})'>
-            <div class="card-body flex-between">
-                <div>
+        <div class="card" style="overflow:visible">
+            <div class="card-body flex-between" style="gap:10px">
+                <div class="card-click" style="flex:1;min-width:0" onclick='abrirGrupo(${JSON.stringify(g)})'>
                     <div style="font-weight:700;font-size:16px">${g.Nombre}</div>
                     <div class="text-muted">${new Date(g.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })}</div>
                 </div>
-                <span style="font-size:20px;color:var(--muted)">›</span>
+                <button class="btn btn-danger btn-sm" onclick="eliminarGrupo(${g.id}, '${g.Nombre.replace(/'/g,"\\'")}')">🗑</button>
             </div>
         </div>
     `).join('');
@@ -536,6 +565,20 @@ async function crearGrupo() {
     const { error } = await db.from('grupos').insert({ Nombre: nombre });
     if (error) { alert('Error: ' + error.message); return; }
     cerrarModal('modal-grupo');
+    cargarGrupos();
+}
+
+async function eliminarGrupo(id, nombre) {
+    if (!confirm(`¿Eliminar el grupo "${nombre}"?\nSe borrarán todos los gastos y participantes.`)) return;
+    // Borrar en orden: splits → gastos → participantes → grupo
+    const { data: gastos } = await db.from('gastos').select('id').eq('id_grupo', id);
+    if (gastos?.length) {
+        await db.from('gastos_participantes').delete().in('id_gasto', gastos.map(g => g.id));
+        await db.from('gastos').delete().eq('id_grupo', id);
+    }
+    await db.from('participantes').delete().eq('id_grupo', id);
+    const { error } = await db.from('grupos').delete().eq('id', id);
+    if (error) { alert('Error al eliminar: ' + error.message); return; }
     cargarGrupos();
 }
 
@@ -569,6 +612,14 @@ async function agregarParticipante() {
     const email  = document.getElementById('input-email-participante').value.trim().toLowerCase();
     if (!nombre) { alert('Ingresá un nombre.'); return; }
 
+    // Chequear duplicados
+    const nombreDup = participantesActuales.find(p => p.Name.toLowerCase() === nombre.toLowerCase());
+    if (nombreDup) { alert(`Ya existe un participante llamado "${nombre}" en este grupo.`); return; }
+    if (email) {
+        const emailDup = participantesActuales.find(p => p.email?.toLowerCase() === email);
+        if (emailDup) { alert(`El email ${email} ya está registrado en este grupo (${emailDup.Name}).`); return; }
+    }
+
     const payload = { id_grupo: grupoActual.id, Name: nombre };
     if (email) payload.email = email;
 
@@ -595,6 +646,56 @@ async function agregarParticipante() {
 }
 
 // =============================================
+// REEMBOLSOS
+// =============================================
+function abrirModalReembolso() {
+    if (participantesActuales.length < 2) {
+        alert('Necesitás al menos 2 personas en el grupo para registrar un reembolso.');
+        return;
+    }
+    const opts = participantesActuales.map(p => `<option value="${p.id}">${p.Name}</option>`).join('');
+    document.getElementById('reembolso-de').innerHTML = opts;
+    document.getElementById('reembolso-para').innerHTML = opts;
+    // Preseleccionar distinto
+    if (participantesActuales.length >= 2)
+        document.getElementById('reembolso-para').selectedIndex = 1;
+    document.getElementById('reembolso-monto').value = '';
+    abrirModal('modal-reembolso');
+    setTimeout(() => document.getElementById('reembolso-monto').focus(), 100);
+}
+
+async function guardarReembolso() {
+    const de    = parseInt(document.getElementById('reembolso-de').value);
+    const para  = parseInt(document.getElementById('reembolso-para').value);
+    const monto = parseFloat(document.getElementById('reembolso-monto').value);
+
+    if (de === para) { alert('La persona que paga y la que recibe no pueden ser la misma.'); return; }
+    if (!monto || monto <= 0) { alert('Ingresá un monto válido.'); return; }
+
+    const nombreDe   = participantesActuales.find(p => p.id === de)?.Name;
+    const nombrePara = participantesActuales.find(p => p.id === para)?.Name;
+
+    // Guardar como gasto especial: pagador = quien devuelve, split = quien recibe
+    const { data: gastoData, error: e1 } = await db.from('gastos').insert({
+        id_grupo: grupoActual.id,
+        id_pagador: de,
+        concepto: `Reembolso de ${nombreDe} a ${nombrePara}`,
+        monto,
+        tipo_gasto: 'Reembolso'
+    }).select().single();
+
+    if (e1) { alert('Error: ' + e1.message); return; }
+
+    const { error: e2 } = await db.from('gastos_participantes')
+        .insert({ id_gasto: gastoData.id, id_participante: para, monto });
+
+    if (e2) { alert('Error al guardar división: ' + e2.message); return; }
+
+    cerrarModal('modal-reembolso');
+    cargarGastos();
+}
+
+// =============================================
 // GASTOS
 // =============================================
 async function cargarGastos() {
@@ -609,23 +710,31 @@ async function cargarGastos() {
     }
     const pagMap = {};
     participantesActuales.forEach(p => pagMap[p.id] = p.Name);
-    const totalGrupo = data.reduce((acc, g) => acc + Number(g.monto), 0);
-    cont.innerHTML = `
-        <div class="total-card">
-            <div class="total-label">Total del grupo</div>
-            <div class="total-monto">$${fmt(totalGrupo)}</div>
-        </div>
-        ${data.map(g => `
-        <div class="card">
+    const gastos     = data.filter(g => g.tipo_gasto !== 'Reembolso');
+    const reembolsos = data.filter(g => g.tipo_gasto === 'Reembolso');
+    const totalGrupo = gastos.reduce((acc, g) => acc + Number(g.monto), 0);
+
+    const renderItem = g => {
+        const esReembolso = g.tipo_gasto === 'Reembolso';
+        return `
+        <div class="card" style="${esReembolso ? 'opacity:0.8' : ''}">
             <div class="gasto-item flex-between">
                 <div style="min-width:0">
                     <div class="gasto-concepto">${TIPO_ICONO[g.tipo_gasto] || '📦'} ${g.concepto}</div>
-                    <div class="gasto-meta">Pagó <strong>${pagMap[g.id_pagador] || '?'}</strong> · ${new Date(g.created_at).toLocaleDateString('es-AR')}</div>
+                    <div class="gasto-meta">${esReembolso ? '' : `Pagó <strong>${pagMap[g.id_pagador] || '?'}</strong> · `}${new Date(g.created_at).toLocaleDateString('es-AR')}</div>
                 </div>
-                <div class="gasto-monto" style="margin-left:12px">$${fmt(g.monto)}</div>
+                <div class="gasto-monto" style="margin-left:12px;${esReembolso ? 'color:var(--success)' : ''}">$${fmt(g.monto)}</div>
             </div>
+        </div>`;
+    };
+
+    cont.innerHTML = `
+        <div class="total-card">
+            <div class="total-label">Total gastado (sin reembolsos)</div>
+            <div class="total-monto">$${fmt(totalGrupo)}</div>
         </div>
-        `).join('')}
+        ${gastos.map(renderItem).join('')}
+        ${reembolsos.length ? `<div class="section-label" style="margin-top:16px">Reembolsos</div>${reembolsos.map(renderItem).join('')}` : ''}
     `;
 }
 
@@ -776,7 +885,10 @@ function simplificarDeudas(balance) {
 // UTILS
 // =============================================
 function fmt(n) {
-    return Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    // Formato ARS: separador de miles = punto, decimal = coma, sin decimales si es entero
+    const num = Number(n);
+    if (num % 1 === 0) return num.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    return num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 </script>
 </body>
