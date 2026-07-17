@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Los Toris</title>
+    <title>SplitApp 💰</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -162,6 +162,23 @@
         .total-card { background: var(--primary); color: white; border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
         .total-label { font-size: 12px; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px; }
         .total-monto { font-size: 32px; font-weight: 800; margin-top: 4px; }
+
+        /* LISTA COMPRAS */
+        .lista-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); transition: opacity 0.2s; }
+        .lista-item:last-child { border-bottom: none; }
+        .lista-item.comprado { opacity: 0.45; }
+        .lista-check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); background: white; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+        .lista-check.checked { background: var(--success); border-color: var(--success); color: white; font-size: 13px; }
+        .lista-nombre { flex: 1; font-size: 15px; font-weight: 500; }
+        .lista-nombre.tachado { text-decoration: line-through; color: var(--muted); }
+        .lista-cantidad { font-size: 13px; color: var(--muted); white-space: nowrap; }
+        .filter-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+        .filter-tab { flex: 1; padding: 8px; text-align: center; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); color: var(--muted); background: white; transition: all 0.15s; }
+        .filter-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .add-item-form { background: white; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); padding: 14px 16px; margin-top: 12px; }
+        .add-item-row { display: flex; gap: 8px; align-items: flex-end; }
+        .input-sm { padding: 8px 10px; font-size: 14px; }
+        .stats-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -170,8 +187,8 @@
 <div id="screen-login" class="screen">
     <div class="login-card">
         <div class="login-logo">💰</div>
-        <h1>Los Toris App</h1>
-        <p>Aguante Todo!!</p>
+        <h1>SplitApp</h1>
+        <p>Compartí gastos sin drama</p>
         <button class="btn-google" onclick="iniciarSesion()">
             <svg width="18" height="18" viewBox="0 0 48 48">
                 <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -188,10 +205,11 @@
 <div id="topbar" class="topbar hidden">
     <div class="topbar-left">
         <button id="btn-back" class="btn-icon hidden" onclick="volverAGrupos()">←</button>
-        <h1 id="topbar-title">Toris</h1>
+        <h1 id="topbar-title">💰 Mis Grupos</h1>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
         <span id="topbar-user" class="topbar-user"></span>
+        <button id="btn-lista" class="btn-icon" onclick="abrirLista()" title="Lista de compras">🛒</button>
         <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión">⎋</button>
     </div>
 </div>
@@ -263,6 +281,45 @@
             📧 Se le enviará un link al correo para que pueda ingresar a la app y ver los gastos del grupo.
         </div>
         <button class="btn btn-primary btn-full" onclick="agregarParticipante()">Agregar y Enviar Invitación</button>
+    </div>
+</div>
+
+<!-- SCREEN: LISTA DE COMPRAS -->
+<div id="screen-lista" class="screen">
+    <div class="container">
+        <div class="filter-tabs" id="lista-filters">
+            <div class="filter-tab active" onclick="setFiltro('pendientes')">Pendientes</div>
+            <div class="filter-tab" onclick="setFiltro('todos')">Todos</div>
+            <div class="filter-tab" onclick="setFiltro('comprados')">Comprados</div>
+        </div>
+        <div id="lista-stats" class="stats-row"></div>
+        <div id="lista-items" class="card"></div>
+
+        <div class="add-item-form mt-12">
+            <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Agregar ítem</div>
+            <div class="form-group" style="margin-bottom:8px">
+                <input type="text" id="lista-input-nombre" placeholder="Ej: Leche, Fideos, Jabón..." class="input-sm"
+                    onkeydown="if(event.key==='Enter') agregarItem()" />
+            </div>
+            <div class="add-item-row">
+                <input type="number" id="lista-input-cantidad" placeholder="Cant." class="input-sm" style="width:80px" min="0" step="0.5" />
+                <select id="lista-input-unidad" class="input-sm" style="flex:1">
+                    <option value="">sin unidad</option>
+                    <option value="kg">kg</option>
+                    <option value="g">g</option>
+                    <option value="L">L</option>
+                    <option value="ml">ml</option>
+                    <option value="u">u (unidades)</option>
+                    <option value="paq">paq</option>
+                    <option value="doc">docena</option>
+                </select>
+                <button class="btn btn-primary" onclick="agregarItem()" style="white-space:nowrap">＋ Agregar</button>
+            </div>
+        </div>
+
+        <button class="btn btn-ghost btn-full mt-12" id="btn-borrar-comprados" onclick="borrarComprados()" style="display:none;color:var(--danger);border-color:var(--danger)">
+            🗑 Borrar todos los comprados
+        </button>
     </div>
 </div>
 
@@ -420,6 +477,7 @@ function volverAGrupos() {
     participantesActuales = [];
     document.getElementById('topbar-title').textContent = '💰 Mis Grupos';
     document.getElementById('btn-back').classList.add('hidden');
+    document.getElementById('btn-lista').classList.remove('hidden');
     mostrarPantalla('grupos');
     cargarGrupos();
 }
@@ -878,6 +936,126 @@ function simplificarDeudas(balance) {
         if (deudores[j].amount < 0.01) j++;
     }
     return txs;
+}
+
+// =============================================
+// LISTA DE COMPRAS
+// =============================================
+let filtroLista = 'pendientes';
+let todosLosItems = [];
+
+function abrirLista() {
+    document.getElementById('topbar-title').textContent = '🛒 Lista de Compras';
+    document.getElementById('btn-back').classList.remove('hidden');
+    document.getElementById('btn-lista').classList.add('hidden');
+    mostrarPantalla('lista');
+    cargarLista();
+}
+
+function setFiltro(f) {
+    filtroLista = f;
+    document.querySelectorAll('.filter-tab').forEach((t, i) => {
+        t.classList.toggle('active', ['pendientes','todos','comprados'][i] === f);
+    });
+    renderLista();
+}
+
+async function cargarLista() {
+    const cont = document.getElementById('lista-items');
+    cont.innerHTML = '<div class="loader">Cargando...</div>';
+    const { data, error } = await db.from('lista_compras')
+        .select('*').order('comprado').order('created_at');
+    if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
+    todosLosItems = data || [];
+    renderLista();
+}
+
+function renderLista() {
+    const cont = document.getElementById('lista-items');
+    const pendientes = todosLosItems.filter(i => !i.comprado);
+    const comprados  = todosLosItems.filter(i => i.comprado);
+
+    let items;
+    if (filtroLista === 'pendientes') items = pendientes;
+    else if (filtroLista === 'comprados') items = comprados;
+    else items = [...pendientes, ...comprados];
+
+    // Stats
+    document.getElementById('lista-stats').innerHTML =
+        `<span>${pendientes.length} pendiente${pendientes.length !== 1 ? 's' : ''}</span>
+         <span>${comprados.length} comprado${comprados.length !== 1 ? 's' : ''}</span>`;
+
+    // Botón borrar comprados
+    document.getElementById('btn-borrar-comprados').style.display =
+        comprados.length > 0 ? 'flex' : 'none';
+
+    if (!items.length) {
+        const msgs = { pendientes: '✅ No hay ítems pendientes.', comprados: 'Sin ítems comprados todavía.', todos: '📋 La lista está vacía. Agregá algo.' };
+        cont.innerHTML = `<div class="empty" style="padding:24px"><span class="empty-icon">${filtroLista === 'pendientes' ? '✅' : '🛒'}</span>${msgs[filtroLista]}</div>`;
+        return;
+    }
+
+    cont.innerHTML = items.map(item => {
+        const cantStr = item.cantidad ? `${item.cantidad}${item.unidad ? ' ' + item.unidad : ''}` : '';
+        return `<div class="lista-item ${item.comprado ? 'comprado' : ''}" id="item-${item.id}">
+            <div class="lista-check ${item.comprado ? 'checked' : ''}" onclick="toggleItem(${item.id}, ${item.comprado})">
+                ${item.comprado ? '✓' : ''}
+            </div>
+            <div class="lista-nombre ${item.comprado ? 'tachado' : ''}">${item.nombre}</div>
+            ${cantStr ? `<div class="lista-cantidad">${cantStr}</div>` : ''}
+            <button onclick="borrarItem(${item.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;flex-shrink:0">✕</button>
+        </div>`;
+    }).join('');
+}
+
+async function agregarItem() {
+    const nombre   = document.getElementById('lista-input-nombre').value.trim();
+    const cantidad = parseFloat(document.getElementById('lista-input-cantidad').value) || null;
+    const unidad   = document.getElementById('lista-input-unidad').value || null;
+    if (!nombre) { document.getElementById('lista-input-nombre').focus(); return; }
+
+    const payload = { nombre, cantidad, unidad };
+    const { data, error } = await db.from('lista_compras').insert(payload).select().single();
+    if (error) { alert('Error: ' + error.message); return; }
+
+    // Limpiar form
+    document.getElementById('lista-input-nombre').value = '';
+    document.getElementById('lista-input-cantidad').value = '';
+    document.getElementById('lista-input-unidad').value = '';
+    document.getElementById('lista-input-nombre').focus();
+
+    todosLosItems = [data, ...todosLosItems];
+    // Reordenar: pendientes primero
+    todosLosItems.sort((a, b) => a.comprado - b.comprado || new Date(a.created_at) - new Date(b.created_at));
+    renderLista();
+}
+
+async function toggleItem(id, estaComprado) {
+    const nuevoEstado = !estaComprado;
+    const { error } = await db.from('lista_compras').update({
+        comprado: nuevoEstado,
+        comprado_at: nuevoEstado ? new Date().toISOString() : null
+    }).eq('id', id);
+    if (error) { alert('Error: ' + error.message); return; }
+    const item = todosLosItems.find(i => i.id === id);
+    if (item) { item.comprado = nuevoEstado; item.comprado_at = nuevoEstado ? new Date().toISOString() : null; }
+    renderLista();
+}
+
+async function borrarItem(id) {
+    const { error } = await db.from('lista_compras').delete().eq('id', id);
+    if (error) { alert('Error: ' + error.message); return; }
+    todosLosItems = todosLosItems.filter(i => i.id !== id);
+    renderLista();
+}
+
+async function borrarComprados() {
+    if (!confirm('¿Borrar todos los ítems comprados?')) return;
+    const ids = todosLosItems.filter(i => i.comprado).map(i => i.id);
+    const { error } = await db.from('lista_compras').delete().in('id', ids);
+    if (error) { alert('Error: ' + error.message); return; }
+    todosLosItems = todosLosItems.filter(i => !i.comprado);
+    renderLista();
 }
 
 // =============================================
