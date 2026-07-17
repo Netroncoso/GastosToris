@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App de Gastos</title>
+    <!-- Librería oficial de Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; text-align: center; padding: 20px; }
+        .oculto { display: none !important; }
+        .caja { background: white; padding: 40px 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 400px; margin: 50px auto; }
+        h2 { margin-top: 0; color: #333; }
+        button { background: #4285F4; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-top: 15px; transition: background 0.3s; }
+        button:hover { background: #357ae8; }
+        .logout-btn { background: #e74c3c; margin-top: 30px; }
+        .logout-btn:hover { background: #c0392b; }
+        .mensaje-estado { background: #e8f5e9; color: #2e7d32; padding: 10px; border-radius: 6px; margin-top: 20px; font-size: 14px; text-align: left; }
+    </style>
+</head>
+<body>
+
+    <!-- CAJA 1: PANTALLA DE INICIO DE SESIÓN -->
+    <div id="caja-login" class="caja">
+        <h2>💰 Mis Gastos</h2>
+        <p style="color: #666; margin-bottom: 25px;">Inicia sesión para registrar gastos</p>
+        <button onclick="iniciarSesion()">Continuar con Google</button>
+    </div>
+
+    <!-- CAJA 2: LA APLICACIÓN PRINCIPAL (Oculta al principio) -->
+    <div id="caja-app" class="caja oculto">
+        <h2>Hola, <span id="nombre-usuario">...</span> 👋</h2>
+        
+        <div id="contenido-app" class="mensaje-estado">
+            ⏳ Verificando conexión segura con la base de datos...
+        </div>
+
+        <button onclick="cerrarSesion()" class="logout-btn">Cerrar Sesión</button>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. CONFIGURACIÓN DE SUPABASE
+        // ==========================================
+        const SUPABASE_URL = 'TU_URL_AQUI';
+        const SUPABASE_KEY = 'TU_KEY_AQUI';
+        
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // ==========================================
+        // 2. REFERENCIAS A LA PANTALLA
+        // ==========================================
+        const cajaLogin = document.getElementById('caja-login');
+        const cajaApp = document.getElementById('caja-app');
+        const nombreUsuario = document.getElementById('nombre-usuario');
+
+        // ==========================================
+        // 3. LÓGICA DE INICIO Y CIERRE DE SESIÓN
+        // ==========================================
+        async function iniciarSesion() {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+            });
+            if (error) alert("Hubo un error al iniciar sesión.");
+        }
+
+        async function cerrarSesion() {
+            await supabase.auth.signOut();
+            mostrarLogin();
+        }
+
+        // ==========================================
+        // 4. MOTOR DE SESIONES (MAGIA SPA)
+        // ==========================================
+        async function verificarSesion() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                mostrarApp(session.user);
+            } else {
+                mostrarLogin();
+            }
+        }
+
+        // Escuchar cuando el usuario vuelve de Google
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN') mostrarApp(session.user);
+            if (event === 'SIGNED_OUT') mostrarLogin();
+        });
+
+        // ==========================================
+        // 5. FUNCIONES PARA CAMBIAR DE PANTALLA
+        // ==========================================
+        function mostrarLogin() {
+            cajaLogin.classList.remove('oculto');
+            cajaApp.classList.add('oculto');
+        }
+
+        function mostrarApp(usuario) {
+            cajaLogin.classList.add('oculto');
+            cajaApp.classList.remove('oculto');
+            // Extrae el nombre de Google o usa el correo si no hay nombre
+            nombreUsuario.textContent = usuario.user_metadata.full_name || usuario.email;
+            
+            // Probar que la base de datos permite leer
+            cargarDatosDePrueba();
+        }
+
+        // ==========================================
+        // 6. PRUEBA DE LECTURA (PARA VERIFICAR TU RLS)
+        // ==========================================
+        async function cargarDatosDePrueba() {
+            const contenido = document.getElementById('contenido-app');
+            
+            // Intentamos leer la tabla "grupos"
+            const { data, error } = await supabase.from('grupos').select('*');
+            
+            if (error) {
+                contenido.innerHTML = `<b>Error RLS:</b> No se pudieron leer los grupos. Revisa las reglas en Supabase.<br><br><small>${error.message}</small>`;
+                contenido.style.background = '#ffebee';
+                contenido.style.color = '#c62828';
+            } else {
+                contenido.innerHTML = `✅ <b>¡Conexión Perfecta!</b><br>El guardia de seguridad (RLS) autorizó tu sesión de Google y encontró <b>${data.length}</b> grupo(s) en tu base de datos.`;
+            }
+        }
+
+        // Arrancar la app
+        verificarSesion();
+    </script>
+</body>
+</html>
