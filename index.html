@@ -330,7 +330,11 @@ const TIPO_ICONO = { Comida:'🍽️', Transporte:'🚗', Alojamiento:'🏠', En
 // AUTH
 // =============================================
 async function iniciarSesion() {
-    const { error } = await db.auth.signInWithOAuth({ provider: 'google' });
+    const redirectTo = window.location.href.split('?')[0].split('#')[0];
+    const { error } = await db.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo }
+    });
     if (error) alert('Error al iniciar sesión: ' + error.message);
 }
 
@@ -734,3 +738,4 @@ function fmt(n) {
 </script>
 </body>
 </html>
+
