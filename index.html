@@ -263,7 +263,14 @@
             <label>Nombre</label>
             <input type="text" id="input-nombre-participante" placeholder="Ej: Martín" />
         </div>
-        <button class="btn btn-primary btn-full" onclick="agregarParticipante()">Agregar</button>
+        <div class="form-group">
+            <label>Email (opcional — para invitarla)</label>
+            <input type="email" id="input-email-participante" placeholder="martin@email.com" />
+        </div>
+        <div id="invite-info" class="alert alert-info" style="display:none">
+            📧 Se le enviará un link al correo para que pueda ingresar a la app y ver los gastos del grupo.
+        </div>
+        <button class="btn btn-primary btn-full" onclick="agregarParticipante()">Agregar y Enviar Invitación</button>
     </div>
 </div>
 
@@ -330,10 +337,9 @@ const TIPO_ICONO = { Comida:'🍽️', Transporte:'🚗', Alojamiento:'🏠', En
 // AUTH
 // =============================================
 async function iniciarSesion() {
-    const redirectTo = window.location.href.split('?')[0].split('#')[0];
     const { error } = await db.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo }
+        options: { redirectTo: 'https://netroncoso.github.io/GastosToris/' }
     });
     if (error) alert('Error al iniciar sesión: ' + error.message);
 }
@@ -414,9 +420,21 @@ function abrirModalGrupo() {
 
 function abrirModalParticipante() {
     document.getElementById('input-nombre-participante').value = '';
+    document.getElementById('input-email-participante').value = '';
+    document.getElementById('invite-info').style.display = 'none';
+    document.querySelector('#modal-participante .btn-primary').textContent = 'Agregar';
     abrirModal('modal-participante');
     setTimeout(() => document.getElementById('input-nombre-participante').focus(), 100);
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('input-email-participante').addEventListener('input', function() {
+        const tieneEmail = this.value.trim().length > 0;
+        document.getElementById('invite-info').style.display = tieneEmail ? 'block' : 'none';
+        document.querySelector('#modal-participante .btn-primary').textContent =
+            tieneEmail ? 'Agregar y Enviar Invitación' : 'Agregar';
+    });
+});
 
 function abrirModalGasto() {
     if (participantesActuales.length === 0) {
@@ -537,16 +555,41 @@ async function cargarParticipantes() {
     cont.innerHTML = `<div class="card">${data.map(p => `
         <div class="part-item">
             <div class="avatar">${p.Name.charAt(0).toUpperCase()}</div>
-            <div class="part-name">${p.Name}</div>
+            <div style="flex:1;min-width:0">
+                <div class="part-name">${p.Name}</div>
+                ${p.email ? `<div class="text-muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📧 ${p.email}</div>` : ''}
+            </div>
+            ${p.email ? '<span class="badge badge-green" style="font-size:11px">Invitado</span>' : ''}
         </div>
     `).join('')}</div>`;
 }
 
 async function agregarParticipante() {
     const nombre = document.getElementById('input-nombre-participante').value.trim();
+    const email  = document.getElementById('input-email-participante').value.trim().toLowerCase();
     if (!nombre) { alert('Ingresá un nombre.'); return; }
-    const { error } = await db.from('participantes').insert({ id_grupo: grupoActual.id, Name: nombre });
+
+    const payload = { id_grupo: grupoActual.id, Name: nombre };
+    if (email) payload.email = email;
+
+    const { error } = await db.from('participantes').insert(payload);
     if (error) { alert('Error: ' + error.message); return; }
+
+    if (email) {
+        const { error: inviteError } = await db.auth.signInWithOtp({
+            email,
+            options: {
+                emailRedirectTo: 'https://netroncoso.github.io/GastosToris/',
+                shouldCreateUser: true
+            }
+        });
+        if (inviteError) {
+            alert(`${nombre} fue agregado, pero hubo un error al enviar la invitación: ${inviteError.message}`);
+        } else {
+            alert(`✅ ${nombre} fue agregado y se le envió una invitación a ${email}.`);
+        }
+    }
+
     cerrarModal('modal-participante');
     cargarParticipantes();
 }
@@ -738,4 +781,3 @@ function fmt(n) {
 </script>
 </body>
 </html>
-
