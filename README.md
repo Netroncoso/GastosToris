@@ -2,23 +2,30 @@
 
 ## Qué cambió
 
-Se separó el HTML único en varios archivos, para que sea más fácil de mantener:
+Se separó el HTML único en varios archivos, para que sea más fácil de mantener. Esta versión NO usa subcarpetas — todos los archivos van sueltos, uno al lado del otro, para evitar problemas al subirlos por la web de GitHub:
 
 ```
-index.html          → Login + Dashboard (Gastos / Listas / Tareas)
-gastos.html          → Todo lo que ya tenías: grupos, participantes, splits, reembolsos, balance
-listas.html          → NUEVO: soporta múltiples listas (antes era una sola lista global)
-tareas.html          → NUEVO: sección de tareas con prioridad
-css/shared.css        → Todos los estilos compartidos
-js/supabase-client.js → Config de Supabase (URL + KEY), un solo lugar para cambiarla
-js/auth.js            → Verifica sesión en cada página interna y maneja logout
-js/utils.js           → fmt() y escapeHtml()
-migracion_multi_lista_y_tareas.sql → SQL para correr en Supabase
+index.html                          → Login + Dashboard (Gastos / Listas / Tareas)
+gastos.html                          → Todo lo que ya tenías: grupos, participantes, splits, reembolsos, balance
+listas.html                          → NUEVO: soporta múltiples listas (antes era una sola lista global)
+tareas.html                          → NUEVO: sección de tareas con prioridad
+shared.css                           → Todos los estilos compartidos
+supabase-client.js                   → Config de Supabase (URL + KEY), un solo lugar para cambiarla
+auth.js                              → Verifica sesión en cada página interna y maneja logout
+utils.js                             → fmt() y escapeHtml()
+migracion_multi_lista_y_tareas.sql   → SQL para correr en Supabase
 ```
+
+## Novedades (v2)
+
+- **Gastos**: ahora podés elegir la **fecha real en que ocurrió el gasto** (antes solo se guardaba la fecha en que lo cargabas). Se muestra y ordena por esa fecha.
+- **Tareas**: se agregó gestión de **Personas** (botón 👥 en la barra superior) para poder **asignar cada tarea a alguien**. Es un listado separado del de "Personas" de Gastos, porque Tareas no está atada a un grupo.
+
+Para que esto funcione, corré también `migracion_2_fecha_y_asignados.sql` en el SQL Editor de Supabase (además de la migración anterior, si no la corriste todavía).
 
 ## Pasos para subir
 
-1. **Subí todo tal cual está** (manteniendo la estructura de carpetas) a tu repo de GitHub, en la misma ubicación donde tenías el `index.html` original.
+1. **Subí TODOS estos archivos sueltos a la raíz de tu repo** (la misma carpeta donde tenías el `index.html` original) — no hace falta crear ninguna carpeta nueva, van todos al mismo nivel.
 2. **Corré el SQL** de `migracion_multi_lista_y_tareas.sql` en el SQL Editor de Supabase. Esto:
    - Crea la tabla `listas` (para tener varias listas: Supermercado, Viaje, etc.)
    - Agrega la columna `id_lista` a tu tabla `lista_compras` existente
