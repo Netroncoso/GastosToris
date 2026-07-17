@@ -3,128 +3,734 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>App de Gastos</title>
-    <!-- Librería oficial de Supabase -->
+    <title>SplitApp 💰</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; text-align: center; padding: 20px; }
-        .oculto { display: none !important; }
-        .caja { background: white; padding: 40px 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 400px; margin: 50px auto; }
-        h2 { margin-top: 0; color: #333; }
-        button { background: #4285F4; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-top: 15px; transition: background 0.3s; }
-        button:hover { background: #357ae8; }
-        .logout-btn { background: #e74c3c; margin-top: 30px; }
-        .logout-btn:hover { background: #c0392b; }
-        .mensaje-estado { background: #e8f5e9; color: #2e7d32; padding: 10px; border-radius: 6px; margin-top: 20px; font-size: 14px; text-align: left; }
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --danger: #ef4444;
+            --success: #16a34a;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        /* TOPBAR */
+        .topbar {
+            background: var(--primary); color: white; padding: 0 16px;
+            height: 54px; display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+        }
+        .topbar-left { display: flex; align-items: center; gap: 8px; }
+        .topbar h1 { font-size: 17px; font-weight: 700; }
+        .topbar-user { color: rgba(255,255,255,0.8); font-size: 13px; }
+        .btn-icon { background: rgba(255,255,255,0.18); border: none; border-radius: 8px;
+            color: white; cursor: pointer; font-size: 16px; padding: 6px 10px; transition: background 0.15s; }
+        .btn-icon:hover { background: rgba(255,255,255,0.3); }
+
+        /* SCREENS */
+        .screen { display: none; }
+        .screen.active { display: block; }
+        .container { max-width: 480px; margin: 0 auto; padding: 16px; }
+
+        /* LOGIN */
+        #screen-login {
+            display: none; justify-content: center; align-items: center;
+            min-height: 100vh; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        }
+        #screen-login.active { display: flex; }
+        .login-card { background: white; padding: 40px 32px; border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25); text-align: center; max-width: 340px; width: 90%; }
+        .login-logo { font-size: 52px; margin-bottom: 12px; }
+        .login-card h1 { font-size: 26px; font-weight: 800; margin-bottom: 6px; }
+        .login-card p { color: var(--muted); margin-bottom: 28px; }
+        .btn-google {
+            background: white; color: #374151; border: 1.5px solid var(--border);
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            padding: 13px 20px; border-radius: 10px; font-size: 15px; font-weight: 600;
+            cursor: pointer; width: 100%; transition: box-shadow 0.15s;
+        }
+        .btn-google:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.12); }
+
+        /* CARDS */
+        .card { background: var(--card); border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); margin-bottom: 10px; overflow: hidden; }
+        .card-click { cursor: pointer; transition: transform 0.12s, box-shadow 0.12s; }
+        .card-click:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .card-body { padding: 14px 16px; }
+
+        /* BUTTONS */
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px;
+            border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.15s; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-ghost { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
+        .btn-ghost:hover { background: #ede9fe; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-full { width: 100%; justify-content: center; }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+
+        /* FORMS */
+        .form-group { margin-bottom: 14px; }
+        label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+        input, select, textarea { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+            border-radius: 8px; font-size: 15px; color: var(--text); background: white; transition: border-color 0.15s; font-family: inherit; }
+        input:focus, select:focus { outline: none; border-color: var(--primary); }
+        input[type="number"] { -moz-appearance: textfield; }
+        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+        /* TABS */
+        .tabs { display: flex; background: white; border-bottom: 2px solid var(--border); position: sticky; top: 54px; z-index: 90; }
+        .tab { flex: 1; padding: 13px 8px; text-align: center; font-size: 14px; font-weight: 600;
+            color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* MODALS */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; justify-content: center; align-items: flex-end; }
+        .modal-overlay.open { display: flex; }
+        .modal { background: white; border-radius: 20px 20px 0 0; padding: 20px 20px 36px; width: 100%;
+            max-width: 480px; max-height: 92vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h3 { font-size: 18px; font-weight: 700; }
+        .modal-close { background: var(--border); border: none; border-radius: 50%; width: 28px; height: 28px;
+            cursor: pointer; font-size: 14px; color: var(--muted); display: flex; align-items: center; justify-content: center; }
+
+        /* BADGE */
+        .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+        .badge-green { background: #dcfce7; color: #15803d; }
+        .badge-red { background: #fee2e2; color: #b91c1c; }
+        .badge-blue { background: #dbeafe; color: #1d4ed8; }
+
+        /* ALERT */
+        .alert { padding: 11px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; line-height: 1.5; }
+        .alert-info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+        .alert-success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+        .alert-error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+        .alert code { display: block; margin-top: 8px; background: rgba(0,0,0,0.06); padding: 8px 10px;
+            border-radius: 6px; font-size: 11px; word-break: break-all; line-height: 1.6; }
+
+        /* UTILS */
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .text-muted { color: var(--muted); font-size: 13px; }
+        .text-positive { color: var(--success); }
+        .text-negative { color: var(--danger); }
+        .mt-12 { margin-top: 12px; }
+        .mt-16 { margin-top: 16px; }
+        .hidden { display: none !important; }
+        .section-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin: 18px 0 8px; }
+
+        /* EMPTY / LOADER */
+        .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+        .empty-icon { font-size: 42px; display: block; margin-bottom: 10px; }
+        .loader { text-align: center; padding: 32px; color: var(--muted); font-size: 14px; }
+
+        /* GASTO ITEM */
+        .gasto-item { padding: 14px 16px; }
+        .gasto-concepto { font-weight: 600; font-size: 15px; }
+        .gasto-meta { color: var(--muted); font-size: 12px; margin-top: 3px; }
+        .gasto-monto { font-size: 18px; font-weight: 800; white-space: nowrap; }
+
+        /* PARTICIPANTE ITEM */
+        .part-item { padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
+        .part-item:last-child { border-bottom: none; }
+        .avatar { width: 36px; height: 36px; border-radius: 50%; background: #ede9fe; color: var(--primary);
+            display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; flex-shrink: 0; }
+        .part-name { font-weight: 600; flex: 1; }
+
+        /* SPLIT */
+        .split-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .split-row:last-child { border-bottom: none; }
+        .split-name { flex: 1; font-size: 14px; font-weight: 500; }
+        .split-input { width: 110px; font-size: 14px; padding: 8px 10px; }
+        .split-total-row { display: flex; justify-content: flex-end; align-items: center; gap: 6px; font-size: 13px; margin-top: 8px; }
+
+        /* BALANCE */
+        .balance-item { padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
+        .balance-item:last-child { border-bottom: none; }
+        .deuda-row { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+        .deuda-row:last-child { border-bottom: none; }
+        .deuda-monto { margin-left: auto; font-weight: 800; font-size: 16px; }
+
+        /* TOTAL CARD */
+        .total-card { background: var(--primary); color: white; border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+        .total-label { font-size: 12px; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px; }
+        .total-monto { font-size: 32px; font-weight: 800; margin-top: 4px; }
     </style>
 </head>
 <body>
 
-    <!-- CAJA 1: PANTALLA DE INICIO DE SESIÓN -->
-    <div id="caja-login" class="caja">
-        <h2>💰 Mis Gastos</h2>
-        <p style="color: #666; margin-bottom: 25px;">Inicia sesión para registrar gastos</p>
-        <button onclick="iniciarSesion()">Continuar con Google</button>
+<!-- SCREEN: LOGIN -->
+<div id="screen-login" class="screen">
+    <div class="login-card">
+        <div class="login-logo">💰</div>
+        <h1>SplitApp</h1>
+        <p>Compartí gastos sin drama</p>
+        <button class="btn-google" onclick="iniciarSesion()">
+            <svg width="18" height="18" viewBox="0 0 48 48">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            Continuar con Google
+        </button>
     </div>
+</div>
 
-    <!-- CAJA 2: LA APLICACIÓN PRINCIPAL (Oculta al principio) -->
-    <div id="caja-app" class="caja oculto">
-        <h2>Hola, <span id="nombre-usuario">...</span> 👋</h2>
-        
-        <div id="contenido-app" class="mensaje-estado">
-            ⏳ Verificando conexión segura con la base de datos...
+<!-- TOPBAR -->
+<div id="topbar" class="topbar hidden">
+    <div class="topbar-left">
+        <button id="btn-back" class="btn-icon hidden" onclick="volverAGrupos()">←</button>
+        <h1 id="topbar-title">💰 Mis Grupos</h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+        <span id="topbar-user" class="topbar-user"></span>
+        <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión">⎋</button>
+    </div>
+</div>
+
+<!-- SCREEN: GRUPOS -->
+<div id="screen-grupos" class="screen">
+    <div class="container">
+        <div id="alert-sql" class="alert alert-info">
+            ⚠️ <strong>Paso previo en Supabase:</strong> Ejecutá este SQL en el SQL Editor antes de usar la app por primera vez:
+            <code>CREATE TABLE gastos_participantes (
+  id bigserial PRIMARY KEY,
+  id_gasto int8 REFERENCES gastos(id) ON DELETE CASCADE,
+  id_participante int8 REFERENCES participantes(id),
+  monto numeric NOT NULL
+);</code>
+            <button class="btn btn-ghost btn-sm mt-12" onclick="document.getElementById('alert-sql').style.display='none'">
+                ✓ Ya lo ejecuté
+            </button>
+        </div>
+        <div id="lista-grupos"><div class="loader">Cargando grupos...</div></div>
+        <button class="btn btn-primary btn-full mt-16" onclick="abrirModalGrupo()">＋ Nuevo Grupo</button>
+    </div>
+</div>
+
+<!-- SCREEN: GRUPO DETAIL -->
+<div id="screen-grupo" class="screen">
+    <div class="tabs">
+        <div class="tab active" onclick="cambiarTab('gastos')">💸 Gastos</div>
+        <div class="tab" onclick="cambiarTab('participantes')">👥 Personas</div>
+        <div class="tab" onclick="cambiarTab('balance')">⚖️ Balance</div>
+    </div>
+    <div class="container">
+        <div id="tab-gastos" class="tab-content active">
+            <div id="lista-gastos"><div class="loader">Cargando...</div></div>
+            <button class="btn btn-primary btn-full mt-16" onclick="abrirModalGasto()">＋ Agregar Gasto</button>
+        </div>
+        <div id="tab-participantes" class="tab-content">
+            <div id="lista-participantes"><div class="loader">Cargando...</div></div>
+            <button class="btn btn-ghost btn-full mt-16" onclick="abrirModalParticipante()">＋ Agregar Persona</button>
+        </div>
+        <div id="tab-balance" class="tab-content">
+            <div id="contenido-balance"><div class="loader">Calculando...</div></div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: NUEVO GRUPO -->
+<div id="modal-grupo" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Nuevo Grupo</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-grupo')">✕</button>
+        </div>
+        <div class="form-group">
+            <label>Nombre del grupo</label>
+            <input type="text" id="input-nombre-grupo" placeholder="Ej: Viaje a Bariloche" />
+        </div>
+        <button class="btn btn-primary btn-full" onclick="crearGrupo()">Crear Grupo</button>
+    </div>
+</div>
+
+<!-- MODAL: NUEVA PERSONA -->
+<div id="modal-participante" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Agregar Persona</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-participante')">✕</button>
+        </div>
+        <div class="form-group">
+            <label>Nombre</label>
+            <input type="text" id="input-nombre-participante" placeholder="Ej: Martín" />
+        </div>
+        <button class="btn btn-primary btn-full" onclick="agregarParticipante()">Agregar</button>
+    </div>
+</div>
+
+<!-- MODAL: NUEVO GASTO -->
+<div id="modal-gasto" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Agregar Gasto</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-gasto')">✕</button>
+        </div>
+        <div class="form-group">
+            <label>Concepto</label>
+            <input type="text" id="input-concepto" placeholder="Ej: Cena en restaurante" />
+        </div>
+        <div class="form-group">
+            <label>Monto total ($)</label>
+            <input type="number" id="input-monto" placeholder="0.00" step="0.01" min="0" oninput="actualizarTotalSplit()" />
+        </div>
+        <div class="form-group">
+            <label>Tipo</label>
+            <select id="input-tipo">
+                <option value="Comida">🍽️ Comida</option>
+                <option value="Transporte">🚗 Transporte</option>
+                <option value="Alojamiento">🏠 Alojamiento</option>
+                <option value="Entretenimiento">🎉 Entretenimiento</option>
+                <option value="Compras">🛒 Compras</option>
+                <option value="Otro">📦 Otro</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>¿Quién pagó?</label>
+            <select id="input-pagador"></select>
+        </div>
+        <div class="form-group">
+            <label>División por persona ($)</label>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+                <button class="btn btn-ghost btn-sm" onclick="repartirIgual()">Partes iguales</button>
+                <button class="btn btn-ghost btn-sm" onclick="limpiarSplit()">Limpiar</button>
+            </div>
+            <div id="split-container"></div>
+            <div id="split-total-row" class="split-total-row"></div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="guardarGasto()">Guardar Gasto</button>
+    </div>
+</div>
+
+<script>
+// =============================================
+// CONFIGURACIÓN
+// =============================================
+const SUPABASE_URL = 'https://cksdigyzhhhitgwtuiwi.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrc2RpZ3l6aGhoaXRnd3R1aXdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMTY3NDIsImV4cCI6MjA5OTc5Mjc0Mn0.jCr4U8NTUagesIH4K5wTxqS2Lq4M8a3nXRcIrKmCiqY';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// =============================================
+// ESTADO GLOBAL
+// =============================================
+let grupoActual = null;
+let participantesActuales = [];
+
+const TIPO_ICONO = { Comida:'🍽️', Transporte:'🚗', Alojamiento:'🏠', Entretenimiento:'🎉', Compras:'🛒', Otro:'📦' };
+
+// =============================================
+// AUTH
+// =============================================
+async function iniciarSesion() {
+    const { error } = await db.auth.signInWithOAuth({ provider: 'google' });
+    if (error) alert('Error al iniciar sesión: ' + error.message);
+}
+
+async function cerrarSesion() {
+    await db.auth.signOut();
+}
+
+db.auth.onAuthStateChange((event, session) => {
+    if (session) {
+        activarApp(session.user);
+    } else {
+        mostrarPantalla('login');
+        document.getElementById('topbar').classList.add('hidden');
+    }
+});
+
+async function activarApp(user) {
+    document.getElementById('topbar').classList.remove('hidden');
+    const nombre = (user.user_metadata.full_name || user.email).split(' ')[0];
+    document.getElementById('topbar-user').textContent = nombre;
+    mostrarPantalla('grupos');
+    volverAGrupos();
+}
+
+// Chequear sesión inicial
+db.auth.getSession().then(({ data: { session } }) => {
+    if (session) activarApp(session.user);
+    else mostrarPantalla('login');
+});
+
+// =============================================
+// NAVEGACIÓN
+// =============================================
+function mostrarPantalla(nombre) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + nombre).classList.add('active');
+}
+
+function cambiarTab(nombre) {
+    const tabs = ['gastos', 'participantes', 'balance'];
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', tabs[i] === nombre));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('tab-' + nombre).classList.add('active');
+    if (nombre === 'balance') calcularYMostrarBalance();
+}
+
+function abrirGrupo(grupo) {
+    grupoActual = grupo;
+    document.getElementById('topbar-title').textContent = grupo.Nombre;
+    document.getElementById('btn-back').classList.remove('hidden');
+    mostrarPantalla('grupo');
+    cambiarTab('gastos');
+    cargarParticipantes();
+    cargarGastos();
+}
+
+function volverAGrupos() {
+    grupoActual = null;
+    participantesActuales = [];
+    document.getElementById('topbar-title').textContent = '💰 Mis Grupos';
+    document.getElementById('btn-back').classList.add('hidden');
+    mostrarPantalla('grupos');
+    cargarGrupos();
+}
+
+// =============================================
+// MODALES
+// =============================================
+function abrirModal(id) { document.getElementById(id).classList.add('open'); }
+function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function abrirModalGrupo() {
+    document.getElementById('input-nombre-grupo').value = '';
+    abrirModal('modal-grupo');
+    setTimeout(() => document.getElementById('input-nombre-grupo').focus(), 100);
+}
+
+function abrirModalParticipante() {
+    document.getElementById('input-nombre-participante').value = '';
+    abrirModal('modal-participante');
+    setTimeout(() => document.getElementById('input-nombre-participante').focus(), 100);
+}
+
+function abrirModalGasto() {
+    if (participantesActuales.length === 0) {
+        alert('Primero agregá personas al grupo desde la pestaña "Personas".');
+        return;
+    }
+    document.getElementById('input-concepto').value = '';
+    document.getElementById('input-monto').value = '';
+    document.getElementById('input-tipo').value = 'Comida';
+
+    const sel = document.getElementById('input-pagador');
+    sel.innerHTML = participantesActuales.map(p => `<option value="${p.id}">${p.Name}</option>`).join('');
+
+    renderSplitContainer();
+    document.getElementById('split-total-row').innerHTML = '';
+    abrirModal('modal-gasto');
+    setTimeout(() => document.getElementById('input-concepto').focus(), 100);
+}
+
+// =============================================
+// SPLIT
+// =============================================
+function renderSplitContainer() {
+    document.getElementById('split-container').innerHTML = participantesActuales.map(p => `
+        <div class="split-row">
+            <div class="split-name">${p.Name}</div>
+            <input type="number" class="split-input" id="split-${p.id}"
+                placeholder="$0.00" step="0.01" min="0" oninput="actualizarTotalSplit()" />
+        </div>
+    `).join('');
+}
+
+function repartirIgual() {
+    const monto = parseFloat(document.getElementById('input-monto').value) || 0;
+    const n = participantesActuales.length;
+    if (!monto || n === 0) return;
+    // Repartir y ajustar el centavo sobrante al primero
+    const base = Math.floor((monto / n) * 100) / 100;
+    const resto = Math.round((monto - base * n) * 100) / 100;
+    participantesActuales.forEach((p, i) => {
+        const input = document.getElementById('split-' + p.id);
+        if (input) input.value = i === 0 ? (base + resto).toFixed(2) : base.toFixed(2);
+    });
+    actualizarTotalSplit();
+}
+
+function limpiarSplit() {
+    participantesActuales.forEach(p => {
+        const input = document.getElementById('split-' + p.id);
+        if (input) input.value = '';
+    });
+    document.getElementById('split-total-row').innerHTML = '';
+}
+
+function actualizarTotalSplit() {
+    const monto = parseFloat(document.getElementById('input-monto').value) || 0;
+    let total = 0;
+    participantesActuales.forEach(p => {
+        total += parseFloat(document.getElementById('split-' + p.id)?.value || 0);
+    });
+    total = Math.round(total * 100) / 100;
+    const row = document.getElementById('split-total-row');
+    if (!monto) { row.innerHTML = ''; return; }
+    const diff = Math.round((total - monto) * 100) / 100;
+    const ok = Math.abs(diff) < 0.02;
+    row.innerHTML = ok
+        ? `<span style="color:var(--success);font-weight:600">✓ Total: $${fmt(total)}</span>`
+        : `<span style="color:var(--danger)">Total: $${fmt(total)} · ${diff > 0 ? '+' : ''}$${fmt(diff)}</span>`;
+}
+
+// =============================================
+// GRUPOS
+// =============================================
+async function cargarGrupos() {
+    const cont = document.getElementById('lista-grupos');
+    cont.innerHTML = '<div class="loader">Cargando grupos...</div>';
+    const { data, error } = await db.from('grupos').select('*').order('created_at', { ascending: false });
+    if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}</div>`; return; }
+    if (!data?.length) {
+        cont.innerHTML = `<div class="empty"><span class="empty-icon">🏠</span>Sin grupos todavía.<br>Creá uno para empezar.</div>`;
+        return;
+    }
+    cont.innerHTML = data.map(g => `
+        <div class="card card-click" onclick='abrirGrupo(${JSON.stringify(g)})'>
+            <div class="card-body flex-between">
+                <div>
+                    <div style="font-weight:700;font-size:16px">${g.Nombre}</div>
+                    <div class="text-muted">${new Date(g.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })}</div>
+                </div>
+                <span style="font-size:20px;color:var(--muted)">›</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function crearGrupo() {
+    const nombre = document.getElementById('input-nombre-grupo').value.trim();
+    if (!nombre) { alert('Ingresá un nombre.'); return; }
+    const { error } = await db.from('grupos').insert({ Nombre: nombre });
+    if (error) { alert('Error: ' + error.message); return; }
+    cerrarModal('modal-grupo');
+    cargarGrupos();
+}
+
+// =============================================
+// PARTICIPANTES
+// =============================================
+async function cargarParticipantes() {
+    const { data, error } = await db.from('participantes')
+        .select('*').eq('id_grupo', grupoActual.id).order('id');
+    participantesActuales = data || [];
+    const cont = document.getElementById('lista-participantes');
+    if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
+    if (!data?.length) {
+        cont.innerHTML = `<div class="empty"><span class="empty-icon">👥</span>Sin personas todavía.<br>Agregá a quienes comparten los gastos.</div>`;
+        return;
+    }
+    cont.innerHTML = `<div class="card">${data.map(p => `
+        <div class="part-item">
+            <div class="avatar">${p.Name.charAt(0).toUpperCase()}</div>
+            <div class="part-name">${p.Name}</div>
+        </div>
+    `).join('')}</div>`;
+}
+
+async function agregarParticipante() {
+    const nombre = document.getElementById('input-nombre-participante').value.trim();
+    if (!nombre) { alert('Ingresá un nombre.'); return; }
+    const { error } = await db.from('participantes').insert({ id_grupo: grupoActual.id, Name: nombre });
+    if (error) { alert('Error: ' + error.message); return; }
+    cerrarModal('modal-participante');
+    cargarParticipantes();
+}
+
+// =============================================
+// GASTOS
+// =============================================
+async function cargarGastos() {
+    const cont = document.getElementById('lista-gastos');
+    cont.innerHTML = '<div class="loader">Cargando gastos...</div>';
+    const { data, error } = await db.from('gastos')
+        .select('*').eq('id_grupo', grupoActual.id).order('created_at', { ascending: false });
+    if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
+    if (!data?.length) {
+        cont.innerHTML = `<div class="empty"><span class="empty-icon">💸</span>Sin gastos todavía.<br>Agregá el primero.</div>`;
+        return;
+    }
+    const pagMap = {};
+    participantesActuales.forEach(p => pagMap[p.id] = p.Name);
+    const totalGrupo = data.reduce((acc, g) => acc + Number(g.monto), 0);
+    cont.innerHTML = `
+        <div class="total-card">
+            <div class="total-label">Total del grupo</div>
+            <div class="total-monto">$${fmt(totalGrupo)}</div>
+        </div>
+        ${data.map(g => `
+        <div class="card">
+            <div class="gasto-item flex-between">
+                <div style="min-width:0">
+                    <div class="gasto-concepto">${TIPO_ICONO[g.tipo_gasto] || '📦'} ${g.concepto}</div>
+                    <div class="gasto-meta">Pagó <strong>${pagMap[g.id_pagador] || '?'}</strong> · ${new Date(g.created_at).toLocaleDateString('es-AR')}</div>
+                </div>
+                <div class="gasto-monto" style="margin-left:12px">$${fmt(g.monto)}</div>
+            </div>
+        </div>
+        `).join('')}
+    `;
+}
+
+async function guardarGasto() {
+    const concepto = document.getElementById('input-concepto').value.trim();
+    const monto    = parseFloat(document.getElementById('input-monto').value);
+    const tipo     = document.getElementById('input-tipo').value;
+    const pagador  = parseInt(document.getElementById('input-pagador').value);
+
+    if (!concepto) { alert('Ingresá un concepto.'); return; }
+    if (!monto || monto <= 0) { alert('Ingresá un monto válido.'); return; }
+
+    const splits = [];
+    let totalSplit = 0;
+    participantesActuales.forEach(p => {
+        const val = parseFloat(document.getElementById('split-' + p.id)?.value || 0);
+        if (val > 0) { splits.push({ id_participante: p.id, monto: val }); totalSplit += val; }
+    });
+
+    if (!splits.length) { alert('Distribuí el gasto entre las personas.'); return; }
+    if (Math.abs(totalSplit - monto) > 0.02) {
+        alert(`La suma de la división ($${fmt(totalSplit)}) no coincide con el monto ($${fmt(monto)}).`);
+        return;
+    }
+
+    // Insertar gasto
+    const { data: gastoData, error: e1 } = await db.from('gastos').insert({
+        id_grupo: grupoActual.id, id_pagador: pagador, concepto, monto, tipo_gasto: tipo
+    }).select().single();
+
+    if (e1) { alert('Error al guardar gasto: ' + e1.message); return; }
+
+    // Insertar splits
+    const { error: e2 } = await db.from('gastos_participantes')
+        .insert(splits.map(s => ({ ...s, id_gasto: gastoData.id })));
+
+    if (e2) alert('Gasto guardado, pero error en la división: ' + e2.message + '\n¿Ejecutaste el SQL de configuración?');
+
+    cerrarModal('modal-gasto');
+    cargarGastos();
+}
+
+// =============================================
+// BALANCE
+// =============================================
+async function calcularYMostrarBalance() {
+    const cont = document.getElementById('contenido-balance');
+    cont.innerHTML = '<div class="loader">Calculando balances...</div>';
+
+    if (!participantesActuales.length) {
+        cont.innerHTML = `<div class="empty"><span class="empty-icon">👥</span>Primero agregá personas al grupo.</div>`;
+        return;
+    }
+
+    const { data: gastos, error: e1 } = await db.from('gastos')
+        .select('id, id_pagador, monto').eq('id_grupo', grupoActual.id);
+    if (e1) { cont.innerHTML = `<div class="alert alert-error">${e1.message}</div>`; return; }
+
+    if (!gastos?.length) {
+        cont.innerHTML = `<div class="empty"><span class="empty-icon">⚖️</span>Sin gastos para calcular.</div>`;
+        return;
+    }
+
+    const { data: splits, error: e2 } = await db.from('gastos_participantes')
+        .select('id_gasto, id_participante, monto')
+        .in('id_gasto', gastos.map(g => g.id));
+    if (e2) {
+        cont.innerHTML = `<div class="alert alert-error">Error al leer divisiones: ${e2.message}<br>¿Ejecutaste el SQL de configuración?</div>`;
+        return;
+    }
+
+    // Calcular balance neto
+    const balance = {};
+    participantesActuales.forEach(p => balance[p.id] = 0);
+    gastos.forEach(g => { balance[g.id_pagador] = (balance[g.id_pagador] || 0) + Number(g.monto); });
+    (splits || []).forEach(s => { balance[s.id_participante] = (balance[s.id_participante] || 0) - Number(s.monto); });
+
+    const nombresMap = {};
+    participantesActuales.forEach(p => nombresMap[p.id] = p.Name);
+
+    const totalGastado = gastos.reduce((acc, g) => acc + Number(g.monto), 0);
+    const deudas = simplificarDeudas(balance);
+
+    cont.innerHTML = `
+        <div class="total-card">
+            <div class="total-label">Total gastado</div>
+            <div class="total-monto">$${fmt(totalGastado)}</div>
         </div>
 
-        <button onclick="cerrarSesion()" class="logout-btn">Cerrar Sesión</button>
-    </div>
+        <div class="section-label">Balance por persona</div>
+        <div class="card">
+            ${participantesActuales.map(p => {
+                const bal = Math.round((balance[p.id] || 0) * 100) / 100;
+                const cls = bal > 0.01 ? 'text-positive' : bal < -0.01 ? 'text-negative' : '';
+                const etiqueta = bal > 0.01 ? 'le deben' : bal < -0.01 ? 'debe' : '✓ al día';
+                return `<div class="balance-item">
+                    <div class="avatar">${p.Name.charAt(0).toUpperCase()}</div>
+                    <div style="flex:1">
+                        <div style="font-weight:600">${p.Name}</div>
+                        <div class="text-muted">${etiqueta}</div>
+                    </div>
+                    <div class="${cls}" style="font-weight:800;font-size:16px">
+                        ${Math.abs(bal) > 0.01 ? '$' + fmt(Math.abs(bal)) : ''}
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>
 
-    <script>
-        // ==========================================
-        // 1. CONFIGURACIÓN DE SUPABASE
-        // ==========================================
-        const SUPABASE_URL = 'https://cksdigyzhhhitgwtuiwi.supabase.co/rest/v1/';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrc2RpZ3l6aGhoaXRnd3R1aXdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMTY3NDIsImV4cCI6MjA5OTc5Mjc0Mn0.jCr4U8NTUagesIH4K5wTxqS2Lq4M8a3nXRcIrKmCiqY';
-        
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        <div class="section-label">Quién le paga a quién</div>
+        ${deudas.length ? `
+            <div class="card">
+                ${deudas.map(d => `
+                    <div class="deuda-row">
+                        <span class="badge badge-red">${nombresMap[d.from]}</span>
+                        <span style="color:var(--muted)">→</span>
+                        <span class="badge badge-green">${nombresMap[d.to]}</span>
+                        <span class="deuda-monto">$${fmt(d.amount)}</span>
+                    </div>
+                `).join('')}
+            </div>
+        ` : '<div class="alert alert-success">🎉 ¡Todos están al día! No hay deudas pendientes.</div>'}
+    `;
+}
 
-        // ==========================================
-        // 2. REFERENCIAS A LA PANTALLA
-        // ==========================================
-        const cajaLogin = document.getElementById('caja-login');
-        const cajaApp = document.getElementById('caja-app');
-        const nombreUsuario = document.getElementById('nombre-usuario');
+function simplificarDeudas(balance) {
+    const acreedores = [], deudores = [];
+    Object.entries(balance).forEach(([id, bal]) => {
+        if (bal > 0.01)  acreedores.push({ id: Number(id), amount: bal });
+        if (bal < -0.01) deudores.push({ id: Number(id), amount: -bal });
+    });
+    acreedores.sort((a, b) => b.amount - a.amount);
+    deudores.sort((a, b) => b.amount - a.amount);
 
-        // ==========================================
-        // 3. LÓGICA DE INICIO Y CIERRE DE SESIÓN
-        // ==========================================
-        async function iniciarSesion() {
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-            });
-            if (error) alert("Hubo un error al iniciar sesión.");
-        }
+    const txs = [];
+    let i = 0, j = 0;
+    while (i < acreedores.length && j < deudores.length) {
+        const amt = Math.min(acreedores[i].amount, deudores[j].amount);
+        txs.push({ from: deudores[j].id, to: acreedores[i].id, amount: Math.round(amt * 100) / 100 });
+        acreedores[i].amount -= amt;
+        deudores[j].amount -= amt;
+        if (acreedores[i].amount < 0.01) i++;
+        if (deudores[j].amount < 0.01) j++;
+    }
+    return txs;
+}
 
-        async function cerrarSesion() {
-            await supabase.auth.signOut();
-            mostrarLogin();
-        }
-
-        // ==========================================
-        // 4. MOTOR DE SESIONES (MAGIA SPA)
-        // ==========================================
-        async function verificarSesion() {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                mostrarApp(session.user);
-            } else {
-                mostrarLogin();
-            }
-        }
-
-        // Escuchar cuando el usuario vuelve de Google
-        supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN') mostrarApp(session.user);
-            if (event === 'SIGNED_OUT') mostrarLogin();
-        });
-
-        // ==========================================
-        // 5. FUNCIONES PARA CAMBIAR DE PANTALLA
-        // ==========================================
-        function mostrarLogin() {
-            cajaLogin.classList.remove('oculto');
-            cajaApp.classList.add('oculto');
-        }
-
-        function mostrarApp(usuario) {
-            cajaLogin.classList.add('oculto');
-            cajaApp.classList.remove('oculto');
-            // Extrae el nombre de Google o usa el correo si no hay nombre
-            nombreUsuario.textContent = usuario.user_metadata.full_name || usuario.email;
-            
-            // Probar que la base de datos permite leer
-            cargarDatosDePrueba();
-        }
-
-        // ==========================================
-        // 6. PRUEBA DE LECTURA (PARA VERIFICAR TU RLS)
-        // ==========================================
-        async function cargarDatosDePrueba() {
-            const contenido = document.getElementById('contenido-app');
-            
-            // Intentamos leer la tabla "grupos"
-            const { data, error } = await supabase.from('grupos').select('*');
-            
-            if (error) {
-                contenido.innerHTML = `<b>Error RLS:</b> No se pudieron leer los grupos. Revisa las reglas en Supabase.<br><br><small>${error.message}</small>`;
-                contenido.style.background = '#ffebee';
-                contenido.style.color = '#c62828';
-            } else {
-                contenido.innerHTML = `✅ <b>¡Conexión Perfecta!</b><br>El guardia de seguridad (RLS) autorizó tu sesión de Google y encontró <b>${data.length}</b> grupo(s) en tu base de datos.`;
-            }
-        }
-
-        // Arrancar la app
-        verificarSesion();
-    </script>
+// =============================================
+// UTILS
+// =============================================
+function fmt(n) {
+    return Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+</script>
 </body>
 </html>
