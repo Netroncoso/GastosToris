@@ -123,6 +123,7 @@
 // =============================================
 let grupoActual = null;
 let personasTareas = [];
+let grupoEditando = null;
 let filtroTareas = 'pendientes';
 let todasLasTareas = [];
 let listasDisponibles = [];
@@ -181,10 +182,19 @@ function volverAGrupos() {
 function abrirModal(id) { document.getElementById(id).classList.add('open'); }
 function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
 
-function abrirModalGrupo() {
-    document.getElementById('input-nombre-grupo').value = '';
+function abrirModalGrupo(grupo = null) {
+    grupoEditando = grupo;
+    document.getElementById('input-nombre-grupo').value = grupo ? grupo.nombre : '';
+    document.querySelector('#modal-grupo .modal-header h3').textContent = grupo ? 'Editar Grupo de Tareas' : 'Nuevo Grupo de Tareas';
+    document.querySelector('#modal-grupo .btn-primary').textContent = grupo ? 'Actualizar Grupo' : 'Crear Grupo';
     abrirModal('modal-grupo');
     setTimeout(() => document.getElementById('input-nombre-grupo').focus(), 100);
+}
+
+async function editarGrupo(id) {
+    const grupo = await db.from('grupos_tareas').select('*').eq('id', id).single();
+    if (grupo.error) { alert('Error: ' + grupo.error.message); return; }
+    abrirModalGrupo(grupo.data);
 }
 
 // =============================================
@@ -206,7 +216,10 @@ async function cargarGrupos() {
                     <div style="font-weight:700;font-size:16px">${escapeHtml(g.nombre)}</div>
                     <div class="text-muted">${new Date(g.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })}</div>
                 </div>
-                <button class="btn btn-danger btn-sm" onclick="eliminarGrupo(${g.id}, '${g.nombre.replace(/'/g,"\\'")}')"><span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/trash.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/trash.svg)"></span></button>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <button class="btn btn-ghost btn-sm" onclick="editarGrupo(${g.id})" title="Editar grupo">${icon('pencil-square',16)}</button>
+                    <button class="btn btn-danger btn-sm" onclick="eliminarGrupo(${g.id}, '${g.nombre.replace(/'/g,"\\'")}')" title="Eliminar grupo">${icon('trash',16)}</button>
+                </div>
             </div>
         </div>
     `).join('');
@@ -215,8 +228,20 @@ async function cargarGrupos() {
 async function crearGrupo() {
     const nombre = document.getElementById('input-nombre-grupo').value.trim();
     if (!nombre) { alert('Ingresá un nombre.'); return; }
-    const { error } = await db.from('grupos_tareas').insert({ nombre });
-    if (error) { alert('Error: ' + error.message); return; }
+    const userId = await getCurrentUserId();
+    if (!userId) { alert('No se encontró el usuario actual. Volvé a iniciar sesión.'); return; }
+
+    if (grupoEditando) {
+        const { error } = await db.from('grupos_tareas').update({ nombre }).eq('id', grupoEditando.id);
+        if (error) { alert('Error al actualizar grupo: ' + error.message); return; }
+        grupoEditando = null;
+    } else {
+        const { data, error } = await db.from('grupos_tareas').insert({ nombre }).select().single();
+        if (error) { alert('Error: ' + error.message); return; }
+        const { error: em } = await db.from('grupos_tareas_miembros').insert({ id_grupo_tareas: data.id, user_id: userId });
+        if (em) { alert('Grupo creado, pero no se pudo guardar la membresía: ' + em.message); }
+    }
+
     cerrarModal('modal-grupo');
     cargarGrupos();
 }
