@@ -29,6 +29,19 @@ async function getCurrentUserId() {
     return session?.user?.id || null;
 }
 
+async function getCurrentUser() {
+    const { data: { session } } = await db.auth.getSession();
+    return session?.user || null;
+}
+
+function getDisplayNameFromUser(user) {
+    if (!user) return 'Usuario';
+    const fullName = user.user_metadata?.full_name || user.email || '';
+    const namePart = fullName.split(' ')[0].trim();
+    if (namePart) return namePart;
+    return user.email?.split('@')[0] || 'Usuario';
+}
+
 // =============================================
 // ÍCONOS (Heroicons vía CDN, coloreados con currentColor usando CSS mask)
 // =============================================

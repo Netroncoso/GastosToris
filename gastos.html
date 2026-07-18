@@ -188,9 +188,31 @@ let grupoEditando = null;
 
 const TIPO_ICONO = { Comida: icon('cake',16), Transporte: icon('truck',16), Alojamiento: icon('home',16), Entretenimiento: icon('film',16), Compras: icon('shopping-cart',16), Otro: icon('archive-box',16), Reembolso: icon('arrow-path',16) };
 
-requireAuth(() => {
+requireAuth(async () => {
+    await syncInvitadosGastos();
     cargarGrupos();
 });
+
+// =============================================
+// SINCRONIZACIÓN DE INVITADOS
+async function syncInvitadosGastos() {
+    const user = await getCurrentUser();
+    if (!user?.email || !user.id) return;
+
+    const { data, error } = await db.from('participantes')
+        .select('id_grupo')
+        .eq('email', user.email);
+    if (error) return;
+
+    const grupos = [...new Set((data || []).map(p => p.id_grupo))];
+    for (const id_grupo of grupos) {
+        const { error: em } = await db.from('grupos_miembros')
+            .insert({ id_grupo, user_id: user.id });
+        if (em && !em.message?.includes('duplicate')) {
+            console.warn('No se pudo sincronizar membresía invitada:', em.message);
+        }
+    }
+}
 
 // =============================================
 // NAVEGACIÓN
@@ -430,10 +452,19 @@ async function crearGrupo() {
         if (error) { alert('Error: ' + error.message); return; }
         const { error: em } = await db.from('grupos_miembros').insert({ id_grupo: data.id, user_id: userId });
         if (em) { alert('Grupo creado, pero no se pudo guardar la membresía: ' + em.message); }
-    }
 
-    cerrarModal('modal-grupo');
-    cargarGrupos();
+        const user = await getCurrentUser();
+        if (user?.email) {
+            const { error: ep } = await db.from('participantes').insert({
+                id_grupo: data.id,
+                Name: getDisplayNameFromUser(user),
+                email: user.email
+            });
+            if (ep) {
+                console.warn('No se pudo agregar al creador como persona:', ep.message);
+            }
+        }
+    }
 }
 
 async function eliminarGrupo(id, nombre) {
