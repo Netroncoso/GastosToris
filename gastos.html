@@ -36,6 +36,7 @@
         <div class="tab active" onclick="cambiarTab('gastos')">💸 Gastos</div>
         <div class="tab" onclick="cambiarTab('participantes')">👥 Personas</div>
         <div class="tab" onclick="cambiarTab('balance')">⚖️ Balance</div>
+        <div class="tab" onclick="cambiarTab('resumen')">📊 Resumen</div>
     </div>
     <div class="container">
         <div id="tab-gastos" class="tab-content active">
@@ -51,6 +52,9 @@
         </div>
         <div id="tab-balance" class="tab-content">
             <div id="contenido-balance"><div class="loader">Calculando...</div></div>
+        </div>
+        <div id="tab-resumen" class="tab-content">
+            <div id="contenido-resumen"><div class="loader">Calculando...</div></div>
         </div>
     </div>
 </div>
@@ -194,11 +198,12 @@ function mostrarPantalla(nombre) {
 }
 
 function cambiarTab(nombre) {
-    const tabs = ['gastos', 'participantes', 'balance'];
+    const tabs = ['gastos', 'participantes', 'balance', 'resumen'];
     document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', tabs[i] === nombre));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.getElementById('tab-' + nombre).classList.add('active');
     if (nombre === 'balance') calcularYMostrarBalance();
+    if (nombre === 'resumen') calcularYMostrarResumen();
 }
 
 function abrirGrupo(grupo) {
@@ -680,6 +685,58 @@ function simplificarDeudas(balance) {
         if (deudores[j].amount < 0.01) j++;
     }
     return txs;
+}
+
+// =============================================
+// RESUMEN POR TIPO DE GASTO (todo el grupo, sin filtrar por fecha)
+// =============================================
+async function calcularYMostrarResumen() {
+    const cont = document.getElementById('contenido-resumen');
+    cont.innerHTML = '<div class="loader">Calculando resumen...</div>';
+
+    const { data: gastos, error } = await db.from('gastos')
+        .select('monto, tipo_gasto')
+        .eq('id_grupo', grupoActual.id)
+        .neq('tipo_gasto', 'Reembolso');
+
+    if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
+
+    if (!gastos?.length) {
+        cont.innerHTML = `<div class="empty"><span class="empty-icon">📊</span>Sin gastos para resumir todavía.</div>`;
+        return;
+    }
+
+    const total = gastos.reduce((acc, g) => acc + Number(g.monto), 0);
+
+    const porTipo = {};
+    gastos.forEach(g => {
+        const tipo = g.tipo_gasto || 'Otro';
+        porTipo[tipo] = (porTipo[tipo] || 0) + Number(g.monto);
+    });
+
+    const filas = Object.entries(porTipo)
+        .map(([tipo, monto]) => ({ tipo, monto, pct: total > 0 ? (monto / total) * 100 : 0 }))
+        .sort((a, b) => b.monto - a.monto);
+
+    cont.innerHTML = `
+        <div class="total-card">
+            <div class="total-label">Total gastado (sin reembolsos)</div>
+            <div class="total-monto">$${fmt(total)}</div>
+        </div>
+        <div class="card" style="padding:16px">
+            ${filas.map(f => `
+                <div class="progress-row">
+                    <div class="progress-label-row">
+                        <span>${TIPO_ICONO[f.tipo] || '📦'} ${escapeHtml(f.tipo)}</span>
+                        <span class="text-muted">$${fmt(f.monto)} · ${f.pct.toFixed(0)}%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" style="width:${f.pct.toFixed(1)}%"></div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
 }
 </script>
 </body>

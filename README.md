@@ -22,9 +22,9 @@ js/
 
 ## Cómo funciona cada sección
 
-- **Gastos**: tiene sus propios `grupos` y `participantes` (ej: "Viaje a Bariloche", con Juan y María). Ahí adentro: gastos con split, reembolsos, balance. Cada gasto tiene una fecha real editable.
+- **Gastos**: tiene sus propios `grupos` y `participantes` (ej: "Viaje a Bariloche", con Juan y María). Ahí adentro: gastos con split, reembolsos, balance, y una pestaña **📊 Resumen** con el total y el % que representa cada tipo de gasto (Comida, Transporte, etc.) sobre el total del grupo — sin filtrar por fecha, es sobre todos los gastos de ese grupo/viaje/mes. No necesita ninguna migración nueva, usa los mismos datos que ya existen.
 - **Listas**: no tiene grupos — es simplemente una lista de "listas de compras" (Supermercado, Farmacia, Viaje) cada una con sus ítems. No tiene personas asociadas.
-- **Tareas**: tiene sus **propios** grupos (`grupos_tareas`, ej: "Casa", "Oficina") con sus **propias** personas (`personas_tareas`) — completamente separados de los grupos/participantes de Gastos, para no forzarte a compartir gente o contexto entre ambos módulos. Dentro de un grupo de tareas, cada tarea:
+- **Tareas**: tiene sus **propios** grupos (`grupos_tareas`, ej: "Casa", "Oficina") con sus **propias** personas (`personas_tareas`) — completamente separados de los grupos/participantes de Gastos, para no forzarte a compartir gente o contexto entre ambos módulos. Al agregar una persona podés poner su email para invitarla por mail (igual que en Gastos). Dentro de un grupo de tareas, cada tarea:
   - se puede asignar a una persona de ese grupo,
   - tiene prioridad (alta/media/baja),
   - se puede vincular opcionalmente con una **Lista** (de las de la sección Listas, que es global) — aparece un botón 🛒 que te lleva directo a esa lista.
@@ -69,7 +69,7 @@ Si en tu repo ya tenías carpetas `css/` o `js/` de una versión anterior, o un 
 - `listas` (id, nombre, created_at) — global, sin grupos
 - `lista_compras` (id, nombre, cantidad, unidad, comprado, comprado_at, created_at, **id_lista**)
 - `grupos_tareas` (id, nombre, created_at) — solo para Tareas
-- `personas_tareas` (id, nombre, created_at, **id_grupo_tareas**) — solo para Tareas, escopeada a un grupo de tareas
+- `personas_tareas` (id, nombre, email, created_at, **id_grupo_tareas**) — solo para Tareas, escopeada a un grupo de tareas
 - `tareas` (id, titulo, prioridad, hecha, hecha_at, created_at, **id_grupo_tareas**, **id_asignado** → personas_tareas, **id_lista** → listas)
 - `gastos` (..., **fecha_gasto**)
 - `gastos_participantes` — igual que antes
