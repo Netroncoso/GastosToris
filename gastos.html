@@ -182,6 +182,8 @@
 // =============================================
 let grupoActual = null;
 let participantesActuales = [];
+let currentGastos = [];
+let gastoEditando = null;
 
 const TIPO_ICONO = { Comida: icon('cake',16), Transporte: icon('truck',16), Alojamiento: icon('home',16), Entretenimiento: icon('film',16), Compras: icon('shopping-cart',16), Otro: icon('archive-box',16), Reembolso: icon('arrow-path',16) };
 
@@ -259,6 +261,8 @@ function abrirModalGasto() {
         alert('Primero agregá personas al grupo desde la pestaña "Personas".');
         return;
     }
+    gastoEditando = null;
+    document.querySelector('#modal-gasto .btn-primary').textContent = 'Guardar Gasto';
     document.getElementById('input-concepto').value = '';
     document.getElementById('input-fecha-gasto').value = hoyISO();
     document.getElementById('input-monto').value = '';
@@ -271,6 +275,55 @@ function abrirModalGasto() {
     document.getElementById('split-total-row').innerHTML = '';
     abrirModal('modal-gasto');
     setTimeout(() => document.getElementById('input-concepto').focus(), 100);
+}
+
+function escapeJsString(value) {
+    return String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
+}
+
+async function editarGasto(id) {
+    if (participantesActuales.length === 0) {
+        alert('Primero agregá personas al grupo desde la pestaña "Personas".');
+        return;
+    }
+    const gasto = currentGastos.find(g => g.id === id);
+    if (!gasto) return;
+
+    gastoEditando = id;
+    document.querySelector('#modal-gasto .btn-primary').textContent = 'Actualizar Gasto';
+    document.getElementById('input-concepto').value = gasto.concepto || '';
+    document.getElementById('input-fecha-gasto').value = gasto.fecha_gasto || hoyISO();
+    document.getElementById('input-monto').value = gasto.monto || '';
+    document.getElementById('input-tipo').value = gasto.tipo_gasto || 'Comida';
+
+    const sel = document.getElementById('input-pagador');
+    sel.innerHTML = participantesActuales.map(p => `<option value="${p.id}">${escapeHtml(p.Name)}</option>`).join('');
+    sel.value = gasto.id_pagador;
+
+    renderSplitContainer();
+    const { data: splits, error } = await db.from('gastos_participantes')
+        .select('id_participante,monto')
+        .eq('id_gasto', id);
+    if (error) {
+        alert('Error al cargar división: ' + error.message);
+        return;
+    }
+    (splits || []).forEach(s => {
+        const input = document.getElementById('split-' + s.id_participante);
+        if (input) input.value = s.monto;
+    });
+    actualizarTotalSplit();
+    abrirModal('modal-gasto');
+    setTimeout(() => document.getElementById('input-concepto').focus(), 100);
+}
+
+async function eliminarGasto(id, concepto) {
+    if (!confirm(`¿Eliminar el gasto "${concepto}"?`)) return;
+    const { error: e1 } = await db.from('gastos_participantes').delete().eq('id_gasto', id);
+    if (e1) { alert('Error al borrar división: ' + e1.message); return; }
+    const { error: e2 } = await db.from('gastos').delete().eq('id', id);
+    if (e2) { alert('Error al borrar gasto: ' + e2.message); return; }
+    cargarGastos();
 }
 
 // =============================================
@@ -509,6 +562,7 @@ async function cargarGastos() {
         .order('fecha_gasto', { ascending: false })
         .order('created_at', { ascending: false });
     if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
+    currentGastos = data || [];
     if (!data?.length) {
         cont.innerHTML = `<div class="empty"><span class="empty-icon"><span class="hicon" style="width:40px;height:40px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/currency-dollar.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/currency-dollar.svg)"></span></span>Sin gastos todavía.<br>Agregá el primero.</div>`;
         return;
@@ -528,7 +582,11 @@ async function cargarGastos() {
                     <div class="gasto-concepto">${TIPO_ICONO[g.tipo_gasto] || icon('archive-box',16)} ${escapeHtml(g.concepto)}</div>
                     <div class="gasto-meta">${esReembolso ? '' : `Pagó <strong>${escapeHtml(pagMap[g.id_pagador] || '?')}</strong> · `}${parseFechaLocal(g.fecha_gasto)?.toLocaleDateString('es-AR') || new Date(g.created_at).toLocaleDateString('es-AR')}</div>
                 </div>
-                <div class="gasto-monto" style="margin-left:12px;${esReembolso ? 'color:var(--success)' : ''}">$${fmt(g.monto)}</div>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <div class="gasto-monto" style="margin-left:12px;${esReembolso ? 'color:var(--success)' : ''}">$${fmt(g.monto)}</div>
+                    <button class="btn btn-ghost btn-sm" onclick="editarGasto(${g.id})" title="Editar gasto">Editar</button>
+                    <button class="btn btn-danger btn-sm" onclick="eliminarGasto(${g.id}, '${escapeJsString(g.concepto)}')" title="Eliminar gasto">Borrar</button>
+                </div>
             </div>
         </div>`;
     };
@@ -566,18 +624,32 @@ async function guardarGasto() {
         return;
     }
 
-    // Insertar gasto
-    const { data: gastoData, error: e1 } = await db.from('gastos').insert({
-        id_grupo: grupoActual.id, id_pagador: pagador, concepto, monto, tipo_gasto: tipo, fecha_gasto: fecha
-    }).select().single();
+    if (gastoEditando) {
+        const { error: e1 } = await db.from('gastos').update({
+            id_pagador: pagador, concepto, monto, tipo_gasto: tipo, fecha_gasto: fecha
+        }).eq('id', gastoEditando);
+        if (e1) { alert('Error al actualizar gasto: ' + e1.message); return; }
 
-    if (e1) { alert('Error al guardar gasto: ' + e1.message); return; }
+        const { error: e3 } = await db.from('gastos_participantes').delete().eq('id_gasto', gastoEditando);
+        if (e3) { alert('Error al borrar división anterior: ' + e3.message); return; }
 
-    // Insertar splits
-    const { error: e2 } = await db.from('gastos_participantes')
-        .insert(splits.map(s => ({ ...s, id_gasto: gastoData.id })));
+        const { error: e2 } = await db.from('gastos_participantes')
+            .insert(splits.map(s => ({ ...s, id_gasto: gastoEditando })));
+        if (e2) { alert('Gasto actualizado, pero error en la división: ' + e2.message + '\n¿Ejecutaste el SQL de configuración?'); return; }
 
-    if (e2) alert('Gasto guardado, pero error en la división: ' + e2.message + '\n¿Ejecutaste el SQL de configuración?');
+        gastoEditando = null;
+    } else {
+        const { data: gastoData, error: e1 } = await db.from('gastos').insert({
+            id_grupo: grupoActual.id, id_pagador: pagador, concepto, monto, tipo_gasto: tipo, fecha_gasto: fecha
+        }).select().single();
+
+        if (e1) { alert('Error al guardar gasto: ' + e1.message); return; }
+
+        const { error: e2 } = await db.from('gastos_participantes')
+            .insert(splits.map(s => ({ ...s, id_gasto: gastoData.id })));
+
+        if (e2) { alert('Gasto guardado, pero error en la división: ' + e2.message + '\n¿Ejecutaste el SQL de configuración?'); return; }
+    }
 
     cerrarModal('modal-gasto');
     cargarGastos();
