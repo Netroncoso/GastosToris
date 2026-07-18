@@ -96,8 +96,25 @@ let filtroLista = 'pendientes';
 let todosLosItems = [];
 
 requireAuth(() => {
-    cargarListas();
+    const params = new URLSearchParams(window.location.search);
+    const abrirId = params.get('abrir');
+    if (abrirId) {
+        abrirListaPorId(parseInt(abrirId));
+    } else {
+        cargarListas();
+    }
 });
+
+async function abrirListaPorId(id) {
+    const { data, error } = await db.from('listas').select('*').eq('id', id).single();
+    if (error || !data) {
+        alert('No se encontró esa lista.');
+        cargarListas();
+        mostrarPantalla('listas');
+        return;
+    }
+    abrirLista(data);
+}
 
 // =============================================
 // NAVEGACIÓN
