@@ -263,14 +263,8 @@ async function crearGrupo() {
         return;
     }
 
-    const { data: insertData, error } = await db.from('grupos_tareas').insert({ nombre });
+    const { data: grupo, error } = await db.rpc('crear_grupo_tareas', { p_nombre: nombre });
     if (error) { alert('Error al crear grupo: ' + error.message); return; }
-
-    // Fetch manual para evitar problemas con SELECT inmediato
-    const { data, error: fetchError } = await db.from('grupos_tareas')
-        .select('*').eq('id', insertData[0].id).single();
-    if (fetchError) { console.warn('No se pudo leer el grupo creado, pero fue guardado.'); }
-    const grupo = data || insertData[0];
 
     const user = await getCurrentUser();
     if (user?.email) {
