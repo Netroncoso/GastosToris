@@ -453,7 +453,7 @@ async function crearGrupo() {
         return;
     }
 
-    const { data, error } = await db.from('grupos').insert({ Nombre: nombre }).select().single();
+    const { data, error } = await db.from('grupos').insert({ Nombre: nombre, created_by: userId }).select().single();
     if (error) { alert('Error al crear grupo: ' + error.message); return; }
 
     const { error: em } = await db.from('grupos_miembros')
