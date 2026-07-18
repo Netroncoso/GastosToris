@@ -24,6 +24,15 @@ function hoyISO() {
     return new Date(d - tz).toISOString().slice(0, 10);
 }
 
+// =============================================
+// ÍCONOS (Heroicons vía CDN, coloreados con currentColor usando CSS mask)
+// =============================================
+const HEROICONS_BASE = 'https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline';
+function icon(name, size = 20) {
+    const url = `${HEROICONS_BASE}/${name}.svg`;
+    return `<span class="hicon" style="width:${size}px;height:${size}px;-webkit-mask-image:url(${url});mask-image:url(${url})"></span>`;
+}
+
 // Convierte un string "YYYY-MM-DD" (como lo guarda un <input type="date">) a un Date
 // en hora LOCAL, evitando el corrimiento de día que da `new Date("YYYY-MM-DD")`
 // (que lo interpreta como UTC medianoche y en Argentina muestra el día anterior).
