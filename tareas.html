@@ -386,17 +386,23 @@ function renderTareas() {
     cont.innerHTML = items.map(t => {
         const asignado = nombreAsignado(t.id_asignado);
         const lista = nombreLista(t.id_lista);
+        const tieneBadges = t.fecha_vencimiento || lista || asignado;
         return `
-        <div class="lista-item ${t.hecha ? 'comprado' : ''}" id="tarea-${t.id}">
-            <div class="lista-check ${t.hecha ? 'checked' : ''}" onclick="toggleTarea(${t.id}, ${t.hecha})">
-                ${t.hecha ? '✓' : ''}
+        <div class="tarea-item ${t.hecha ? 'comprado' : ''}" id="tarea-${t.id}">
+            <div class="tarea-item-main">
+                <div class="lista-check ${t.hecha ? 'checked' : ''}" onclick="toggleTarea(${t.id}, ${t.hecha})">
+                    ${t.hecha ? '✓' : ''}
+                </div>
+                <div class="prio-dot prio-${t.prioridad || 'media'}" title="Prioridad ${PRIO_LABEL[t.prioridad] || 'Media'}"></div>
+                <div class="lista-nombre ${t.hecha ? 'tachado' : ''}">${escapeHtml(t.titulo)}</div>
+                <button onclick="borrarTarea(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;flex-shrink:0">✕</button>
             </div>
-            <div class="prio-dot prio-${t.prioridad || 'media'}" title="Prioridad ${PRIO_LABEL[t.prioridad] || 'Media'}"></div>
-            <div class="lista-nombre ${t.hecha ? 'tachado' : ''}">${escapeHtml(t.titulo)}</div>
-            ${t.fecha_vencimiento ? `<span class="badge badge-purple" title="${t.google_event_id ? 'Sincronizada con Google Calendar' : 'Vencimiento'}">📅 ${formatFechaHora(t.fecha_vencimiento)}</span>` : ''}
-            ${lista ? `<a href="listas.html?abrir=${t.id_lista}" class="badge badge-green" style="text-decoration:none">🛒 ${escapeHtml(lista)}</a>` : ''}
-            ${asignado ? `<span class="badge badge-blue">${escapeHtml(asignado)}</span>` : ''}
-            <button onclick="borrarTarea(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;flex-shrink:0">✕</button>
+            ${tieneBadges ? `
+            <div class="tarea-item-badges">
+                ${t.fecha_vencimiento ? `<span class="badge badge-purple" title="${t.google_event_id ? 'Sincronizada con Google Calendar' : 'Vencimiento'}">📅 ${formatFechaHora(t.fecha_vencimiento)}</span>` : ''}
+                ${lista ? `<a href="listas.html?abrir=${t.id_lista}" class="badge badge-green" style="text-decoration:none">🛒 ${escapeHtml(lista)}</a>` : ''}
+                ${asignado ? `<span class="badge badge-blue">${escapeHtml(asignado)}</span>` : ''}
+            </div>` : ''}
         </div>`;
     }).join('');
 }
