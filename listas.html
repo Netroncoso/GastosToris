@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Listas · SplitApp 🛒</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛒</text></svg>">
+    <link rel="icon" href="https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/shopping-cart.svg">
     <link rel="stylesheet" href="css/shared.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -13,12 +13,12 @@
 <!-- TOPBAR -->
 <div class="topbar">
     <div class="topbar-left">
-        <button id="btn-back" class="btn-icon" onclick="volverAListas()">←</button>
-        <h1 id="topbar-title">🛒 Listas</h1>
+        <button id="btn-back" class="btn-icon" onclick="volverAListas()"><span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-left.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-left.svg)"></span></button>
+        <h1 id="topbar-title"><span class="hicon" style="width:20px;height:20px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/shopping-cart.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/shopping-cart.svg)"></span> Listas</h1>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
         <span id="topbar-user" class="topbar-user"></span>
-        <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión">⎋</button>
+        <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión"><span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-right-on-rectangle.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-right-on-rectangle.svg)"></span></button>
     </div>
 </div>
 
@@ -26,7 +26,7 @@
 <div id="screen-listas" class="screen active">
     <div class="container">
         <div id="lista-de-listas"><div class="loader">Cargando listas...</div></div>
-        <button class="btn btn-primary btn-full mt-16" onclick="abrirModalLista()">＋ Nueva Lista</button>
+        <button class="btn btn-primary btn-full mt-16" onclick="abrirModalLista()"><span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/plus.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/plus.svg)"></span> Nueva Lista</button>
     </div>
 </div>
 
@@ -59,12 +59,12 @@
                     <option value="paq">paq</option>
                     <option value="doc">docena</option>
                 </select>
-                <button class="btn btn-primary" onclick="agregarItem()" style="white-space:nowrap">＋ Agregar</button>
+                <button class="btn btn-primary" onclick="agregarItem()" style="white-space:nowrap"><span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/plus.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/plus.svg)"></span> Agregar</button>
             </div>
         </div>
 
         <button class="btn btn-ghost btn-full mt-12" id="btn-borrar-comprados" onclick="borrarComprados()" style="display:none;color:var(--danger);border-color:var(--danger)">
-            🗑 Borrar todos los comprados
+            <span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/trash.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/trash.svg)"></span> Borrar todos los comprados
         </button>
     </div>
 </div>
@@ -74,7 +74,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3>Nueva Lista</h3>
-            <button class="modal-close" onclick="cerrarModal('modal-lista')">✕</button>
+            <button class="modal-close" onclick="cerrarModal('modal-lista')"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg)"></span></button>
         </div>
         <div class="form-group">
             <label>Nombre de la lista</label>
@@ -127,7 +127,7 @@ function mostrarPantalla(nombre) {
 function volverAListas() {
     if (!listaActual) { irAlInicio(); return; }
     listaActual = null;
-    document.getElementById('topbar-title').textContent = '🛒 Listas';
+    document.getElementById('topbar-title').innerHTML = '<span class="hicon" style="width:20px;height:20px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/shopping-cart.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/shopping-cart.svg)"></span> Listas';
     mostrarPantalla('listas');
     cargarListas();
 }
@@ -144,7 +144,7 @@ async function cargarListas() {
     const { data, error } = await db.from('listas').select('*').order('created_at', { ascending: false });
     if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}<br>¿Ejecutaste el SQL de configuración? Ver README.</div>`; return; }
     if (!data?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon">🛒</span>Sin listas todavía.<br>Creá una para empezar.</div>`;
+        cont.innerHTML = `<div class="empty"><span class="empty-icon"><span class="hicon" style="width:40px;height:40px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/shopping-cart.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/shopping-cart.svg)"></span></span>Sin listas todavía.<br>Creá una para empezar.</div>`;
         return;
     }
     cont.innerHTML = data.map(l => `
@@ -154,7 +154,7 @@ async function cargarListas() {
                     <div style="font-weight:700;font-size:16px">${escapeHtml(l.nombre)}</div>
                     <div class="text-muted">${new Date(l.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })}</div>
                 </div>
-                <button class="btn btn-danger btn-sm" onclick="eliminarLista(${l.id}, '${l.nombre.replace(/'/g,"\\'")}')">🗑</button>
+                <button class="btn btn-danger btn-sm" onclick="eliminarLista(${l.id}, '${l.nombre.replace(/'/g,"\\'")}')"><span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/trash.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/trash.svg)"></span></button>
             </div>
         </div>
     `).join('');
@@ -232,8 +232,8 @@ function renderItems() {
         comprados.length > 0 ? 'flex' : 'none';
 
     if (!items.length) {
-        const msgs = { pendientes: '✅ No hay ítems pendientes.', comprados: 'Sin ítems comprados todavía.', todos: '📋 La lista está vacía. Agregá algo.' };
-        cont.innerHTML = `<div class="empty" style="padding:24px"><span class="empty-icon">${filtroLista === 'pendientes' ? '✅' : '🛒'}</span>${msgs[filtroLista]}</div>`;
+        const msgs = { pendientes: '<span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg)"></span> No hay ítems pendientes.', comprados: 'Sin ítems comprados todavía.', todos: '<span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/clipboard-document-list.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/clipboard-document-list.svg)"></span> La lista está vacía. Agregá algo.' };
+        cont.innerHTML = `<div class="empty" style="padding:24px"><span class="empty-icon">${filtroLista === 'pendientes' ? icon('check-circle',40) : icon('shopping-cart',40)}</span>${msgs[filtroLista]}</div>`;
         return;
     }
 
@@ -241,11 +241,11 @@ function renderItems() {
         const cantStr = item.cantidad ? `${item.cantidad}${item.unidad ? ' ' + item.unidad : ''}` : '';
         return `<div class="lista-item ${item.comprado ? 'comprado' : ''}" id="item-${item.id}">
             <div class="lista-check ${item.comprado ? 'checked' : ''}" onclick="toggleItem(${item.id}, ${item.comprado})">
-                ${item.comprado ? '✓' : ''}
+                ${item.comprado ? icon('check',14) : ''}
             </div>
             <div class="lista-nombre ${item.comprado ? 'tachado' : ''}">${escapeHtml(item.nombre)}</div>
             ${cantStr ? `<div class="lista-cantidad">${escapeHtml(cantStr)}</div>` : ''}
-            <button onclick="borrarItem(${item.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;flex-shrink:0">✕</button>
+            <button onclick="borrarItem(${item.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;flex-shrink:0"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg)"></span></button>
         </div>`;
     }).join('');
 }
