@@ -99,6 +99,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .badge-green { background: #dcfce7; color: #15803d; }
 .badge-red { background: #fee2e2; color: #b91c1c; }
 .badge-blue { background: #dbeafe; color: #1d4ed8; }
+.badge-purple { background: #ede9fe; color: var(--primary); }
 
 /* ALERT */
 .alert { padding: 11px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; line-height: 1.5; }

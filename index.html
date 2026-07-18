@@ -83,7 +83,14 @@
     async function iniciarSesion() {
         const { error } = await db.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: APP_BASE_URL }
+            options: {
+                redirectTo: APP_BASE_URL,
+                scopes: 'https://www.googleapis.com/auth/calendar.events',
+                queryParams: {
+                    access_type: 'offline',
+                    prompt: 'consent'
+                }
+            }
         });
         if (error) alert('Error al iniciar sesión: ' + error.message);
     }
@@ -95,11 +102,23 @@
     db.auth.onAuthStateChange((event, session) => {
         if (session) {
             activarApp(session.user);
+            if (event === 'SIGNED_IN' && session.provider_refresh_token) {
+                guardarTokenGoogle(session.user.id, session.provider_refresh_token);
+            }
         } else {
             mostrarPantalla('login');
             document.getElementById('topbar').classList.add('hidden');
         }
     });
+
+    async function guardarTokenGoogle(userId, refreshToken) {
+        const { error } = await db.from('google_tokens').upsert({
+            user_id: userId,
+            refresh_token: refreshToken,
+            updated_at: new Date().toISOString()
+        });
+        if (error) console.error('No se pudo guardar el token de Google Calendar:', error.message);
+    }
 
     function activarApp(user) {
         document.getElementById('topbar').classList.remove('hidden');
