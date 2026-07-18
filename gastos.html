@@ -453,13 +453,19 @@ async function crearGrupo() {
         return;
     }
 
-    const { data, error } = await db.from('grupos').insert({ Nombre: nombre }).select().single();
+    const { data: insertData, error } = await db.from('grupos').insert({ Nombre: nombre });
     if (error) { alert('Error al crear grupo: ' + error.message); return; }
+
+    // Fetch manual para evitar problemas con SELECT inmediato
+    const { data, error: fetchError } = await db.from('grupos')
+        .select('*').eq('id', insertData[0].id).single();
+    if (fetchError) { console.warn('No se pudo leer el grupo creado, pero fue guardado.'); }
+    const grupo = data || insertData[0];
 
     const user = await getCurrentUser();
     if (user?.email) {
         const { error: ep } = await db.from('participantes').insert({
-            id_grupo: data.id,
+            id_grupo: grupo.id,
             Name: getDisplayNameFromUser(user),
             email: user.email.toLowerCase()
         });
