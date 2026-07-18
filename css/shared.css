@@ -185,3 +185,10 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .prio-alta { background: var(--danger); }
 .prio-media { background: #f59e0b; }
 .prio-baja { background: var(--success); }
+
+/* RESUMEN POR TIPO DE GASTO */
+.progress-row { margin-bottom: 16px; }
+.progress-row:last-child { margin-bottom: 0; }
+.progress-label-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+.progress-track { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; }
+.progress-fill { height: 8px; border-radius: 4px; background: var(--primary); }

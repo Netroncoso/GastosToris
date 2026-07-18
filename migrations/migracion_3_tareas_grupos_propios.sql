@@ -51,8 +51,9 @@ create policy "crear personas_tareas" on personas_tareas for insert to authentic
 drop policy if exists "borrar personas_tareas" on personas_tareas;
 create policy "borrar personas_tareas" on personas_tareas for delete to authenticated using (true);
 
--- 3) Escopear las personas de tareas a un grupo de tareas
+-- 3) Escopear las personas de tareas a un grupo de tareas, y permitir invitarlas por email
 alter table personas_tareas add column if not exists id_grupo_tareas bigint references grupos_tareas(id) on delete cascade;
+alter table personas_tareas add column if not exists email text;
 
 -- 4) Sacar cualquier resto de un vínculo viejo con `participantes` (de Gastos)
 --    si llegaste a probar esa versión intermedia
