@@ -32,3 +32,28 @@ function parseFechaLocal(str) {
     const [y, m, d] = str.split('-').map(Number);
     return new Date(y, m - 1, d);
 }
+
+// Formatea un timestamp ISO (con hora) a fecha+hora corta en es-AR
+function formatFechaHora(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+// Llama a la Edge Function "calendar-sync" (crear/editar/borrar eventos de Google Calendar)
+async function callCalendarSync(payload) {
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) throw new Error('No hay sesión activa.');
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/calendar-sync`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': SUPABASE_KEY
+        },
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al sincronizar con Google Calendar.');
+    return data;
+}

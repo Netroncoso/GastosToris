@@ -62,6 +62,10 @@
                         <option value="">Sin asignar</option>
                     </select>
                 </div>
+                <div class="form-group" style="margin-bottom:8px">
+                    <label style="margin-bottom:4px">Vencimiento (opcional — la agrega a Google Calendar)</label>
+                    <input type="datetime-local" id="input-fecha-tarea" class="input-sm" />
+                </div>
                 <div class="form-group" style="margin-bottom:0">
                     <label style="margin-bottom:4px">Vincular con una lista (opcional)</label>
                     <select id="input-lista-tarea" class="input-sm">
@@ -389,6 +393,7 @@ function renderTareas() {
             </div>
             <div class="prio-dot prio-${t.prioridad || 'media'}" title="Prioridad ${PRIO_LABEL[t.prioridad] || 'Media'}"></div>
             <div class="lista-nombre ${t.hecha ? 'tachado' : ''}">${escapeHtml(t.titulo)}</div>
+            ${t.fecha_vencimiento ? `<span class="badge badge-purple" title="${t.google_event_id ? 'Sincronizada con Google Calendar' : 'Vencimiento'}">📅 ${formatFechaHora(t.fecha_vencimiento)}</span>` : ''}
             ${lista ? `<a href="listas.html?abrir=${t.id_lista}" class="badge badge-green" style="text-decoration:none">🛒 ${escapeHtml(lista)}</a>` : ''}
             ${asignado ? `<span class="badge badge-blue">${escapeHtml(asignado)}</span>` : ''}
             <button onclick="borrarTarea(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;flex-shrink:0">✕</button>
@@ -401,20 +406,41 @@ async function agregarTarea() {
     const prioridad = document.getElementById('input-prioridad-tarea').value;
     const asignadoVal = document.getElementById('input-asignado-tarea').value;
     const listaVal = document.getElementById('input-lista-tarea').value;
+    const fechaVal = document.getElementById('input-fecha-tarea').value; // "YYYY-MM-DDTHH:mm" en hora local, o ""
     const id_asignado = asignadoVal ? parseInt(asignadoVal) : null;
     const id_lista = listaVal ? parseInt(listaVal) : null;
+    const fecha_vencimiento = fechaVal ? new Date(fechaVal).toISOString() : null;
     if (!titulo) { document.getElementById('input-titulo-tarea').focus(); return; }
 
     const { data, error } = await db.from('tareas')
-        .insert({ titulo, prioridad, id_asignado, id_lista, id_grupo_tareas: grupoActual.id }).select().single();
+        .insert({ titulo, prioridad, id_asignado, id_lista, id_grupo_tareas: grupoActual.id, fecha_vencimiento }).select().single();
     if (error) { alert('Error: ' + error.message); return; }
 
     document.getElementById('input-titulo-tarea').value = '';
+    document.getElementById('input-fecha-tarea').value = '';
     document.getElementById('input-titulo-tarea').focus();
 
     todasLasTareas = [data, ...todasLasTareas];
     todasLasTareas.sort((a, b) => a.hecha - b.hecha || new Date(b.created_at) - new Date(a.created_at));
     renderTareas();
+
+    if (fecha_vencimiento) {
+        try {
+            const asignadoEmail = personasTareas.find(p => p.id === id_asignado)?.email || null;
+            const resultado = await callCalendarSync({
+                action: 'create',
+                titulo,
+                fecha_vencimiento,
+                asignado_email: asignadoEmail
+            });
+            await db.from('tareas').update({ google_event_id: resultado.event_id }).eq('id', data.id);
+            const t = todasLasTareas.find(x => x.id === data.id);
+            if (t) t.google_event_id = resultado.event_id;
+            renderTareas();
+        } catch (e) {
+            alert('La tarea se creó, pero no se pudo agregar a Google Calendar: ' + e.message);
+        }
+    }
 }
 
 async function toggleTarea(id, estaHecha) {
@@ -430,6 +456,14 @@ async function toggleTarea(id, estaHecha) {
 }
 
 async function borrarTarea(id) {
+    const tarea = todasLasTareas.find(t => t.id === id);
+    if (tarea?.google_event_id) {
+        try {
+            await callCalendarSync({ action: 'delete', event_id: tarea.google_event_id });
+        } catch (e) {
+            console.error('No se pudo borrar el evento de Google Calendar:', e.message);
+        }
+    }
     const { error } = await db.from('tareas').delete().eq('id', id);
     if (error) { alert('Error: ' + error.message); return; }
     todasLasTareas = todasLasTareas.filter(t => t.id !== id);
