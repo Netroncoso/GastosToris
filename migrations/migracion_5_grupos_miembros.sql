@@ -153,6 +153,7 @@ create policy "ver participantes" on participantes
             where gm.id_grupo = participantes.id_grupo
               and gm.user_id = auth.uid()
         )
+        or participantes.email = auth.jwt() ->> 'email'
     );
 
 drop policy if exists "crear participantes" on participantes;
@@ -410,6 +411,7 @@ create policy "ver personas_tareas" on personas_tareas
             where gm.id_grupo_tareas = personas_tareas.id_grupo_tareas
               and gm.user_id = auth.uid()
         )
+        or personas_tareas.email = auth.jwt() ->> 'email'
     );
 
 drop policy if exists "crear personas_tareas" on personas_tareas;
