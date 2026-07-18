@@ -266,10 +266,6 @@ async function crearGrupo() {
     const { data, error } = await db.from('grupos_tareas').insert({ nombre }).select().single();
     if (error) { alert('Error al crear grupo: ' + error.message); return; }
 
-    const { error: em } = await db.from('grupos_tareas_miembros')
-        .upsert({ id_grupo_tareas: data.id, user_id: userId }, { onConflict: ['id_grupo_tareas', 'user_id'] });
-    if (em) { alert('Grupo creado, pero no se pudo guardar la membresía: ' + em.message); }
-
     const user = await getCurrentUser();
     if (user?.email) {
         const { error: ep } = await db.from('personas_tareas').insert({

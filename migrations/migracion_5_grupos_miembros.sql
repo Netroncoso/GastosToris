@@ -506,3 +506,74 @@ create policy "borrar personas_tareas" on personas_tareas
               and gm.user_id = auth.uid()
         )
     );
+-- =============================================
+-- TRIGGERS: Asignar created_by y crear membresía automáticamente
+-- =============================================
+
+-- Trigger BEFORE INSERT en grupos
+drop trigger if exists set_created_by_grupos on grupos;
+drop function if exists set_created_by_grupos_fn();
+
+create function set_created_by_grupos_fn() returns trigger as $$
+begin
+  new.created_by := auth.uid();
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create trigger set_created_by_grupos
+  before insert on grupos
+  for each row
+  execute function set_created_by_grupos_fn();
+
+-- Trigger AFTER INSERT en grupos (crear membresía automáticamente)
+drop trigger if exists auto_membership_grupos on grupos;
+drop function if exists auto_membership_grupos_fn();
+
+create function auto_membership_grupos_fn() returns trigger as $$
+begin
+  insert into grupos_miembros (id_grupo, user_id)
+  values (new.id, new.created_by)
+  on conflict (id_grupo, user_id) do nothing;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create trigger auto_membership_grupos
+  after insert on grupos
+  for each row
+  execute function auto_membership_grupos_fn();
+
+-- Trigger BEFORE INSERT en grupos_tareas
+drop trigger if exists set_created_by_grupos_tareas on grupos_tareas;
+drop function if exists set_created_by_grupos_tareas_fn();
+
+create function set_created_by_grupos_tareas_fn() returns trigger as $$
+begin
+  new.created_by := auth.uid();
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create trigger set_created_by_grupos_tareas
+  before insert on grupos_tareas
+  for each row
+  execute function set_created_by_grupos_tareas_fn();
+
+-- Trigger AFTER INSERT en grupos_tareas (crear membresía automáticamente)
+drop trigger if exists auto_membership_grupos_tareas on grupos_tareas;
+drop function if exists auto_membership_grupos_tareas_fn();
+
+create function auto_membership_grupos_tareas_fn() returns trigger as $$
+begin
+  insert into grupos_tareas_miembros (id_grupo_tareas, user_id)
+  values (new.id, new.created_by)
+  on conflict (id_grupo_tareas, user_id) do nothing;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create trigger auto_membership_grupos_tareas
+  after insert on grupos_tareas
+  for each row
+  execute function auto_membership_grupos_tareas_fn();
