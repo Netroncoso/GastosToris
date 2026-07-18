@@ -13,65 +13,107 @@
 <!-- TOPBAR -->
 <div class="topbar">
     <div class="topbar-left">
-        <button class="btn-icon" onclick="irAlInicio()">←</button>
-        <h1>✅ Tareas</h1>
+        <button id="btn-back" class="btn-icon" onclick="volverAGrupos()">←</button>
+        <h1 id="topbar-title">✅ Tareas</h1>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
         <span id="topbar-user" class="topbar-user"></span>
-        <button class="btn-icon" onclick="abrirModalPersonas()" title="Personas">👥</button>
         <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión">⎋</button>
     </div>
 </div>
 
-<div class="container">
-    <div class="filter-tabs">
-        <div class="filter-tab active" onclick="setFiltro('pendientes')">Pendientes</div>
-        <div class="filter-tab" onclick="setFiltro('todas')">Todas</div>
-        <div class="filter-tab" onclick="setFiltro('hechas')">Hechas</div>
-    </div>
-    <div id="tareas-stats" class="stats-row"></div>
-    <div id="tareas-items" class="card"></div>
-
-    <div class="add-item-form mt-12">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Nueva tarea</div>
-        <div class="form-group" style="margin-bottom:8px">
-            <input type="text" id="input-titulo-tarea" placeholder="Ej: Pagar el alquiler" class="input-sm"
-                onkeydown="if(event.key==='Enter') agregarTarea()" />
+<!-- SCREEN: GRUPOS -->
+<div id="screen-grupos" class="screen active">
+    <div class="container">
+        <div class="alert alert-info">
+            Los grupos y las personas son los mismos que en <strong>Gastos</strong> — elegí un grupo para ver y asignar sus tareas.
         </div>
-        <div class="add-item-row">
-            <select id="input-prioridad-tarea" class="input-sm" style="flex:1">
-                <option value="baja">🟢 Prioridad baja</option>
-                <option value="media" selected>🟠 Prioridad media</option>
-                <option value="alta">🔴 Prioridad alta</option>
-            </select>
-            <select id="input-asignado-tarea" class="input-sm" style="flex:1">
-                <option value="">Sin asignar</option>
-            </select>
-        </div>
-        <button class="btn btn-primary btn-full mt-12" onclick="agregarTarea()">＋ Agregar tarea</button>
+        <div id="lista-grupos"><div class="loader">Cargando grupos...</div></div>
+        <button class="btn btn-primary btn-full mt-16" onclick="abrirModalGrupo()">＋ Nuevo Grupo</button>
     </div>
-
-    <button class="btn btn-ghost btn-full mt-12" id="btn-borrar-hechas" onclick="borrarHechas()" style="display:none;color:var(--danger);border-color:var(--danger)">
-        🗑 Borrar todas las hechas
-    </button>
 </div>
 
-<!-- MODAL: PERSONAS -->
-<div id="modal-personas" class="modal-overlay">
+<!-- SCREEN: GRUPO DETAIL -->
+<div id="screen-grupo" class="screen">
+    <div class="tabs">
+        <div class="tab active" onclick="cambiarTab('tareas')">✅ Tareas</div>
+        <div class="tab" onclick="cambiarTab('participantes')">👥 Personas</div>
+    </div>
+    <div class="container">
+        <div id="tab-tareas" class="tab-content active">
+            <div class="filter-tabs">
+                <div class="filter-tab active" onclick="setFiltro('pendientes')">Pendientes</div>
+                <div class="filter-tab" onclick="setFiltro('todas')">Todas</div>
+                <div class="filter-tab" onclick="setFiltro('hechas')">Hechas</div>
+            </div>
+            <div id="tareas-stats" class="stats-row"></div>
+            <div id="tareas-items" class="card"></div>
+
+            <div class="add-item-form mt-12">
+                <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Nueva tarea</div>
+                <div class="form-group" style="margin-bottom:8px">
+                    <input type="text" id="input-titulo-tarea" placeholder="Ej: Pagar el alquiler" class="input-sm"
+                        onkeydown="if(event.key==='Enter') agregarTarea()" />
+                </div>
+                <div class="add-item-row">
+                    <select id="input-prioridad-tarea" class="input-sm" style="flex:1">
+                        <option value="baja">🟢 Baja</option>
+                        <option value="media" selected>🟠 Media</option>
+                        <option value="alta">🔴 Alta</option>
+                    </select>
+                    <select id="input-asignado-tarea" class="input-sm" style="flex:1">
+                        <option value="">Sin asignar</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary btn-full mt-12" onclick="agregarTarea()">＋ Agregar tarea</button>
+            </div>
+
+            <button class="btn btn-ghost btn-full mt-12" id="btn-borrar-hechas" onclick="borrarHechas()" style="display:none;color:var(--danger);border-color:var(--danger)">
+                🗑 Borrar todas las hechas
+            </button>
+        </div>
+
+        <div id="tab-participantes" class="tab-content">
+            <div id="lista-participantes"><div class="loader">Cargando...</div></div>
+            <button class="btn btn-ghost btn-full mt-16" onclick="abrirModalParticipante()">＋ Agregar Persona</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: NUEVO GRUPO -->
+<div id="modal-grupo" class="modal-overlay">
     <div class="modal">
         <div class="modal-header">
-            <h3>👥 Personas</h3>
-            <button class="modal-close" onclick="cerrarModal('modal-personas')">✕</button>
+            <h3>Nuevo Grupo</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-grupo')">✕</button>
         </div>
-        <div id="lista-personas-tareas" class="card"></div>
-        <div class="form-group mt-16">
-            <label>Agregar persona</label>
-            <div style="display:flex;gap:8px">
-                <input type="text" id="input-nueva-persona" placeholder="Ej: Martín"
-                    onkeydown="if(event.key==='Enter') agregarPersonaTarea()" style="flex:1" />
-                <button class="btn btn-primary" onclick="agregarPersonaTarea()">＋</button>
-            </div>
+        <div class="form-group">
+            <label>Nombre del grupo</label>
+            <input type="text" id="input-nombre-grupo" placeholder="Ej: Viaje a Bariloche" />
         </div>
+        <button class="btn btn-primary btn-full" onclick="crearGrupo()">Crear Grupo</button>
+    </div>
+</div>
+
+<!-- MODAL: NUEVA PERSONA -->
+<div id="modal-participante" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Agregar Persona</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-participante')">✕</button>
+        </div>
+        <div class="form-group">
+            <label>Nombre</label>
+            <input type="text" id="input-nombre-participante" placeholder="Ej: Martín" />
+        </div>
+        <div class="form-group">
+            <label>Email (opcional — para invitarla)</label>
+            <input type="email" id="input-email-participante" placeholder="martin@email.com" />
+        </div>
+        <div id="invite-info" class="alert alert-info" style="display:none">
+            📧 Se le enviará un link al correo para que pueda ingresar a la app y ver los gastos y tareas del grupo.
+        </div>
+        <button class="btn btn-primary btn-full" onclick="agregarParticipante()">Agregar y Enviar Invitación</button>
     </div>
 </div>
 
@@ -80,20 +122,179 @@
 <script src="js/utils.js"></script>
 <script>
 // =============================================
-// ESTADO GLOBAL
+// ESTADO GLOBAL (grupos y participantes: mismas tablas que gastos.html)
 // =============================================
+let grupoActual = null;
+let participantesActuales = [];
 let filtroTareas = 'pendientes';
 let todasLasTareas = [];
-let personasTareas = [];
 const PRIO_LABEL = { alta: 'Alta', media: 'Media', baja: 'Baja' };
 
 requireAuth(() => {
-    cargarPersonasTareas();
-    cargarTareas();
+    cargarGrupos();
 });
+
+// =============================================
+// NAVEGACIÓN
+// =============================================
+function mostrarPantalla(nombre) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + nombre).classList.add('active');
+}
+
+function cambiarTab(nombre) {
+    const tabs = ['tareas', 'participantes'];
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', tabs[i] === nombre));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('tab-' + nombre).classList.add('active');
+}
+
+function abrirGrupo(grupo) {
+    grupoActual = grupo;
+    document.getElementById('topbar-title').textContent = grupo.Nombre;
+    mostrarPantalla('grupo');
+    cambiarTab('tareas');
+    cargarParticipantes().then(cargarTareas);
+}
+
+function volverAGrupos() {
+    if (!grupoActual) { irAlInicio(); return; }
+    grupoActual = null;
+    participantesActuales = [];
+    document.getElementById('topbar-title').textContent = '✅ Tareas';
+    mostrarPantalla('grupos');
+    cargarGrupos();
+}
 
 function abrirModal(id) { document.getElementById(id).classList.add('open'); }
 function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function abrirModalGrupo() {
+    document.getElementById('input-nombre-grupo').value = '';
+    abrirModal('modal-grupo');
+    setTimeout(() => document.getElementById('input-nombre-grupo').focus(), 100);
+}
+
+function abrirModalParticipante() {
+    document.getElementById('input-nombre-participante').value = '';
+    document.getElementById('input-email-participante').value = '';
+    document.getElementById('invite-info').style.display = 'none';
+    document.querySelector('#modal-participante .btn-primary').textContent = 'Agregar';
+    abrirModal('modal-participante');
+    setTimeout(() => document.getElementById('input-nombre-participante').focus(), 100);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('input-email-participante').addEventListener('input', function() {
+        const tieneEmail = this.value.trim().length > 0;
+        document.getElementById('invite-info').style.display = tieneEmail ? 'block' : 'none';
+        document.querySelector('#modal-participante .btn-primary').textContent =
+            tieneEmail ? 'Agregar y Enviar Invitación' : 'Agregar';
+    });
+});
+
+// =============================================
+// GRUPOS (misma tabla `grupos` que usa gastos.html)
+// =============================================
+async function cargarGrupos() {
+    const cont = document.getElementById('lista-grupos');
+    cont.innerHTML = '<div class="loader">Cargando grupos...</div>';
+    const { data, error } = await db.from('grupos').select('*').order('created_at', { ascending: false });
+    if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}</div>`; return; }
+    if (!data?.length) {
+        cont.innerHTML = `<div class="empty"><span class="empty-icon">🏠</span>Sin grupos todavía.<br>Creá uno para empezar (o creá uno desde Gastos, es el mismo listado).</div>`;
+        return;
+    }
+    cont.innerHTML = data.map(g => `
+        <div class="card card-click" onclick='abrirGrupo(${JSON.stringify(g)})'>
+            <div class="card-body">
+                <div style="font-weight:700;font-size:16px">${escapeHtml(g.Nombre)}</div>
+                <div class="text-muted">${new Date(g.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function crearGrupo() {
+    const nombre = document.getElementById('input-nombre-grupo').value.trim();
+    if (!nombre) { alert('Ingresá un nombre.'); return; }
+    const { error } = await db.from('grupos').insert({ Nombre: nombre });
+    if (error) { alert('Error: ' + error.message); return; }
+    cerrarModal('modal-grupo');
+    cargarGrupos();
+}
+
+// =============================================
+// PARTICIPANTES (misma tabla `participantes` que usa gastos.html)
+// =============================================
+async function cargarParticipantes() {
+    const { data, error } = await db.from('participantes')
+        .select('*').eq('id_grupo', grupoActual.id).order('id');
+    participantesActuales = data || [];
+    const cont = document.getElementById('lista-participantes');
+    if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
+    if (!data?.length) {
+        cont.innerHTML = `<div class="empty"><span class="empty-icon">👥</span>Sin personas todavía.<br>Agregá a quienes van a tener tareas asignadas.</div>`;
+    } else {
+        cont.innerHTML = `<div class="card">${data.map(p => `
+            <div class="part-item">
+                <div class="avatar">${p.Name.charAt(0).toUpperCase()}</div>
+                <div style="flex:1;min-width:0">
+                    <div class="part-name">${escapeHtml(p.Name)}</div>
+                    ${p.email ? `<div class="text-muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📧 ${escapeHtml(p.email)}</div>` : ''}
+                </div>
+                ${p.email ? '<span class="badge badge-green" style="font-size:11px">Invitado</span>' : ''}
+            </div>
+        `).join('')}</div>`;
+    }
+    renderSelectAsignado();
+}
+
+async function agregarParticipante() {
+    const nombre = document.getElementById('input-nombre-participante').value.trim();
+    const email  = document.getElementById('input-email-participante').value.trim().toLowerCase();
+    if (!nombre) { alert('Ingresá un nombre.'); return; }
+
+    const nombreDup = participantesActuales.find(p => p.Name.toLowerCase() === nombre.toLowerCase());
+    if (nombreDup) { alert(`Ya existe un participante llamado "${nombre}" en este grupo.`); return; }
+    if (email) {
+        const emailDup = participantesActuales.find(p => p.email?.toLowerCase() === email);
+        if (emailDup) { alert(`El email ${email} ya está registrado en este grupo (${emailDup.Name}).`); return; }
+    }
+
+    const payload = { id_grupo: grupoActual.id, Name: nombre };
+    if (email) payload.email = email;
+
+    const { error } = await db.from('participantes').insert(payload);
+    if (error) { alert('Error: ' + error.message); return; }
+
+    if (email) {
+        const { error: inviteError } = await db.auth.signInWithOtp({
+            email,
+            options: { emailRedirectTo: APP_BASE_URL, shouldCreateUser: true }
+        });
+        if (inviteError) {
+            alert(`${nombre} fue agregado, pero hubo un error al enviar la invitación: ${inviteError.message}`);
+        } else {
+            alert(`✅ ${nombre} fue agregado y se le envió una invitación a ${email}.`);
+        }
+    }
+
+    cerrarModal('modal-participante');
+    cargarParticipantes();
+}
+
+// =============================================
+// TAREAS (ahora escopeadas al grupo, asignadas a un participante)
+// =============================================
+function renderSelectAsignado() {
+    const sel = document.getElementById('input-asignado-tarea');
+    if (!sel) return;
+    const actual = sel.value;
+    sel.innerHTML = '<option value="">Sin asignar</option>' +
+        participantesActuales.map(p => `<option value="${p.id}">${escapeHtml(p.Name)}</option>`).join('');
+    sel.value = actual;
+}
 
 function setFiltro(f) {
     filtroTareas = f;
@@ -103,79 +304,12 @@ function setFiltro(f) {
     renderTareas();
 }
 
-// =============================================
-// PERSONAS (para asignar tareas)
-// =============================================
-async function cargarPersonasTareas() {
-    const { data, error } = await db.from('personas_tareas').select('*').order('nombre');
-    if (error) {
-        console.error(error);
-        return;
-    }
-    personasTareas = data || [];
-    renderSelectAsignado();
-    renderListaPersonas();
-}
-
-function renderSelectAsignado() {
-    const sel = document.getElementById('input-asignado-tarea');
-    const actual = sel.value;
-    sel.innerHTML = '<option value="">Sin asignar</option>' +
-        personasTareas.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
-    sel.value = actual;
-}
-
-function renderListaPersonas() {
-    const cont = document.getElementById('lista-personas-tareas');
-    if (!personasTareas.length) {
-        cont.innerHTML = `<div class="empty" style="padding:20px"><span class="empty-icon">👥</span>Sin personas todavía.</div>`;
-        return;
-    }
-    cont.innerHTML = personasTareas.map(p => `
-        <div class="part-item">
-            <div class="avatar">${p.nombre.charAt(0).toUpperCase()}</div>
-            <div class="part-name">${escapeHtml(p.nombre)}</div>
-            <button onclick="borrarPersonaTarea(${p.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px">✕</button>
-        </div>
-    `).join('');
-}
-
-function abrirModalPersonas() {
-    document.getElementById('input-nueva-persona').value = '';
-    abrirModal('modal-personas');
-    setTimeout(() => document.getElementById('input-nueva-persona').focus(), 100);
-}
-
-async function agregarPersonaTarea() {
-    const nombre = document.getElementById('input-nueva-persona').value.trim();
-    if (!nombre) return;
-    const dup = personasTareas.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
-    if (dup) { alert(`Ya existe "${nombre}".`); return; }
-
-    const { error } = await db.from('personas_tareas').insert({ nombre });
-    if (error) { alert('Error: ' + error.message); return; }
-
-    document.getElementById('input-nueva-persona').value = '';
-    document.getElementById('input-nueva-persona').focus();
-    cargarPersonasTareas();
-}
-
-async function borrarPersonaTarea(id) {
-    if (!confirm('¿Eliminar esta persona? Las tareas asignadas quedarán sin asignar.')) return;
-    const { error } = await db.from('personas_tareas').delete().eq('id', id);
-    if (error) { alert('Error: ' + error.message); return; }
-    cargarPersonasTareas();
-    cargarTareas();
-}
-
-// =============================================
-// TAREAS
-// =============================================
 async function cargarTareas() {
     const cont = document.getElementById('tareas-items');
     cont.innerHTML = '<div class="loader">Cargando tareas...</div>';
     const { data, error } = await db.from('tareas')
-        .select('*').order('hecha').order('created_at', { ascending: false });
+        .select('*').eq('id_grupo', grupoActual.id)
+        .order('hecha').order('created_at', { ascending: false });
     if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}<br>¿Ejecutaste el SQL de configuración? Ver README.</div>`; return; }
     todasLasTareas = data || [];
     renderTareas();
@@ -183,7 +317,7 @@ async function cargarTareas() {
 
 function nombreAsignado(id) {
     if (!id) return null;
-    return personasTareas.find(p => p.id === id)?.nombre || null;
+    return participantesActuales.find(p => p.id === id)?.Name || null;
 }
 
 function renderTareas() {
@@ -204,7 +338,7 @@ function renderTareas() {
         hechas.length > 0 ? 'flex' : 'none';
 
     if (!items.length) {
-        const msgs = { pendientes: '✅ No hay tareas pendientes.', hechas: 'Sin tareas hechas todavía.', todas: '📋 No hay tareas. Agregá una.' };
+        const msgs = { pendientes: '✅ No hay tareas pendientes.', hechas: 'Sin tareas hechas todavía.', todas: '📋 No hay tareas en este grupo. Agregá una.' };
         cont.innerHTML = `<div class="empty" style="padding:24px"><span class="empty-icon">${filtroTareas === 'pendientes' ? '✅' : '📋'}</span>${msgs[filtroTareas]}</div>`;
         return;
     }
@@ -231,7 +365,8 @@ async function agregarTarea() {
     const id_asignado = asignadoVal ? parseInt(asignadoVal) : null;
     if (!titulo) { document.getElementById('input-titulo-tarea').focus(); return; }
 
-    const { data, error } = await db.from('tareas').insert({ titulo, prioridad, id_asignado }).select().single();
+    const { data, error } = await db.from('tareas')
+        .insert({ titulo, prioridad, id_asignado, id_grupo: grupoActual.id }).select().single();
     if (error) { alert('Error: ' + error.message); return; }
 
     document.getElementById('input-titulo-tarea').value = '';
@@ -262,7 +397,7 @@ async function borrarTarea(id) {
 }
 
 async function borrarHechas() {
-    if (!confirm('¿Borrar todas las tareas hechas?')) return;
+    if (!confirm('¿Borrar todas las tareas hechas de este grupo?')) return;
     const ids = todasLasTareas.filter(t => t.hecha).map(t => t.id);
     const { error } = await db.from('tareas').delete().in('id', ids);
     if (error) { alert('Error: ' + error.message); return; }
