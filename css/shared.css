@@ -186,7 +186,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
     display: inline-block;
     vertical-align: middle;
     flex-shrink: 0;
-    background-color: currentColor;
+    background-color: transparent;
     -webkit-mask-size: contain;
     mask-size: contain;
     -webkit-mask-repeat: no-repeat;
