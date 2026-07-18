@@ -13,6 +13,7 @@ migracion_multi_lista_y_tareas.sql       → SQL para correr en Supabase (v1)
 migracion_2_fecha_y_asignados.sql        → SQL para correr en Supabase (v2: fecha de gasto)
 migracion_3_tareas_grupos_propios.sql    → SQL para correr en Supabase (v3, versión FINAL de tareas)
 migracion_4_calendar_sync.sql            → SQL para correr en Supabase (v4: Google Calendar)
+migracion_5_grupos_miembros.sql           → SQL para miembros de grupos y RLS por usuario
 edge-function-calendar-sync.ts           → Código para pegar en Supabase Edge Functions (esto NO va a GitHub Pages)
 css/
 └── shared.css                           → Todos los estilos compartidos
@@ -65,11 +66,12 @@ Si en tu repo ya tenías carpetas `css/` o `js/` de una versión anterior, o un 
    - `supabase-client.js`, `auth.js`, `utils.js` van **dentro de una carpeta `js/`**.
 
    Para crear las carpetas al subir por la web de GitHub: usá "Add file → Create new file" y escribí el nombre completo con la barra, por ejemplo `css/shared.css` — GitHub crea la carpeta sola al ver la barra. O arrastrá la carpeta `css` completa (no su contenido suelto) al uploader.
-3. **Corré el SQL** de los 4 archivos en el SQL Editor de Supabase, EN ESTE ORDEN:
+3. **Corré el SQL** de los 5 archivos en el SQL Editor de Supabase, EN ESTE ORDEN:
    - `migracion_multi_lista_y_tareas.sql` — crea `listas`, agrega `id_lista` a `lista_compras`, crea `tareas`
    - `migracion_2_fecha_y_asignados.sql` — agrega `fecha_gasto` a `gastos`
    - `migracion_3_tareas_grupos_propios.sql` — crea `grupos_tareas` y `personas_tareas` (escopeada a un grupo), conecta `tareas` a ambos, y agrega `id_lista` para el vínculo con Listas
    - `migracion_4_calendar_sync.sql` — crea `google_tokens`, y agrega `fecha_vencimiento`/`google_event_id` a `tareas`
+   - `migracion_5_grupos_miembros.sql` — agrega membresía de usuarios a grupos de Gastos y Tareas, y aplica políticas RLS para que solo los miembros vean/editen cada grupo
 4. **Si ya tenías ítems cargados** en `lista_compras` de antes (sin `id_lista`), corré en el SQL Editor (están comentadas al final del primer archivo):
    ```sql
    insert into listas (nombre) values ('General');

@@ -24,6 +24,11 @@ function hoyISO() {
     return new Date(d - tz).toISOString().slice(0, 10);
 }
 
+async function getCurrentUserId() {
+    const { data: { session } } = await db.auth.getSession();
+    return session?.user?.id || null;
+}
+
 // =============================================
 // ÍCONOS (Heroicons vía CDN, coloreados con currentColor usando CSS mask)
 // =============================================
