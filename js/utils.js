@@ -44,7 +44,7 @@ function formatFechaHora(iso) {
 async function callCalendarSync(payload) {
     const { data: { session } } = await db.auth.getSession();
     if (!session) throw new Error('No hay sesión activa.');
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/calendar-sync`, {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/clever-api`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
