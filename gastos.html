@@ -454,11 +454,19 @@ async function crearGrupo() {
     }
 
     const { data, error } = await db.from('grupos').insert({ Nombre: nombre }).select().single();
-    if (error) { alert('Error: ' + error.message); return; }
+    if (error) { alert('Error al crear grupo: ' + error.message); return; }
 
     const { error: em } = await db.from('grupos_miembros')
         .upsert({ id_grupo: data.id, user_id: userId }, { onConflict: ['id_grupo', 'user_id'] });
-    if (em) { alert('Grupo creado, pero no se pudo guardar la membresía: ' + em.message); }
+    if (em) { 
+        // Intenta insert directo como fallback si upsert falla
+        const { error: em2 } = await db.from('grupos_miembros')
+            .insert({ id_grupo: data.id, user_id: userId });
+        if (em2) {
+            alert('⚠️ Grupo creado, pero no se pudo guardar la membresía.\nMensaje: ' + em2.message); 
+            return;
+        }
+    }
 
     const user = await getCurrentUser();
     if (user?.email) {
