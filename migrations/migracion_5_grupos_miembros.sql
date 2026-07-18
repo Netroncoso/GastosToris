@@ -2,6 +2,10 @@
 -- Esta migración agrega membresías para los grupos de Gastos y Tareas
 -- y restringe visibilidad/ediciones a los usuarios que pertenecen a cada grupo.
 
+-- Agregar campos created_by a las tablas de grupos (si no existen)
+alter table grupos
+add column if not exists created_by uuid references auth.users(id) on delete set null;
+
 -- 1) Membresía para grupos de Gastos
 create table if not exists grupos_miembros (
     id bigint generated always as identity primary key,
@@ -46,7 +50,8 @@ create policy "ver grupos" on grupos
     for select
     to authenticated
     using (
-        exists (
+        grupos.created_by = auth.uid()
+        or exists (
             select 1 from grupos_miembros gm
             where gm.id_grupo = grupos.id
               and gm.user_id = auth.uid()
@@ -69,14 +74,16 @@ create policy "actualizar grupos" on grupos
     for update
     to authenticated
     using (
-        exists (
+        grupos.created_by = auth.uid()
+        or exists (
             select 1 from grupos_miembros gm
             where gm.id_grupo = grupos.id
               and gm.user_id = auth.uid()
         )
     )
     with check (
-        exists (
+        grupos.created_by = auth.uid()
+        or exists (
             select 1 from grupos_miembros gm
             where gm.id_grupo = grupos.id
               and gm.user_id = auth.uid()
@@ -88,7 +95,8 @@ create policy "borrar grupos" on grupos
     for delete
     to authenticated
     using (
-        exists (
+        grupos.created_by = auth.uid()
+        or exists (
             select 1 from grupos_miembros gm
             where gm.id_grupo = grupos.id
               and gm.user_id = auth.uid()
@@ -279,6 +287,10 @@ create policy "borrar gastos_participantes" on gastos_participantes
     );
 
 -- 4) Membresía para grupos de Tareas
+-- Primero, agregar columna created_by a grupos_tareas si no existe
+alter table grupos_tareas
+add column if not exists created_by uuid references auth.users(id) on delete set null;
+
 create table if not exists grupos_tareas_miembros (
     id bigint generated always as identity primary key,
     id_grupo_tareas bigint not null references grupos_tareas(id) on delete cascade,
@@ -321,7 +333,8 @@ create policy "ver grupos_tareas" on grupos_tareas
     for select
     to authenticated
     using (
-        exists (
+        grupos_tareas.created_by = auth.uid()
+        or exists (
             select 1 from grupos_tareas_miembros gm
             where gm.id_grupo_tareas = grupos_tareas.id
               and gm.user_id = auth.uid()
@@ -344,14 +357,16 @@ create policy "actualizar grupos_tareas" on grupos_tareas
     for update
     to authenticated
     using (
-        exists (
+        grupos_tareas.created_by = auth.uid()
+        or exists (
             select 1 from grupos_tareas_miembros gm
             where gm.id_grupo_tareas = grupos_tareas.id
               and gm.user_id = auth.uid()
         )
     )
     with check (
-        exists (
+        grupos_tareas.created_by = auth.uid()
+        or exists (
             select 1 from grupos_tareas_miembros gm
             where gm.id_grupo_tareas = grupos_tareas.id
               and gm.user_id = auth.uid()
@@ -363,7 +378,8 @@ create policy "borrar grupos_tareas" on grupos_tareas
     for delete
     to authenticated
     using (
-        exists (
+        grupos_tareas.created_by = auth.uid()
+        or exists (
             select 1 from grupos_tareas_miembros gm
             where gm.id_grupo_tareas = grupos_tareas.id
               and gm.user_id = auth.uid()
