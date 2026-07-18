@@ -25,6 +25,13 @@ create policy "crear grupos_miembros" on grupos_miembros
     to authenticated
     with check (user_id = auth.uid());
 
+drop policy if exists "actualizar grupos_miembros" on grupos_miembros;
+create policy "actualizar grupos_miembros" on grupos_miembros
+    for update
+    to authenticated
+    using (user_id = auth.uid())
+    with check (user_id = auth.uid());
+
 drop policy if exists "borrar grupos_miembros" on grupos_miembros;
 create policy "borrar grupos_miembros" on grupos_miembros
     for delete
@@ -43,6 +50,11 @@ create policy "ver grupos" on grupos
             select 1 from grupos_miembros gm
             where gm.id_grupo = grupos.id
               and gm.user_id = auth.uid()
+        )
+        or exists (
+            select 1 from participantes p
+            where p.id_grupo = grupos.id
+              and lower(p.email) = lower(auth.jwt() ->> 'email')
         )
     );
 
@@ -95,6 +107,11 @@ create policy "ver gastos" on gastos
             select 1 from grupos_miembros gm
             where gm.id_grupo = gastos.id_grupo
               and gm.user_id = auth.uid()
+        )
+        or exists (
+            select 1 from participantes p
+            where p.id_grupo = gastos.id_grupo
+              and lower(p.email) = lower(auth.jwt() ->> 'email')
         )
     );
 
@@ -153,7 +170,7 @@ create policy "ver participantes" on participantes
             where gm.id_grupo = participantes.id_grupo
               and gm.user_id = auth.uid()
         )
-        or participantes.email = auth.jwt() ->> 'email'
+        or lower(participantes.email) = lower(auth.jwt() ->> 'email')
     );
 
 drop policy if exists "crear participantes" on participantes;
@@ -284,6 +301,13 @@ create policy "crear grupos_tareas_miembros" on grupos_tareas_miembros
     to authenticated
     with check (user_id = auth.uid());
 
+drop policy if exists "actualizar grupos_tareas_miembros" on grupos_tareas_miembros;
+create policy "actualizar grupos_tareas_miembros" on grupos_tareas_miembros
+    for update
+    to authenticated
+    using (user_id = auth.uid())
+    with check (user_id = auth.uid());
+
 drop policy if exists "borrar grupos_tareas_miembros" on grupos_tareas_miembros;
 create policy "borrar grupos_tareas_miembros" on grupos_tareas_miembros
     for delete
@@ -301,6 +325,11 @@ create policy "ver grupos_tareas" on grupos_tareas
             select 1 from grupos_tareas_miembros gm
             where gm.id_grupo_tareas = grupos_tareas.id
               and gm.user_id = auth.uid()
+        )
+        or exists (
+            select 1 from personas_tareas p
+            where p.id_grupo_tareas = grupos_tareas.id
+              and lower(p.email) = lower(auth.jwt() ->> 'email')
         )
     );
 
@@ -352,6 +381,11 @@ create policy "ver tareas" on tareas
             select 1 from grupos_tareas_miembros gm
             where gm.id_grupo_tareas = tareas.id_grupo_tareas
               and gm.user_id = auth.uid()
+        )
+        or exists (
+            select 1 from personas_tareas p
+            where p.id_grupo_tareas = tareas.id_grupo_tareas
+              and lower(p.email) = lower(auth.jwt() ->> 'email')
         )
     );
 
@@ -411,7 +445,7 @@ create policy "ver personas_tareas" on personas_tareas
             where gm.id_grupo_tareas = personas_tareas.id_grupo_tareas
               and gm.user_id = auth.uid()
         )
-        or personas_tareas.email = auth.jwt() ->> 'email'
+        or lower(personas_tareas.email) = lower(auth.jwt() ->> 'email')
     );
 
 drop policy if exists "crear personas_tareas" on personas_tareas;
