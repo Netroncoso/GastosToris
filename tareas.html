@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tareas · SplitApp ✅</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
+    <link rel="icon" href="https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg">
     <link rel="stylesheet" href="css/shared.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -13,12 +13,12 @@
 <!-- TOPBAR -->
 <div class="topbar">
     <div class="topbar-left">
-        <button id="btn-back" class="btn-icon" onclick="volverAGrupos()">←</button>
-        <h1 id="topbar-title">✅ Tareas</h1>
+        <button id="btn-back" class="btn-icon" onclick="volverAGrupos()"><span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-left.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-left.svg)"></span></button>
+        <h1 id="topbar-title"><span class="hicon" style="width:20px;height:20px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg)"></span> Tareas</h1>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
         <span id="topbar-user" class="topbar-user"></span>
-        <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión">⎋</button>
+        <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión"><span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-right-on-rectangle.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-right-on-rectangle.svg)"></span></button>
     </div>
 </div>
 
@@ -26,15 +26,15 @@
 <div id="screen-grupos" class="screen active">
     <div class="container">
         <div id="lista-grupos"><div class="loader">Cargando grupos...</div></div>
-        <button class="btn btn-primary btn-full mt-16" onclick="abrirModalGrupo()">＋ Nuevo Grupo</button>
+        <button class="btn btn-primary btn-full mt-16" onclick="abrirModalGrupo()"><span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/plus.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/plus.svg)"></span> Nuevo Grupo</button>
     </div>
 </div>
 
 <!-- SCREEN: GRUPO DETAIL -->
 <div id="screen-grupo" class="screen">
     <div class="tabs">
-        <div class="tab active" onclick="cambiarTab('tareas')">✅ Tareas</div>
-        <div class="tab" onclick="cambiarTab('personas')">👥 Personas</div>
+        <div class="tab active" onclick="cambiarTab('tareas')"><span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg)"></span> Tareas</div>
+        <div class="tab" onclick="cambiarTab('personas')"><span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/users.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/users.svg)"></span> Personas</div>
     </div>
     <div class="container">
         <div id="tab-tareas" class="tab-content active">
@@ -54,9 +54,9 @@
                 </div>
                 <div class="add-item-row" style="margin-bottom:8px">
                     <select id="input-prioridad-tarea" class="input-sm" style="flex:1">
-                        <option value="baja">🟢 Baja</option>
-                        <option value="media" selected>🟠 Media</option>
-                        <option value="alta">🔴 Alta</option>
+                        <option value="baja">Baja</option>
+                        <option value="media" selected>Media</option>
+                        <option value="alta">Alta</option>
                     </select>
                     <select id="input-asignado-tarea" class="input-sm" style="flex:1">
                         <option value="">Sin asignar</option>
@@ -72,11 +72,11 @@
                         <option value="">Ninguna</option>
                     </select>
                 </div>
-                <button class="btn btn-primary btn-full mt-12" onclick="agregarTarea()">＋ Agregar tarea</button>
+                <button class="btn btn-primary btn-full mt-12" onclick="agregarTarea()"><span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/plus.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/plus.svg)"></span> Agregar tarea</button>
             </div>
 
             <button class="btn btn-ghost btn-full mt-12" id="btn-borrar-hechas" onclick="borrarHechas()" style="display:none;color:var(--danger);border-color:var(--danger)">
-                🗑 Borrar todas las hechas
+                <span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/trash.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/trash.svg)"></span> Borrar todas las hechas
             </button>
         </div>
 
@@ -92,7 +92,7 @@
                 <input type="email" id="input-email-persona" placeholder="martin@email.com" />
             </div>
             <div id="invite-info-tareas" class="alert alert-info" style="display:none">
-                📧 Se le enviará un link al correo para que pueda ingresar a la app y ver las tareas de este grupo.
+                <span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg)"></span> Se le enviará un link al correo para que pueda ingresar a la app y ver las tareas de este grupo.
             </div>
             <button class="btn btn-primary btn-full" onclick="agregarPersonaTarea()">Agregar Persona</button>
         </div>
@@ -104,7 +104,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3>Nuevo Grupo de Tareas</h3>
-            <button class="modal-close" onclick="cerrarModal('modal-grupo')">✕</button>
+            <button class="modal-close" onclick="cerrarModal('modal-grupo')"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg)"></span></button>
         </div>
         <div class="form-group">
             <label>Nombre del grupo</label>
@@ -173,7 +173,7 @@ function volverAGrupos() {
     if (!grupoActual) { irAlInicio(); return; }
     grupoActual = null;
     personasTareas = [];
-    document.getElementById('topbar-title').textContent = '✅ Tareas';
+    document.getElementById('topbar-title').innerHTML = '<span class="hicon" style="width:20px;height:20px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg)"></span> Tareas';
     mostrarPantalla('grupos');
     cargarGrupos();
 }
@@ -196,7 +196,7 @@ async function cargarGrupos() {
     const { data, error } = await db.from('grupos_tareas').select('*').order('created_at', { ascending: false });
     if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}<br>¿Ejecutaste el SQL de configuración? Ver README.</div>`; return; }
     if (!data?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon">✅</span>Sin grupos todavía.<br>Creá uno para empezar (ej: "Casa", "Oficina").</div>`;
+        cont.innerHTML = `<div class="empty"><span class="empty-icon"><span class="hicon" style="width:40px;height:40px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg)"></span></span>Sin grupos todavía.<br>Creá uno para empezar (ej: "Casa", "Oficina").</div>`;
         return;
     }
     cont.innerHTML = data.map(g => `
@@ -206,7 +206,7 @@ async function cargarGrupos() {
                     <div style="font-weight:700;font-size:16px">${escapeHtml(g.nombre)}</div>
                     <div class="text-muted">${new Date(g.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })}</div>
                 </div>
-                <button class="btn btn-danger btn-sm" onclick="eliminarGrupo(${g.id}, '${g.nombre.replace(/'/g,"\\'")}')">🗑</button>
+                <button class="btn btn-danger btn-sm" onclick="eliminarGrupo(${g.id}, '${g.nombre.replace(/'/g,"\\'")}')"><span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/trash.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/trash.svg)"></span></button>
             </div>
         </div>
     `).join('');
@@ -242,17 +242,17 @@ async function cargarPersonasTareas() {
     const cont = document.getElementById('lista-personas-tareas');
     if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
     if (!data?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon">👥</span>Sin personas todavía en este grupo.</div>`;
+        cont.innerHTML = `<div class="empty"><span class="empty-icon"><span class="hicon" style="width:40px;height:40px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/users.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/users.svg)"></span></span>Sin personas todavía en este grupo.</div>`;
     } else {
         cont.innerHTML = `<div class="card">${data.map(p => `
             <div class="part-item">
                 <div class="avatar">${p.nombre.charAt(0).toUpperCase()}</div>
                 <div style="flex:1;min-width:0">
                     <div class="part-name">${escapeHtml(p.nombre)}</div>
-                    ${p.email ? `<div class="text-muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📧 ${escapeHtml(p.email)}</div>` : ''}
+                    ${p.email ? `<div class="text-muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg)"></span> ${escapeHtml(p.email)}</div>` : ''}
                 </div>
                 ${p.email ? '<span class="badge badge-green" style="font-size:11px">Invitado</span>' : ''}
-                <button onclick="borrarPersonaTarea(${p.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px">✕</button>
+                <button onclick="borrarPersonaTarea(${p.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg)"></span></button>
             </div>
         `).join('')}</div>`;
     }
@@ -324,7 +324,7 @@ async function cargarListasDisponibles() {
     if (!sel) return;
     const actual = sel.value;
     sel.innerHTML = '<option value="">Ninguna</option>' +
-        listasDisponibles.map(l => `<option value="${l.id}">🛒 ${escapeHtml(l.nombre)}</option>`).join('');
+        listasDisponibles.map(l => `<option value="${l.id}">${escapeHtml(l.nombre)}</option>`).join('');
     sel.value = actual;
 }
 
@@ -378,8 +378,8 @@ function renderTareas() {
         hechas.length > 0 ? 'flex' : 'none';
 
     if (!items.length) {
-        const msgs = { pendientes: '✅ No hay tareas pendientes.', hechas: 'Sin tareas hechas todavía.', todas: '📋 No hay tareas en este grupo. Agregá una.' };
-        cont.innerHTML = `<div class="empty" style="padding:24px"><span class="empty-icon">${filtroTareas === 'pendientes' ? '✅' : '📋'}</span>${msgs[filtroTareas]}</div>`;
+        const msgs = { pendientes: '<span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg)"></span> No hay tareas pendientes.', hechas: 'Sin tareas hechas todavía.', todas: '<span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/clipboard-document-list.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/clipboard-document-list.svg)"></span> No hay tareas en este grupo. Agregá una.' };
+        cont.innerHTML = `<div class="empty" style="padding:24px"><span class="empty-icon">${filtroTareas === 'pendientes' ? icon('check-circle',40) : icon('clipboard-document-list',40)}</span>${msgs[filtroTareas]}</div>`;
         return;
     }
 
@@ -391,16 +391,16 @@ function renderTareas() {
         <div class="tarea-item ${t.hecha ? 'comprado' : ''}" id="tarea-${t.id}">
             <div class="tarea-item-main">
                 <div class="lista-check ${t.hecha ? 'checked' : ''}" onclick="toggleTarea(${t.id}, ${t.hecha})">
-                    ${t.hecha ? '✓' : ''}
+                    ${t.hecha ? icon('check',14) : ''}
                 </div>
                 <div class="prio-dot prio-${t.prioridad || 'media'}" title="Prioridad ${PRIO_LABEL[t.prioridad] || 'Media'}"></div>
                 <div class="lista-nombre ${t.hecha ? 'tachado' : ''}">${escapeHtml(t.titulo)}</div>
-                <button onclick="borrarTarea(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;flex-shrink:0">✕</button>
+                <button onclick="borrarTarea(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;flex-shrink:0"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg)"></span></button>
             </div>
             ${tieneBadges ? `
             <div class="tarea-item-badges">
-                ${t.fecha_vencimiento ? `<span class="badge badge-purple" title="${t.google_event_id ? 'Sincronizada con Google Calendar' : 'Vencimiento'}">📅 ${formatFechaHora(t.fecha_vencimiento)}</span>` : ''}
-                ${lista ? `<a href="listas.html?abrir=${t.id_lista}" class="badge badge-green" style="text-decoration:none">🛒 ${escapeHtml(lista)}</a>` : ''}
+                ${t.fecha_vencimiento ? `<span class="badge badge-purple" title="${t.google_event_id ? 'Sincronizada con Google Calendar' : 'Vencimiento'}"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/calendar-days.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/calendar-days.svg)"></span> ${formatFechaHora(t.fecha_vencimiento)}</span>` : ''}
+                ${lista ? `<a href="listas.html?abrir=${t.id_lista}" class="badge badge-green" style="text-decoration:none"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/shopping-cart.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/shopping-cart.svg)"></span> ${escapeHtml(lista)}</a>` : ''}
                 ${asignado ? `<span class="badge badge-blue">${escapeHtml(asignado)}</span>` : ''}
             </div>` : ''}
         </div>`;
