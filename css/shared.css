@@ -193,3 +193,11 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .progress-label-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
 .progress-track { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; }
 .progress-fill { height: 8px; border-radius: 4px; background: var(--primary); }
+
+/* TAREAS: fila principal + fila de badges abajo (evita que el título se aplaste) */
+.tarea-item { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.tarea-item:last-child { border-bottom: none; }
+.tarea-item.comprado { opacity: 0.45; }
+.tarea-item-main { display: flex; align-items: center; gap: 12px; }
+.tarea-item-main .lista-nombre { flex: 1; min-width: 0; }
+.tarea-item-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; padding-left: 34px; }
