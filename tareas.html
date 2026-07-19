@@ -92,7 +92,7 @@
                 <input type="email" id="input-email-persona" placeholder="martin@email.com" />
             </div>
             <div id="invite-info-tareas" class="alert alert-info" style="display:none">
-                <span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg)"></span> Se le enviará un link al correo para que pueda ingresar a la app y ver las tareas de este grupo.
+                <span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg)"></span> Se enviará una invitación por correo para unirse a este grupo. Al aceptarla, la persona podrá acceder automáticamente a las tareas compartidas.
             </div>
             <button class="btn btn-primary btn-full" onclick="agregarPersonaTarea()">Agregar Persona</button>
         </div>
@@ -131,8 +131,20 @@ const PRIO_LABEL = { alta: 'Alta', media: 'Media', baja: 'Baja' };
 
 requireAuth(async () => {
     await syncInvitadosTareas();
-    await cargarGrupos();
     await cargarListasDisponibles();
+    const params = new URLSearchParams(window.location.search);
+    const abrirId = params.get('abrir');
+    if (abrirId) {
+        const { data, error } = await db.from('grupos_tareas').select('*').eq('id', abrirId).single();
+        if (error || !data) {
+            alert('No se encontró ese grupo (o no tenés acceso todavía).');
+            await cargarGrupos();
+        } else {
+            abrirGrupo(data);
+        }
+    } else {
+        await cargarGrupos();
+    }
 });
 
 // =============================================
@@ -347,9 +359,20 @@ async function agregarPersonaTarea() {
     if (error) { alert('Error: ' + error.message); return; }
 
     if (email) {
+        const user = await getCurrentUser();
+        if (user?.email?.toLowerCase() === email) {
+            alert(`${nombre} fue agregado, pero no se envió invitación: ese es tu propio email.`);
+            document.getElementById('input-nueva-persona').value = '';
+            document.getElementById('input-email-persona').value = '';
+            document.getElementById('invite-info-tareas').style.display = 'none';
+            document.querySelector('#tab-personas .btn-primary').textContent = 'Agregar Persona';
+            cargarPersonasTareas();
+            return;
+        }
+
         const { error: inviteError } = await db.auth.signInWithOtp({
             email,
-            options: { emailRedirectTo: APP_BASE_URL, shouldCreateUser: true }
+            options: { emailRedirectTo: `${APP_BASE_URL}?invite_tarea=${grupoActual.id}`, shouldCreateUser: true }
         });
         if (inviteError) {
             alert(`${nombre} fue agregado, pero hubo un error al enviar la invitación: ${inviteError.message}`);

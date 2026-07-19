@@ -124,6 +124,20 @@
         document.getElementById('topbar').classList.remove('hidden');
         const nombre = (user.user_metadata?.full_name || user.email || '').split(' ')[0];
         document.getElementById('topbar-user').textContent = nombre;
+
+        // Si viene de un link de invitación a un grupo puntual, lo mandamos directo ahí
+        const params = new URLSearchParams(window.location.search);
+        const inviteGasto = params.get('invite_gasto');
+        const inviteTarea = params.get('invite_tarea');
+        if (inviteGasto) {
+            window.location.href = `gastos.html?abrir=${inviteGasto}`;
+            return;
+        }
+        if (inviteTarea) {
+            window.location.href = `tareas.html?abrir=${inviteTarea}`;
+            return;
+        }
+
         mostrarPantalla('dashboard');
     }
 
