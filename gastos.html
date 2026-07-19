@@ -90,7 +90,7 @@
             <input type="email" id="input-email-participante" placeholder="martin@email.com" />
         </div>
         <div id="invite-info" class="alert alert-info" style="display:none">
-            <span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg)"></span> Se le enviará un link al correo para que pueda ingresar a la app y ver los gastos del grupo.
+            <span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg)"></span> Se enviará una invitación por correo para unirse a este grupo. Al aceptarla, la persona podrá acceder automáticamente a los gastos compartidos.
         </div>
         <button class="btn btn-primary btn-full" onclick="agregarParticipante()">Agregar y Enviar Invitación</button>
     </div>
@@ -190,7 +190,19 @@ const TIPO_ICONO = { Comida: icon('cake',16), Transporte: icon('truck',16), Aloj
 
 requireAuth(async () => {
     await syncInvitadosGastos();
-    await cargarGrupos();
+    const params = new URLSearchParams(window.location.search);
+    const abrirId = params.get('abrir');
+    if (abrirId) {
+        const { data, error } = await db.from('grupos').select('*').eq('id', abrirId).single();
+        if (error || !data) {
+            alert('No se encontró ese grupo (o no tenés acceso todavía).');
+            await cargarGrupos();
+        } else {
+            abrirGrupo(data);
+        }
+    } else {
+        await cargarGrupos();
+    }
 });
 
 // =============================================
@@ -541,10 +553,18 @@ async function agregarParticipante() {
     if (error) { alert('Error: ' + error.message); return; }
 
     if (email) {
+        const user = await getCurrentUser();
+        if (user?.email?.toLowerCase() === email) {
+            alert(`${nombre} fue agregado, pero no se envió invitación: ese es tu propio email.`);
+            cerrarModal('modal-participante');
+            cargarParticipantes();
+            return;
+        }
+
         const { error: inviteError } = await db.auth.signInWithOtp({
             email,
             options: {
-                emailRedirectTo: APP_BASE_URL,
+                emailRedirectTo: `${APP_BASE_URL}?invite_gasto=${grupoActual.id}`,
                 shouldCreateUser: true
             }
         });
