@@ -111,19 +111,29 @@ function cambiarTab(nombre) {
 }
 
 // Generador genérico para sincronizar invitados entre tablas de personas y tabla de miembros
-async function syncInvitados({ personsTable, personGroupField, membershipTable, membershipGroupField }) {
+// `tipo` (opcional) acota a grupos de gastos o de tareas: como `participantes` y `grupos_miembros`
+// son compartidos por ambos módulos, sin este filtro cada página repite el trabajo de la otra.
+async function syncInvitados({ personsTable, personGroupField, membershipTable, membershipGroupField, tipo }) {
     const user = await getCurrentUser();
     const email = user?.email?.trim().toLowerCase();
     if (!email || !user?.id) return;
 
-    const q = await db.from(personsTable).select(personGroupField).eq('email', email);
+    const [q, gt] = await Promise.all([
+        db.from(personsTable).select(personGroupField).eq('email', email),
+        tipo ? db.from('grupos').select('id').eq('tipo', tipo) : Promise.resolve({ data: null })
+    ]);
     if (q.error) return;
-    const grupos = [...new Set((q.data || []).map(p => p[personGroupField]))];
-    for (const id_gr of grupos) {
-        const up = {}; up[membershipGroupField] = id_gr; up.user_id = user.id;
-        const { error: em } = await db.from(membershipTable).upsert(up, { onConflict: [membershipGroupField, 'user_id'] });
-        if (em && !em.message?.includes('duplicate')) console.warn('No se pudo sincronizar membresía invitada:', em.message);
+
+    let grupos = [...new Set((q.data || []).map(p => p[personGroupField]))];
+    if (tipo) {
+        const idsValidos = new Set((gt.data || []).map(g => g.id));
+        grupos = grupos.filter(id => idsValidos.has(id));
     }
+    if (!grupos.length) return;
+
+    const rows = grupos.map(id_gr => ({ [membershipGroupField]: id_gr, user_id: user.id }));
+    const { error: em } = await db.from(membershipTable).upsert(rows, { onConflict: [membershipGroupField, 'user_id'] });
+    if (em && !em.message?.includes('duplicate')) console.warn('No se pudo sincronizar membresía invitada:', em.message);
 }
 
 // Inicializa íconos para elementos con `data-icon` (HTML estático Y contenido

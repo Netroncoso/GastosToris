@@ -189,7 +189,7 @@ let grupoEditando = null;
 const TIPO_ICONO = { Comida: icon('cake',16), Transporte: icon('truck',16), Alojamiento: icon('home',16), Entretenimiento: icon('film',16), Compras: icon('shopping-cart',16), Otro: icon('archive-box',16), Reembolso: icon('arrow-path',16) };
 
 requireAuth(async () => {
-    await syncInvitados({ personsTable: 'participantes', personGroupField: 'id_grupo', membershipTable: 'grupos_miembros', membershipGroupField: 'id_grupo' });
+    await syncInvitados({ personsTable: 'participantes', personGroupField: 'id_grupo', membershipTable: 'grupos_miembros', membershipGroupField: 'id_grupo', tipo: 'gastos' });
     const params = new URLSearchParams(window.location.search);
     const abrirId = params.get('abrir');
     if (abrirId) {
