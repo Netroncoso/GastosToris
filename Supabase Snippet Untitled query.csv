@@ -1,0 +1,111 @@
+tipo,nombre,codigo_sql
+FUNCTION,set_created_by_grupos_tareas_fn,"CREATE OR REPLACE FUNCTION public.set_created_by_grupos_tareas_fn()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+begin
+  new.created_by := auth.uid();
+  return new;
+end;
+$function$
+"
+FUNCTION,auto_membership_grupos_tareas_fn,"CREATE OR REPLACE FUNCTION public.auto_membership_grupos_tareas_fn()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+begin
+  insert into grupos_tareas_miembros (id_grupo_tareas, user_id)
+  values (new.id, new.created_by)
+  on conflict (id_grupo_tareas, user_id) do nothing;
+  return new;
+end;
+$function$
+"
+FUNCTION,set_created_by_grupos_fn,"CREATE OR REPLACE FUNCTION public.set_created_by_grupos_fn()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+begin
+  new.created_by := auth.uid();
+  return new;
+end;
+$function$
+"
+FUNCTION,auto_membership_grupos_fn,"CREATE OR REPLACE FUNCTION public.auto_membership_grupos_fn()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+AS $function$
+begin
+  insert into grupos_miembros (id_grupo, user_id)
+  values (new.id, new.created_by)
+  on conflict (id_grupo, user_id) do nothing;
+  return new;
+end;
+$function$
+"
+FUNCTION,fn_auto_membresia_grupo,"CREATE OR REPLACE FUNCTION public.fn_auto_membresia_grupo()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+    insert into grupos_miembros (id_grupo, user_id)
+    values (new.id, auth.uid())
+    on conflict (id_grupo, user_id) do nothing;
+    return new;
+end;
+$function$
+"
+FUNCTION,fn_auto_membresia_grupo_tareas,"CREATE OR REPLACE FUNCTION public.fn_auto_membresia_grupo_tareas()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+    insert into grupos_tareas_miembros (id_grupo_tareas, user_id)
+    values (new.id, auth.uid())
+    on conflict (id_grupo_tareas, user_id) do nothing;
+    return new;
+end;
+$function$
+"
+FUNCTION,crear_grupo_gastos,"CREATE OR REPLACE FUNCTION public.crear_grupo_gastos(p_nombre text)
+ RETURNS grupos
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_grupo grupos;
+  v_user_id uuid := auth.uid();
+begin
+  if v_user_id is null then raise exception 'No autenticado'; end if;
+  insert into grupos (nombre, tipo) values (p_nombre, 'gastos') returning * into v_grupo;
+  return v_grupo;
+end;
+$function$
+"
+FUNCTION,crear_grupo_tareas,"CREATE OR REPLACE FUNCTION public.crear_grupo_tareas(p_nombre text)
+ RETURNS grupos
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_grupo grupos;
+  v_user_id uuid := auth.uid();
+begin
+  if v_user_id is null then raise exception 'No autenticado'; end if;
+  insert into grupos (nombre, tipo) values (p_nombre, 'tareas') returning * into v_grupo;
+  return v_grupo;
+end;
+$function$
+"
+TRIGGER,set_created_by_grupos,CREATE TRIGGER set_created_by_grupos BEFORE INSERT ON public.grupos FOR EACH ROW EXECUTE FUNCTION set_created_by_grupos_fn()
+TRIGGER,auto_membership_grupos,CREATE TRIGGER auto_membership_grupos AFTER INSERT ON public.grupos FOR EACH ROW EXECUTE FUNCTION auto_membership_grupos_fn()
