@@ -210,7 +210,10 @@ requireAuth(async () => {
 // =============================================
 // NAVEGACIÓN
 // =============================================
-// cambiarTab: ahora viene de `js/utils.js` (función compartida)
+// cambiarTab (utils.js) invoca `onTab_<nombre>` al cambiar de pestaña
+window.onTab_balance = () => calcularYMostrarBalance();
+window.onTab_resumen = () => calcularYMostrarResumen();
+window.onTab_participantes = () => cargarParticipantes();
 
 function abrirGrupo(grupo) {
     grupoActual = grupo;
