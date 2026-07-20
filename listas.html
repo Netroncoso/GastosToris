@@ -95,25 +95,28 @@ let listaActual = null;
 let filtroLista = 'pendientes';
 let todosLosItems = [];
 
-requireAuth(() => {
+requireAuth(async () => {
     const params = new URLSearchParams(window.location.search);
     const abrirId = params.get('abrir');
     if (abrirId) {
-        abrirListaPorId(parseInt(abrirId));
+        await abrirListaPorId(parseInt(abrirId, 10), { filtro: params.get('filtro') });
     } else {
-        cargarListas();
+        await cargarListas();
     }
 });
 
-async function abrirListaPorId(id) {
+const FILTROS_LISTA = ['pendientes', 'todos', 'comprados'];
+
+async function abrirListaPorId(id, opts = {}) {
     const { data, error } = await db.from('listas').select('*').eq('id', id).single();
     if (error || !data) {
         alert('No se encontró esa lista.');
-        cargarListas();
+        clearDetailQueryParams();
+        await cargarListas();
         mostrarPantalla('listas');
         return;
     }
-    abrirLista(data);
+    await abrirLista(data, opts);
 }
 
 // =============================================
@@ -127,6 +130,7 @@ function mostrarPantalla(nombre) {
 function volverAListas() {
     if (!listaActual) { irAlInicio(); return; }
     listaActual = null;
+    clearDetailQueryParams();
     document.getElementById('topbar-title').innerHTML = '<i data-icon="shopping-cart" data-size="20"></i> Listas';
     mostrarPantalla('listas');
     cargarListas();
@@ -184,13 +188,13 @@ async function eliminarLista(id, nombre) {
     cargarListas();
 }
 
-function abrirLista(lista) {
+async function abrirLista(lista, opts = {}) {
     listaActual = lista;
+    setQueryParam('abrir', lista.id);
     document.getElementById('topbar-title').textContent = lista.nombre;
-    filtroLista = 'pendientes';
-    document.querySelectorAll('.filter-tab').forEach((t, i) => t.classList.toggle('active', i === 0));
     mostrarPantalla('detalle');
-    cargarItems();
+    await cargarItems();
+    setFiltro(FILTROS_LISTA.includes(opts.filtro) ? opts.filtro : 'pendientes');
 }
 
 // =============================================
@@ -201,6 +205,7 @@ function setFiltro(f) {
     document.querySelectorAll('.filter-tab').forEach((t, i) => {
         t.classList.toggle('active', ['pendientes','todos','comprados'][i] === f);
     });
+    if (listaActual) setQueryParam('filtro', f);
     renderItems();
 }
 

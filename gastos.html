@@ -197,10 +197,10 @@ requireAuth(async () => {
         const { data, error } = await db.from('grupos').select('*').eq('id', abrirId).eq('tipo', 'gastos').single();
         if (error || !data) {
             alert('No se encontró ese grupo (o no tenés acceso todavía).');
-            setQueryParam('abrir', null);
+            clearDetailQueryParams();
             await cargarGrupos();
         } else {
-            await abrirGrupo(data);
+            await abrirGrupo(data, { tab: params.get('tab') });
         }
     } else {
         await Promise.all([sync, cargarGrupos()]);
@@ -217,21 +217,24 @@ window.onTab_balance = () => calcularYMostrarBalance();
 window.onTab_resumen = () => calcularYMostrarResumen();
 window.onTab_participantes = () => cargarParticipantes();
 
-async function abrirGrupo(grupo) {
+const TABS_GASTOS = ['gastos', 'participantes', 'balance', 'resumen'];
+
+async function abrirGrupo(grupo, opts = {}) {
     grupoActual = grupo;
     setQueryParam('abrir', grupo.id);
     document.getElementById('topbar-title').textContent = grupo.nombre;
     mostrarPantalla('grupo');
-    cambiarTab('gastos');
     await cargarParticipantes();
     await cargarGastos();
+    const tab = TABS_GASTOS.includes(opts.tab) ? opts.tab : 'gastos';
+    cambiarTab(tab);
 }
 
 function volverAGrupos() {
     if (!grupoActual) { irAlInicio(); return; }
     grupoActual = null;
     participantesActuales = [];
-    setQueryParam('abrir', null);
+    clearDetailQueryParams();
     document.getElementById('topbar-title').innerHTML = '<i data-icon="currency-dollar" data-size="20"></i> Gastos';
     mostrarPantalla('grupos');
     cargarGrupos();

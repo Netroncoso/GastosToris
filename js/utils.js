@@ -97,7 +97,11 @@ function mostrarPantalla(nombre) {
 function abrirModal(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
 function cerrarModal(id) { const el = document.getElementById(id); if (el) el.classList.remove('open'); }
 
-// Actualiza ?abrir= en la URL sin recargar (permite refrescar dentro de un grupo)
+function getQueryParam(key) {
+    return new URLSearchParams(window.location.search).get(key);
+}
+
+// Actualiza query params sin recargar (permite refrescar dentro de un grupo/lista)
 function setQueryParam(key, value) {
     const url = new URL(window.location.href);
     if (value == null || value === '') url.searchParams.delete(key);
@@ -105,17 +109,25 @@ function setQueryParam(key, value) {
     history.replaceState(null, '', url);
 }
 
+function clearDetailQueryParams() {
+    ['abrir', 'tab', 'filtro'].forEach(k => setQueryParam(k, null));
+}
+
 // cambiarTab: busca el contenedor de contenido `tab-<nombre>` y activa la pestaña
 // También invoca una función global opcional `onTab_<nombre>` si existe.
 function cambiarTab(nombre) {
     document.querySelectorAll('.tab').forEach(t => {
-        try { t.classList.toggle('active', t.textContent.toLowerCase().includes(nombre)); } catch (e) {}
+        const tabName = t.getAttribute('data-tab') || (t.getAttribute('onclick') || '').match(/cambiarTab\('([^']+)'\)/)?.[1];
+        t.classList.toggle('active', tabName === nombre);
     });
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     const el = document.getElementById('tab-' + nombre);
     if (el) el.classList.add('active');
     const cb = window['onTab_' + nombre];
     if (typeof cb === 'function') cb();
+    if (el && document.querySelector('#screen-grupo.active, #screen-detalle.active')) {
+        setQueryParam('tab', nombre);
+    }
 }
 
 // Generador genérico para sincronizar invitados entre tablas de personas y tabla de miembros
