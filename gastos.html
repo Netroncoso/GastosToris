@@ -193,7 +193,7 @@ requireAuth(async () => {
     const params = new URLSearchParams(window.location.search);
     const abrirId = params.get('abrir');
     if (abrirId) {
-        const { data, error } = await db.from('grupos').select('*').eq('id', abrirId).single();
+        const { data, error } = await db.from('grupos').select('*').eq('id', abrirId).eq('tipo', 'gastos').single();
         if (error || !data) {
             alert('No se encontró ese grupo (o no tenés acceso todavía).');
             await cargarGrupos();
@@ -210,16 +210,11 @@ requireAuth(async () => {
 // =============================================
 // NAVEGACIÓN
 // =============================================
-function mostrarPantalla(nombre) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('screen-' + nombre).classList.add('active');
-}
-
 // cambiarTab: ahora viene de `js/utils.js` (función compartida)
 
 function abrirGrupo(grupo) {
     grupoActual = grupo;
-    document.getElementById('topbar-title').textContent = grupo.Nombre;
+    document.getElementById('topbar-title').textContent = grupo.nombre;
     mostrarPantalla('grupo');
     cambiarTab('gastos');
     cargarParticipantes();
@@ -242,12 +237,12 @@ function volverAGrupos() {
 
 function abrirModalGrupo(grupo = null) {
     // delegate to shared group manager
-    if (!window._gm_gastos) window._gm_gastos = crearGestorDeGrupos({ table: 'grupos', nameField: 'Nombre', rpcCreate: 'crear_grupo_gastos' });
+    if (!window._gm_gastos) window._gm_gastos = crearGestorDeGrupos({ table: 'grupos', nameField: 'nombre', rpcCreate: 'crear_grupo_gastos' });
     window._gm_gastos.abrirModalGrupo(grupo);
 }
 
 async function editarGrupo(id) {
-    if (!window._gm_gastos) window._gm_gastos = crearGestorDeGrupos({ table: 'grupos', nameField: 'Nombre', rpcCreate: 'crear_grupo_gastos' });
+    if (!window._gm_gastos) window._gm_gastos = crearGestorDeGrupos({ table: 'grupos', nameField: 'nombre', rpcCreate: 'crear_grupo_gastos' });
     const { data, error } = await db.from('grupos').select('*').eq('id', id).single();
     if (error) { alert('Error: ' + error.message); return; }
     window._gm_gastos.abrirModalGrupo(data);
@@ -284,7 +279,7 @@ function abrirModalGasto() {
     document.getElementById('input-tipo').value = 'Comida';
 
     const sel = document.getElementById('input-pagador');
-    sel.innerHTML = participantesActuales.map(p => `<option value="${p.id}">${escapeHtml(p.Name)}</option>`).join('');
+    sel.innerHTML = participantesActuales.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
 
     renderSplitContainer();
     document.getElementById('split-total-row').innerHTML = '';
@@ -312,7 +307,7 @@ async function editarGasto(id) {
     document.getElementById('input-tipo').value = gasto.tipo_gasto || 'Comida';
 
     const sel = document.getElementById('input-pagador');
-    sel.innerHTML = participantesActuales.map(p => `<option value="${p.id}">${escapeHtml(p.Name)}</option>`).join('');
+    sel.innerHTML = participantesActuales.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
     sel.value = gasto.id_pagador;
 
     renderSplitContainer();
@@ -347,7 +342,7 @@ async function eliminarGasto(id, concepto) {
 function renderSplitContainer() {
     document.getElementById('split-container').innerHTML = participantesActuales.map(p => `
         <div class="split-row">
-            <div class="split-name">${escapeHtml(p.Name)}</div>
+            <div class="split-name">${escapeHtml(p.nombre)}</div>
             <input type="number" class="split-input" id="split-${p.id}"
                 placeholder="$0.00" step="0.01" min="0" oninput="actualizarTotalSplit()" />
         </div>
@@ -398,7 +393,7 @@ function actualizarTotalSplit() {
 async function cargarGrupos() {
     const cont = document.getElementById('lista-grupos');
     cont.innerHTML = '<div class="loader">Cargando grupos...</div>';
-    const { data, error } = await db.from('grupos').select('*').order('created_at', { ascending: false });
+    const { data, error } = await db.from('grupos').select('*').eq('tipo', 'gastos').order('created_at', { ascending: false });
     if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}</div>`; return; }
     if (!data?.length) {
         cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="home" data-size="40"></i></span>Sin grupos todavía.<br>Creá uno para empezar.</div>`;
@@ -408,12 +403,12 @@ async function cargarGrupos() {
         <div class="card" style="overflow:visible">
             <div class="card-body flex-between" style="gap:10px">
                 <div class="card-click" style="flex:1;min-width:0" onclick='abrirGrupo(${JSON.stringify(g)})'>
-                    <div style="font-weight:700;font-size:16px">${escapeHtml(g.Nombre)}</div>
+                    <div style="font-weight:700;font-size:16px">${escapeHtml(g.nombre)}</div>
                     <div class="text-muted">${new Date(g.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })}</div>
                 </div>
                 <div style="display:flex;gap:8px;align-items:center">
                     <button class="btn btn-ghost btn-sm" onclick="editarGrupo(${g.id})" title="Editar grupo">${icon('pencil-square',16)}</button>
-                    <button class="btn btn-danger btn-sm" onclick="eliminarGrupo(${g.id}, '${g.Nombre.replace(/'/g,"\\'")}')" title="Eliminar grupo">${icon('trash',16)}</button>
+                    <button class="btn btn-danger btn-sm" onclick="eliminarGrupo(${g.id}, '${g.nombre.replace(/'/g,"\\'")}')" title="Eliminar grupo">${icon('trash',16)}</button>
                 </div>
             </div>
         </div>
@@ -421,7 +416,7 @@ async function cargarGrupos() {
 }
 
 async function crearGrupo() {
-    if (!window._gm_gastos) window._gm_gastos = crearGestorDeGrupos({ table: 'grupos', nameField: 'Nombre', rpcCreate: 'crear_grupo_gastos' });
+    if (!window._gm_gastos) window._gm_gastos = crearGestorDeGrupos({ table: 'grupos', nameField: 'nombre', rpcCreate: 'crear_grupo_gastos' });
     await window._gm_gastos.crearGrupo();
 }
 
@@ -464,9 +459,9 @@ async function cargarParticipantes() {
     }
     cont.innerHTML = `<div class="card">${data.map(p => `
         <div class="part-item">
-            <div class="avatar">${p.Name.charAt(0).toUpperCase()}</div>
+            <div class="avatar">${p.nombre.charAt(0).toUpperCase()}</div>
             <div style="flex:1;min-width:0">
-                <div class="part-name">${escapeHtml(p.Name)}</div>
+                <div class="part-name">${escapeHtml(p.nombre)}</div>
                 ${p.email ? `<div class="text-muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><i data-icon="envelope" data-size="14"></i> ${escapeHtml(p.email)}</div>` : ''}
             </div>
             ${p.email ? '<span class="badge badge-green" style="font-size:11px">Invitado</span>' : ''}
@@ -475,7 +470,7 @@ async function cargarParticipantes() {
 }
 
 async function agregarParticipante() {
-    if (!window._pm_gastos) window._pm_gastos = crearGestorDePersonas({ table: 'participantes', nameField: 'Name', groupField: 'id_grupo', inputNameId: 'input-nombre-participante', inputEmailId: 'input-email-participante', inviteInfoId: 'invite-info', addButtonSelector: '#modal-participante .btn-primary', currentListVar: 'participantesActuales', redirectParam: 'invite_gasto' });
+    if (!window._pm_gastos) window._pm_gastos = crearGestorDePersonas({ table: 'participantes', nameField: 'nombre', groupField: 'id_grupo', inputNameId: 'input-nombre-participante', inputEmailId: 'input-email-participante', inviteInfoId: 'invite-info', addButtonSelector: '#modal-participante .btn-primary', currentListVar: 'participantesActuales', redirectParam: 'invite_gasto' });
     await window._pm_gastos.agregarPersona(grupoActual.id);
 }
 
@@ -487,7 +482,7 @@ function abrirModalReembolso() {
         alert('Necesitás al menos 2 personas en el grupo para registrar un reembolso.');
         return;
     }
-    const opts = participantesActuales.map(p => `<option value="${p.id}">${escapeHtml(p.Name)}</option>`).join('');
+    const opts = participantesActuales.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
     document.getElementById('reembolso-de').innerHTML = opts;
     document.getElementById('reembolso-para').innerHTML = opts;
     // Preseleccionar distinto
@@ -508,8 +503,8 @@ async function guardarReembolso() {
     if (de === para) { alert('La persona que paga y la que recibe no pueden ser la misma.'); return; }
     if (!monto || monto <= 0) { alert('Ingresá un monto válido.'); return; }
 
-    const nombreDe   = participantesActuales.find(p => p.id === de)?.Name;
-    const nombrePara = participantesActuales.find(p => p.id === para)?.Name;
+    const nombreDe   = participantesActuales.find(p => p.id === de)?.nombre;
+    const nombrePara = participantesActuales.find(p => p.id === para)?.nombre;
 
     // Guardar como gasto especial: pagador = quien devuelve, split = quien recibe
     const { data: gastoData, error: e1 } = await db.from('gastos').insert({
@@ -549,7 +544,7 @@ async function cargarGastos() {
         return;
     }
     const pagMap = {};
-    participantesActuales.forEach(p => pagMap[p.id] = p.Name);
+    participantesActuales.forEach(p => pagMap[p.id] = p.nombre);
     const gastos     = data.filter(g => g.tipo_gasto !== 'Reembolso');
     const reembolsos = data.filter(g => g.tipo_gasto === 'Reembolso');
     const totalGrupo = gastos.reduce((acc, g) => acc + Number(g.monto), 0);
@@ -672,7 +667,7 @@ async function calcularYMostrarBalance() {
     (splits || []).forEach(s => { balance[s.id_participante] = (balance[s.id_participante] || 0) - Number(s.monto); });
 
     const nombresMap = {};
-    participantesActuales.forEach(p => nombresMap[p.id] = p.Name);
+    participantesActuales.forEach(p => nombresMap[p.id] = p.nombre);
 
     const totalGastado = gastos.reduce((acc, g) => acc + Number(g.monto), 0);
     const deudas = simplificarDeudas(balance);
@@ -690,9 +685,9 @@ async function calcularYMostrarBalance() {
                 const cls = bal > 0.01 ? 'text-positive' : bal < -0.01 ? 'text-negative' : '';
                 const etiqueta = bal > 0.01 ? 'le deben' : bal < -0.01 ? 'debe' : '<i data-icon="check" data-size="14"></i> al día';
                 return `<div class="balance-item">
-                    <div class="avatar">${p.Name.charAt(0).toUpperCase()}</div>
+                    <div class="avatar">${p.nombre.charAt(0).toUpperCase()}</div>
                     <div style="flex:1">
-                        <div style="font-weight:600">${escapeHtml(p.Name)}</div>
+                        <div style="font-weight:600">${escapeHtml(p.nombre)}</div>
                         <div class="text-muted">${etiqueta}</div>
                     </div>
                     <div class="${cls}" style="font-weight:800;font-size:16px">
