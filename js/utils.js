@@ -114,9 +114,15 @@ function cambiarTab(nombre) {
 // `tipo` (opcional) acota a grupos de gastos o de tareas: como `participantes` y `grupos_miembros`
 // son compartidos por ambos módulos, sin este filtro cada página repite el trabajo de la otra.
 async function syncInvitados({ personsTable, personGroupField, membershipTable, membershipGroupField, tipo }) {
+    // La membresía a un grupo casi no cambia durante una sesión: evitamos repetir
+    // este sync (3 round-trips) en cada carga de pantalla, solo 1 vez por pestaña.
+    const cacheKey = `_synced_invitados_${tipo || 'default'}`;
+    if (sessionStorage.getItem(cacheKey)) return;
+
     const user = await getCurrentUser();
     const email = user?.email?.trim().toLowerCase();
     if (!email || !user?.id) return;
+    sessionStorage.setItem(cacheKey, '1');
 
     const [q, gt] = await Promise.all([
         db.from(personsTable).select(personGroupField).eq('email', email),
