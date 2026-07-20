@@ -178,16 +178,11 @@ function crearGestorDeGrupos({ table, nameField = 'nombre', rpcCreate }) {
             const { data: grupo, error } = await db.rpc(rpcCreate, { p_nombre: nombre });
             if (error) { alert('Error al crear grupo: ' + error.message); return; }
 
-            // Agregar al creador como persona si tiene email — páginas pueden manejar su propia tabla
+            // Agregar al creador como persona (tabla `participantes`, compartida por gastos y tareas)
             const user = await getCurrentUser();
             if (user?.email) {
                 try {
-                    // Attempt generic insert into a persons table if present with conventional name
-                    if (table === 'grupos') {
-                        await db.from('participantes').insert({ id_grupo: grupo.id, Name: getDisplayNameFromUser(user), email: user.email.toLowerCase() });
-                    } else if (table === 'grupos_tareas') {
-                        await db.from('personas_tareas').insert({ id_grupo_tareas: grupo.id, nombre: getDisplayNameFromUser(user), email: user.email.toLowerCase() });
-                    }
+                    await db.from('participantes').insert({ id_grupo: grupo.id, nombre: getDisplayNameFromUser(user), email: user.email.toLowerCase() });
                 } catch (e) { console.warn('No se pudo agregar al creador como persona:', e.message); }
             }
 

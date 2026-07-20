@@ -130,12 +130,12 @@ let listasDisponibles = [];
 const PRIO_LABEL = { alta: 'Alta', media: 'Media', baja: 'Baja' };
 
 requireAuth(async () => {
-    await syncInvitados({ personsTable: 'personas_tareas', personGroupField: 'id_grupo_tareas', membershipTable: 'grupos_tareas_miembros', membershipGroupField: 'id_grupo_tareas' });
+    await syncInvitados({ personsTable: 'participantes', personGroupField: 'id_grupo', membershipTable: 'grupos_miembros', membershipGroupField: 'id_grupo' });
     await cargarListasDisponibles();
     const params = new URLSearchParams(window.location.search);
     const abrirId = params.get('abrir');
     if (abrirId) {
-        const { data, error } = await db.from('grupos_tareas').select('*').eq('id', abrirId).single();
+        const { data, error } = await db.from('grupos').select('*').eq('id', abrirId).eq('tipo', 'tareas').single();
         if (error || !data) {
             alert('No se encontró ese grupo (o no tenés acceso todavía).');
             await cargarGrupos();
@@ -184,13 +184,13 @@ function volverAGrupos() {
 // abrirModal / cerrarModal: ahora vienen de `js/utils.js`
 
 function abrirModalGrupo(grupo = null) {
-    if (!window._gm_tareas) window._gm_tareas = crearGestorDeGrupos({ table: 'grupos_tareas', nameField: 'nombre', rpcCreate: 'crear_grupo_tareas' });
+    if (!window._gm_tareas) window._gm_tareas = crearGestorDeGrupos({ table: 'grupos', nameField: 'nombre', rpcCreate: 'crear_grupo_tareas' });
     window._gm_tareas.abrirModalGrupo(grupo);
 }
 
 async function editarGrupo(id) {
-    if (!window._gm_tareas) window._gm_tareas = crearGestorDeGrupos({ table: 'grupos_tareas', nameField: 'nombre', rpcCreate: 'crear_grupo_tareas' });
-    const { data, error } = await db.from('grupos_tareas').select('*').eq('id', id).single();
+    if (!window._gm_tareas) window._gm_tareas = crearGestorDeGrupos({ table: 'grupos', nameField: 'nombre', rpcCreate: 'crear_grupo_tareas' });
+    const { data, error } = await db.from('grupos').select('*').eq('id', id).eq('tipo', 'tareas').single();
     if (error) { alert('Error: ' + error.message); return; }
     window._gm_tareas.abrirModalGrupo(data);
 }
@@ -201,7 +201,7 @@ async function editarGrupo(id) {
 async function cargarGrupos() {
     const cont = document.getElementById('lista-grupos');
     cont.innerHTML = '<div class="loader">Cargando grupos...</div>';
-    const { data, error } = await db.from('grupos_tareas').select('*').order('created_at', { ascending: false });
+    const { data, error } = await db.from('grupos').select('*').eq('tipo', 'tareas').order('created_at', { ascending: false });
     if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}<br>¿Ejecutaste el SQL de configuración? Ver README.</div>`; return; }
     if (!data?.length) {
         cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="check-circle" data-size="40"></i></span>Sin grupos todavía.<br>Creá uno para empezar (ej: "Casa", "Oficina").</div>`;
@@ -224,17 +224,17 @@ async function cargarGrupos() {
 }
 
 async function crearGrupo() {
-    if (!window._gm_tareas) window._gm_tareas = crearGestorDeGrupos({ table: 'grupos_tareas', nameField: 'nombre', rpcCreate: 'crear_grupo_tareas' });
+    if (!window._gm_tareas) window._gm_tareas = crearGestorDeGrupos({ table: 'grupos', nameField: 'nombre', rpcCreate: 'crear_grupo_tareas' });
     await window._gm_tareas.crearGrupo();
 }
 
 async function eliminarGrupo(id, nombre) {
     if (!confirm(`¿Eliminar el grupo "${nombre}"?\nSe borrarán sus tareas y personas.`)) return;
-    const { error: et } = await db.from('tareas').delete().eq('id_grupo_tareas', id);
+    const { error: et } = await db.from('tareas').delete().eq('id_grupo', id);
     if (et) { alert('Error al borrar tareas: ' + et.message); return; }
-    const { error: ep } = await db.from('personas_tareas').delete().eq('id_grupo_tareas', id);
+    const { error: ep } = await db.from('participantes').delete().eq('id_grupo', id);
     if (ep) { alert('Error al borrar personas: ' + ep.message); return; }
-    const { error: eg } = await db.from('grupos_tareas').delete().eq('id', id);
+    const { error: eg } = await db.from('grupos').delete().eq('id', id);
     if (eg) { alert('Error al borrar grupo: ' + eg.message); return; }
     cargarGrupos();
 }
@@ -243,8 +243,8 @@ async function eliminarGrupo(id, nombre) {
 // PERSONAS DEL GRUPO DE TAREAS (propias, no comparten con Gastos)
 // =============================================
 async function cargarPersonasTareas() {
-    const { data, error } = await db.from('personas_tareas')
-        .select('*').eq('id_grupo_tareas', grupoActual.id).order('nombre');
+    const { data, error } = await db.from('participantes')
+        .select('*').eq('id_grupo', grupoActual.id).order('nombre');
     personasTareas = data || [];
     const cont = document.getElementById('lista-personas-tareas');
     if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
@@ -275,13 +275,13 @@ function renderSelectAsignado() {
 }
 
 async function agregarPersonaTarea() {
-    if (!window._pm_tareas) window._pm_tareas = crearGestorDePersonas({ table: 'personas_tareas', nameField: 'nombre', groupField: 'id_grupo_tareas', inputNameId: 'input-nueva-persona', inputEmailId: 'input-email-persona', inviteInfoId: 'invite-info-tareas', addButtonSelector: '#tab-personas .btn-primary', currentListVar: 'personasTareas', redirectParam: 'invite_tarea' });
+    if (!window._pm_tareas) window._pm_tareas = crearGestorDePersonas({ table: 'participantes', nameField: 'nombre', groupField: 'id_grupo', inputNameId: 'input-nueva-persona', inputEmailId: 'input-email-persona', inviteInfoId: 'invite-info-tareas', addButtonSelector: '#tab-personas .btn-primary', currentListVar: 'personasTareas', redirectParam: 'invite_tarea' });
     await window._pm_tareas.agregarPersona(grupoActual.id);
 }
 
 async function borrarPersonaTarea(id) {
     if (!confirm('¿Eliminar esta persona? Las tareas asignadas quedarán sin asignar.')) return;
-    const { error } = await db.from('personas_tareas').delete().eq('id', id);
+    const { error } = await db.from('participantes').delete().eq('id', id);
     if (error) { alert('Error: ' + error.message); return; }
     cargarPersonasTareas();
     cargarTareas();
@@ -322,7 +322,7 @@ async function cargarTareas() {
     const cont = document.getElementById('tareas-items');
     cont.innerHTML = '<div class="loader">Cargando tareas...</div>';
     const { data, error } = await db.from('tareas')
-        .select('*').eq('id_grupo_tareas', grupoActual.id)
+        .select('*').eq('id_grupo', grupoActual.id)
         .order('hecha').order('created_at', { ascending: false });
     if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}<br>¿Ejecutaste el SQL de configuración? Ver README.</div>`; return; }
     todasLasTareas = data || [];
@@ -393,7 +393,7 @@ async function agregarTarea() {
     if (!titulo) { document.getElementById('input-titulo-tarea').focus(); return; }
 
     const { data, error } = await db.from('tareas')
-        .insert({ titulo, prioridad, id_asignado, id_lista, id_grupo_tareas: grupoActual.id, fecha_vencimiento }).select().single();
+        .insert({ titulo, prioridad, id_asignado, id_lista, id_grupo: grupoActual.id, fecha_vencimiento }).select().single();
     if (error) { alert('Error: ' + error.message); return; }
 
     document.getElementById('input-titulo-tarea').value = '';
