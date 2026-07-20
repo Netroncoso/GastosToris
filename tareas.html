@@ -130,7 +130,7 @@ let listasDisponibles = [];
 const PRIO_LABEL = { alta: 'Alta', media: 'Media', baja: 'Baja' };
 
 requireAuth(async () => {
-    await syncInvitados({ personsTable: 'participantes', personGroupField: 'id_grupo', membershipTable: 'grupos_miembros', membershipGroupField: 'id_grupo' });
+    await syncInvitados({ personsTable: 'participantes', personGroupField: 'id_grupo', membershipTable: 'grupos_miembros', membershipGroupField: 'id_grupo', tipo: 'tareas' });
     await cargarListasDisponibles();
     const params = new URLSearchParams(window.location.search);
     const abrirId = params.get('abrir');
