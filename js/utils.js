@@ -97,6 +97,14 @@ function mostrarPantalla(nombre) {
 function abrirModal(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
 function cerrarModal(id) { const el = document.getElementById(id); if (el) el.classList.remove('open'); }
 
+// Actualiza ?abrir= en la URL sin recargar (permite refrescar dentro de un grupo)
+function setQueryParam(key, value) {
+    const url = new URL(window.location.href);
+    if (value == null || value === '') url.searchParams.delete(key);
+    else url.searchParams.set(key, String(value));
+    history.replaceState(null, '', url);
+}
+
 // cambiarTab: busca el contenedor de contenido `tab-<nombre>` y activa la pestaña
 // También invoca una función global opcional `onTab_<nombre>` si existe.
 function cambiarTab(nombre) {

@@ -189,19 +189,21 @@ let grupoEditando = null;
 const TIPO_ICONO = { Comida: icon('cake',16), Transporte: icon('truck',16), Alojamiento: icon('home',16), Entretenimiento: icon('film',16), Compras: icon('shopping-cart',16), Otro: icon('archive-box',16), Reembolso: icon('arrow-path',16) };
 
 requireAuth(async () => {
-    await syncInvitados({ personsTable: 'participantes', personGroupField: 'id_grupo', membershipTable: 'grupos_miembros', membershipGroupField: 'id_grupo', tipo: 'gastos' });
+    const sync = syncInvitados({ personsTable: 'participantes', personGroupField: 'id_grupo', membershipTable: 'grupos_miembros', membershipGroupField: 'id_grupo', tipo: 'gastos' });
     const params = new URLSearchParams(window.location.search);
     const abrirId = params.get('abrir');
     if (abrirId) {
+        await sync;
         const { data, error } = await db.from('grupos').select('*').eq('id', abrirId).eq('tipo', 'gastos').single();
         if (error || !data) {
             alert('No se encontró ese grupo (o no tenés acceso todavía).');
+            setQueryParam('abrir', null);
             await cargarGrupos();
         } else {
-            abrirGrupo(data);
+            await abrirGrupo(data);
         }
     } else {
-        await cargarGrupos();
+        await Promise.all([sync, cargarGrupos()]);
     }
 });
 
@@ -215,19 +217,21 @@ window.onTab_balance = () => calcularYMostrarBalance();
 window.onTab_resumen = () => calcularYMostrarResumen();
 window.onTab_participantes = () => cargarParticipantes();
 
-function abrirGrupo(grupo) {
+async function abrirGrupo(grupo) {
     grupoActual = grupo;
+    setQueryParam('abrir', grupo.id);
     document.getElementById('topbar-title').textContent = grupo.nombre;
     mostrarPantalla('grupo');
     cambiarTab('gastos');
-    cargarParticipantes();
-    cargarGastos();
+    await cargarParticipantes();
+    await cargarGastos();
 }
 
 function volverAGrupos() {
     if (!grupoActual) { irAlInicio(); return; }
     grupoActual = null;
     participantesActuales = [];
+    setQueryParam('abrir', null);
     document.getElementById('topbar-title').innerHTML = '<i data-icon="currency-dollar" data-size="20"></i> Gastos';
     mostrarPantalla('grupos');
     cargarGrupos();
@@ -283,6 +287,7 @@ function abrirModalGasto() {
 
     const sel = document.getElementById('input-pagador');
     sel.innerHTML = participantesActuales.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
+    sel.value = String(participantesActuales[0].id);
 
     renderSplitContainer();
     document.getElementById('split-total-row').innerHTML = '';
@@ -585,10 +590,12 @@ async function guardarGasto() {
     const fecha    = document.getElementById('input-fecha-gasto').value || hoyISO();
     const monto    = parseFloat(document.getElementById('input-monto').value);
     const tipo     = document.getElementById('input-tipo').value;
-    const pagador  = parseInt(document.getElementById('input-pagador').value);
+    const pagadorRaw = document.getElementById('input-pagador').value;
+    const pagador = pagadorRaw ? Number(pagadorRaw) : null;
 
     if (!concepto) { alert('Ingresá un concepto.'); return; }
     if (!monto || monto <= 0) { alert('Ingresá un monto válido.'); return; }
+    if (!pagador || Number.isNaN(pagador)) { alert('Seleccioná quién pagó.'); return; }
 
     const splits = [];
     let totalSplit = 0;
