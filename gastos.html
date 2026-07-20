@@ -13,12 +13,12 @@
 <!-- TOPBAR -->
 <div class="topbar">
     <div class="topbar-left">
-        <button id="btn-back" class="btn-icon" onclick="volverAGrupos()"><span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-left.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-left.svg)"></span></button>
-        <h1 id="topbar-title"><span class="hicon" style="width:20px;height:20px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/currency-dollar.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/currency-dollar.svg)"></span> Gastos</h1>
+        <button id="btn-back" class="btn-icon" onclick="volverAGrupos()"><i data-icon="arrow-left" data-size="18"></i></button>
+        <h1 id="topbar-title"><i data-icon="currency-dollar" data-size="20"></i> Gastos</h1>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
         <span id="topbar-user" class="topbar-user"></span>
-        <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión"><span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-right-on-rectangle.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-right-on-rectangle.svg)"></span></button>
+        <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión"><i data-icon="arrow-right-on-rectangle" data-size="18"></i></button>
     </div>
 </div>
 
@@ -26,29 +26,29 @@
 <div id="screen-grupos" class="screen active">
     <div class="container">
         <div id="lista-grupos"><div class="loader">Cargando grupos...</div></div>
-        <button class="btn btn-primary btn-full mt-16" onclick="abrirModalGrupo()"><span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/plus.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/plus.svg)"></span> Nuevo Grupo</button>
+        <button class="btn btn-primary btn-full mt-16" onclick="abrirModalGrupo()"><i data-icon="plus" data-size="16"></i> Nuevo Grupo</button>
     </div>
 </div>
 
 <!-- SCREEN: GRUPO DETAIL -->
 <div id="screen-grupo" class="screen">
     <div class="tabs">
-        <div class="tab active" onclick="cambiarTab('gastos')"><span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/currency-dollar.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/currency-dollar.svg)"></span> Gastos</div>
-        <div class="tab" onclick="cambiarTab('participantes')"><span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/users.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/users.svg)"></span> Personas</div>
-        <div class="tab" onclick="cambiarTab('balance')"><span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/scale.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/scale.svg)"></span> Balance</div>
-        <div class="tab" onclick="cambiarTab('resumen')"><span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/chart-bar.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/chart-bar.svg)"></span> Resumen</div>
+        <div class="tab active" onclick="cambiarTab('gastos')"><i data-icon="currency-dollar" data-size="18"></i> Gastos</div>
+        <div class="tab" onclick="cambiarTab('participantes')"><i data-icon="users" data-size="18"></i> Personas</div>
+        <div class="tab" onclick="cambiarTab('balance')"><i data-icon="scale" data-size="18"></i> Balance</div>
+        <div class="tab" onclick="cambiarTab('resumen')"><i data-icon="chart-bar" data-size="18"></i> Resumen</div>
     </div>
     <div class="container">
         <div id="tab-gastos" class="tab-content active">
             <div id="lista-gastos"><div class="loader">Cargando...</div></div>
             <div style="display:flex;gap:8px;margin-top:16px">
-                <button class="btn btn-primary btn-full" onclick="abrirModalGasto()"><span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/plus.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/plus.svg)"></span> Gasto</button>
-                <button class="btn btn-ghost btn-full" onclick="abrirModalReembolso()"><span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-path.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-path.svg)"></span> Reembolso</button>
+                <button class="btn btn-primary btn-full" onclick="abrirModalGasto()"><i data-icon="plus" data-size="16"></i> Gasto</button>
+                <button class="btn btn-ghost btn-full" onclick="abrirModalReembolso()"><i data-icon="arrow-path" data-size="16"></i> Reembolso</button>
             </div>
         </div>
         <div id="tab-participantes" class="tab-content">
             <div id="lista-participantes"><div class="loader">Cargando...</div></div>
-            <button class="btn btn-ghost btn-full mt-16" onclick="abrirModalParticipante()"><span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/plus.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/plus.svg)"></span> Agregar Persona</button>
+            <button class="btn btn-ghost btn-full mt-16" onclick="abrirModalParticipante()"><i data-icon="plus" data-size="16"></i> Agregar Persona</button>
         </div>
         <div id="tab-balance" class="tab-content">
             <div id="contenido-balance"><div class="loader">Calculando...</div></div>
@@ -64,7 +64,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3>Nuevo Grupo</h3>
-            <button class="modal-close" onclick="cerrarModal('modal-grupo')"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg)"></span></button>
+            <button class="modal-close" onclick="cerrarModal('modal-grupo')"><i data-icon="x-mark" data-size="14"></i></button>
         </div>
         <div class="form-group">
             <label>Nombre del grupo</label>
@@ -79,7 +79,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3>Agregar Persona</h3>
-            <button class="modal-close" onclick="cerrarModal('modal-participante')"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg)"></span></button>
+            <button class="modal-close" onclick="cerrarModal('modal-participante')"><i data-icon="x-mark" data-size="14"></i></button>
         </div>
         <div class="form-group">
             <label>Nombre</label>
@@ -90,7 +90,7 @@
             <input type="email" id="input-email-participante" placeholder="martin@email.com" />
         </div>
         <div id="invite-info" class="alert alert-info" style="display:none">
-            <span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg)"></span> Se enviará una invitación por correo para unirse a este grupo. Al aceptarla, la persona podrá acceder automáticamente a los gastos compartidos.
+            <i data-icon="envelope" data-size="16"></i> Se enviará una invitación por correo para unirse a este grupo. Al aceptarla, la persona podrá acceder automáticamente a los gastos compartidos.
         </div>
         <button class="btn btn-primary btn-full" onclick="agregarParticipante()">Agregar y Enviar Invitación</button>
     </div>
@@ -100,8 +100,8 @@
 <div id="modal-reembolso" class="modal-overlay">
     <div class="modal">
         <div class="modal-header">
-            <h3><span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-path.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-path.svg)"></span> Registrar Reembolso</h3>
-            <button class="modal-close" onclick="cerrarModal('modal-reembolso')"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg)"></span></button>
+            <h3><i data-icon="arrow-path" data-size="18"></i> Registrar Reembolso</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-reembolso')"><i data-icon="x-mark" data-size="14"></i></button>
         </div>
         <div class="alert alert-info" style="margin-bottom:16px">
             Registrá cuando alguien le devuelve plata a otro. Esto actualiza el balance automáticamente.
@@ -131,7 +131,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3>Agregar Gasto</h3>
-            <button class="modal-close" onclick="cerrarModal('modal-gasto')"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg)"></span></button>
+            <button class="modal-close" onclick="cerrarModal('modal-gasto')"><i data-icon="x-mark" data-size="14"></i></button>
         </div>
         <div class="form-group">
             <label>Concepto</label>
@@ -189,7 +189,7 @@ let grupoEditando = null;
 const TIPO_ICONO = { Comida: icon('cake',16), Transporte: icon('truck',16), Alojamiento: icon('home',16), Entretenimiento: icon('film',16), Compras: icon('shopping-cart',16), Otro: icon('archive-box',16), Reembolso: icon('arrow-path',16) };
 
 requireAuth(async () => {
-    await syncInvitadosGastos();
+    await syncInvitados({ personsTable: 'participantes', personGroupField: 'id_grupo', membershipTable: 'grupos_miembros', membershipGroupField: 'id_grupo' });
     const params = new URLSearchParams(window.location.search);
     const abrirId = params.get('abrir');
     if (abrirId) {
@@ -205,27 +205,7 @@ requireAuth(async () => {
     }
 });
 
-// =============================================
-// SINCRONIZACIÓN DE INVITADOS
-async function syncInvitadosGastos() {
-    const user = await getCurrentUser();
-    const email = user?.email?.trim().toLowerCase();
-    if (!email || !user?.id) return;
-
-    const { data, error } = await db.from('participantes')
-        .select('id_grupo')
-        .eq('email', email);
-    if (error) return;
-
-    const grupos = [...new Set((data || []).map(p => p.id_grupo))];
-    for (const id_grupo of grupos) {
-        const { error: em } = await db.from('grupos_miembros')
-            .upsert({ id_grupo, user_id: user.id }, { onConflict: ['id_grupo', 'user_id'] });
-        if (em && !em.message?.includes('duplicate')) {
-            console.warn('No se pudo sincronizar membresía invitada:', em.message);
-        }
-    }
-}
+// (Sincronización de invitados movida a `js/utils.js` - use `syncInvitados(...)`)
 
 // =============================================
 // NAVEGACIÓN
@@ -235,14 +215,7 @@ function mostrarPantalla(nombre) {
     document.getElementById('screen-' + nombre).classList.add('active');
 }
 
-function cambiarTab(nombre) {
-    const tabs = ['gastos', 'participantes', 'balance', 'resumen'];
-    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', tabs[i] === nombre));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    document.getElementById('tab-' + nombre).classList.add('active');
-    if (nombre === 'balance') calcularYMostrarBalance();
-    if (nombre === 'resumen') calcularYMostrarResumen();
-}
+// cambiarTab: ahora viene de `js/utils.js` (función compartida)
 
 function abrirGrupo(grupo) {
     grupoActual = grupo;
@@ -257,7 +230,7 @@ function volverAGrupos() {
     if (!grupoActual) { irAlInicio(); return; }
     grupoActual = null;
     participantesActuales = [];
-    document.getElementById('topbar-title').innerHTML = '<span class="hicon" style="width:20px;height:20px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/currency-dollar.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/currency-dollar.svg)"></span> Gastos';
+    document.getElementById('topbar-title').innerHTML = '<i data-icon="currency-dollar" data-size="20"></i> Gastos';
     mostrarPantalla('grupos');
     cargarGrupos();
 }
@@ -265,22 +238,19 @@ function volverAGrupos() {
 // =============================================
 // MODALES
 // =============================================
-function abrirModal(id) { document.getElementById(id).classList.add('open'); }
-function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
+// abrirModal / cerrarModal: ahora vienen de `js/utils.js`
 
 function abrirModalGrupo(grupo = null) {
-    grupoEditando = grupo;
-    document.getElementById('input-nombre-grupo').value = grupo ? grupo.Nombre : '';
-    document.querySelector('#modal-grupo .modal-header h3').textContent = grupo ? 'Editar Grupo' : 'Nuevo Grupo';
-    document.querySelector('#modal-grupo .btn-primary').textContent = grupo ? 'Actualizar Grupo' : 'Crear Grupo';
-    abrirModal('modal-grupo');
-    setTimeout(() => document.getElementById('input-nombre-grupo').focus(), 100);
+    // delegate to shared group manager
+    if (!window._gm_gastos) window._gm_gastos = crearGestorDeGrupos({ table: 'grupos', nameField: 'Nombre', rpcCreate: 'crear_grupo_gastos' });
+    window._gm_gastos.abrirModalGrupo(grupo);
 }
 
 async function editarGrupo(id) {
-    const grupo = await db.from('grupos').select('*').eq('id', id).single();
-    if (grupo.error) { alert('Error: ' + grupo.error.message); return; }
-    abrirModalGrupo(grupo.data);
+    if (!window._gm_gastos) window._gm_gastos = crearGestorDeGrupos({ table: 'grupos', nameField: 'Nombre', rpcCreate: 'crear_grupo_gastos' });
+    const { data, error } = await db.from('grupos').select('*').eq('id', id).single();
+    if (error) { alert('Error: ' + error.message); return; }
+    window._gm_gastos.abrirModalGrupo(data);
 }
 
 function abrirModalParticipante() {
@@ -418,7 +388,7 @@ function actualizarTotalSplit() {
     const diff = Math.round((total - monto) * 100) / 100;
     const ok = Math.abs(diff) < 0.02;
     row.innerHTML = ok
-        ? `<span style="color:var(--success);font-weight:600"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check.svg)"></span> Total: $${fmt(total)}</span>`
+        ? `<span style="color:var(--success);font-weight:600"><i data-icon="check" data-size="14"></i> Total: $${fmt(total)}</span>`
         : `<span style="color:var(--danger)">Total: $${fmt(total)} · ${diff > 0 ? '+' : ''}$${fmt(diff)}</span>`;
 }
 
@@ -431,7 +401,7 @@ async function cargarGrupos() {
     const { data, error } = await db.from('grupos').select('*').order('created_at', { ascending: false });
     if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}</div>`; return; }
     if (!data?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><span class="hicon" style="width:40px;height:40px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/home.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/home.svg)"></span></span>Sin grupos todavía.<br>Creá uno para empezar.</div>`;
+        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="home" data-size="40"></i></span>Sin grupos todavía.<br>Creá uno para empezar.</div>`;
         return;
     }
     cont.innerHTML = data.map(g => `
@@ -451,37 +421,8 @@ async function cargarGrupos() {
 }
 
 async function crearGrupo() {
-    const nombre = document.getElementById('input-nombre-grupo').value.trim();
-    if (!nombre) { alert('Ingresá un nombre.'); return; }
-    const userId = await getCurrentUserId();
-    if (!userId) { alert('No se encontró el usuario actual. Volvé a iniciar sesión.'); return; }
-
-    if (grupoEditando) {
-        const { error } = await db.from('grupos').update({ Nombre: nombre }).eq('id', grupoEditando.id);
-        if (error) { alert('Error al actualizar grupo: ' + error.message); return; }
-        grupoEditando = null;
-        cerrarModal('modal-grupo');
-        cargarGrupos();
-        return;
-    }
-
-    const { data: grupo, error } = await db.rpc('crear_grupo_gastos', { p_nombre: nombre });
-    if (error) { alert('Error al crear grupo: ' + error.message); return; }
-
-    const user = await getCurrentUser();
-    if (user?.email) {
-        const { error: ep } = await db.from('participantes').insert({
-            id_grupo: grupo.id,
-            Name: getDisplayNameFromUser(user),
-            email: user.email.toLowerCase()
-        });
-        if (ep) {
-            console.warn('No se pudo agregar al creador como persona:', ep.message);
-        }
-    }
-
-    cerrarModal('modal-grupo');
-    cargarGrupos();
+    if (!window._gm_gastos) window._gm_gastos = crearGestorDeGrupos({ table: 'grupos', nameField: 'Nombre', rpcCreate: 'crear_grupo_gastos' });
+    await window._gm_gastos.crearGrupo();
 }
 
 async function eliminarGrupo(id, nombre) {
@@ -518,7 +459,7 @@ async function cargarParticipantes() {
     const cont = document.getElementById('lista-participantes');
     if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
     if (!data?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><span class="hicon" style="width:40px;height:40px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/users.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/users.svg)"></span></span>Sin personas todavía.<br>Agregá a quienes comparten los gastos.</div>`;
+        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="users" data-size="40"></i></span>Sin personas todavía.<br>Agregá a quienes comparten los gastos.</div>`;
         return;
     }
     cont.innerHTML = `<div class="card">${data.map(p => `
@@ -526,7 +467,7 @@ async function cargarParticipantes() {
             <div class="avatar">${p.Name.charAt(0).toUpperCase()}</div>
             <div style="flex:1;min-width:0">
                 <div class="part-name">${escapeHtml(p.Name)}</div>
-                ${p.email ? `<div class="text-muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg)"></span> ${escapeHtml(p.email)}</div>` : ''}
+                ${p.email ? `<div class="text-muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><i data-icon="envelope" data-size="14"></i> ${escapeHtml(p.email)}</div>` : ''}
             </div>
             ${p.email ? '<span class="badge badge-green" style="font-size:11px">Invitado</span>' : ''}
         </div>
@@ -534,49 +475,8 @@ async function cargarParticipantes() {
 }
 
 async function agregarParticipante() {
-    const nombre = document.getElementById('input-nombre-participante').value.trim();
-    const email  = document.getElementById('input-email-participante').value.trim().toLowerCase();
-    if (!nombre) { alert('Ingresá un nombre.'); return; }
-
-    // Chequear duplicados
-    const nombreDup = participantesActuales.find(p => p.Name.toLowerCase() === nombre.toLowerCase());
-    if (nombreDup) { alert(`Ya existe un participante llamado "${nombre}" en este grupo.`); return; }
-    if (email) {
-        const emailDup = participantesActuales.find(p => p.email?.toLowerCase() === email);
-        if (emailDup) { alert(`El email ${email} ya está registrado en este grupo (${emailDup.Name}).`); return; }
-    }
-
-    const payload = { id_grupo: grupoActual.id, Name: nombre };
-    if (email) payload.email = email;
-
-    const { error } = await db.from('participantes').insert(payload);
-    if (error) { alert('Error: ' + error.message); return; }
-
-    if (email) {
-        const user = await getCurrentUser();
-        if (user?.email?.toLowerCase() === email) {
-            alert(`${nombre} fue agregado, pero no se envió invitación: ese es tu propio email.`);
-            cerrarModal('modal-participante');
-            cargarParticipantes();
-            return;
-        }
-
-        const { error: inviteError } = await db.auth.signInWithOtp({
-            email,
-            options: {
-                emailRedirectTo: `${APP_BASE_URL}?invite_gasto=${grupoActual.id}`,
-                shouldCreateUser: true
-            }
-        });
-        if (inviteError) {
-            alert(`${nombre} fue agregado, pero hubo un error al enviar la invitación: ${inviteError.message}`);
-        } else {
-            alert(`✅ ${nombre} fue agregado y se le envió una invitación a ${email}.`);
-        }
-    }
-
-    cerrarModal('modal-participante');
-    cargarParticipantes();
+    if (!window._pm_gastos) window._pm_gastos = crearGestorDePersonas({ table: 'participantes', nameField: 'Name', groupField: 'id_grupo', inputNameId: 'input-nombre-participante', inputEmailId: 'input-email-participante', inviteInfoId: 'invite-info', addButtonSelector: '#modal-participante .btn-primary', currentListVar: 'participantesActuales', redirectParam: 'invite_gasto' });
+    await window._pm_gastos.agregarPersona(grupoActual.id);
 }
 
 // =============================================
@@ -645,7 +545,7 @@ async function cargarGastos() {
     if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
     currentGastos = data || [];
     if (!data?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><span class="hicon" style="width:40px;height:40px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/currency-dollar.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/currency-dollar.svg)"></span></span>Sin gastos todavía.<br>Agregá el primero.</div>`;
+        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="currency-dollar" data-size="40"></i></span>Sin gastos todavía.<br>Agregá el primero.</div>`;
         return;
     }
     const pagMap = {};
@@ -744,7 +644,7 @@ async function calcularYMostrarBalance() {
     cont.innerHTML = '<div class="loader">Calculando balances...</div>';
 
     if (!participantesActuales.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><span class="hicon" style="width:40px;height:40px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/users.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/users.svg)"></span></span>Primero agregá personas al grupo.</div>`;
+        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="users" data-size="40"></i></span>Primero agregá personas al grupo.</div>`;
         return;
     }
 
@@ -753,7 +653,7 @@ async function calcularYMostrarBalance() {
     if (e1) { cont.innerHTML = `<div class="alert alert-error">${e1.message}</div>`; return; }
 
     if (!gastos?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><span class="hicon" style="width:40px;height:40px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/scale.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/scale.svg)"></span></span>Sin gastos para calcular.</div>`;
+        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="scale" data-size="40"></i></span>Sin gastos para calcular.</div>`;
         return;
     }
 
@@ -788,7 +688,7 @@ async function calcularYMostrarBalance() {
             ${participantesActuales.map(p => {
                 const bal = Math.round((balance[p.id] || 0) * 100) / 100;
                 const cls = bal > 0.01 ? 'text-positive' : bal < -0.01 ? 'text-negative' : '';
-                const etiqueta = bal > 0.01 ? 'le deben' : bal < -0.01 ? 'debe' : '<span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check.svg)"></span> al día';
+                const etiqueta = bal > 0.01 ? 'le deben' : bal < -0.01 ? 'debe' : '<i data-icon="check" data-size="14"></i> al día';
                 return `<div class="balance-item">
                     <div class="avatar">${p.Name.charAt(0).toUpperCase()}</div>
                     <div style="flex:1">
@@ -814,7 +714,7 @@ async function calcularYMostrarBalance() {
                     </div>
                 `).join('')}
             </div>
-        ` : '<div class="alert alert-success"><span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/sparkles.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/sparkles.svg)"></span> ¡Todos están al día! No hay deudas pendientes.</div>'}
+        ` : '<div class="alert alert-success"><i data-icon="sparkles" data-size="18"></i> ¡Todos están al día! No hay deudas pendientes.</div>'}
     `;
 }
 
@@ -855,7 +755,7 @@ async function calcularYMostrarResumen() {
     if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
 
     if (!gastos?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><span class="hicon" style="width:40px;height:40px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/chart-bar.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/chart-bar.svg)"></span></span>Sin gastos para resumir todavía.</div>`;
+        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="chart-bar" data-size="40"></i></span>Sin gastos para resumir todavía.</div>`;
         return;
     }
 
