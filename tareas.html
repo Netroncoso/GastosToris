@@ -138,10 +138,10 @@ requireAuth(async () => {
         const { data, error } = await db.from('grupos').select('*').eq('id', abrirId).eq('tipo', 'tareas').single();
         if (error || !data) {
             alert('No se encontró ese grupo (o no tenés acceso todavía).');
-            setQueryParam('abrir', null);
+            clearDetailQueryParams();
             await cargarGrupos();
         } else {
-            await abrirGrupo(data);
+            await abrirGrupo(data, { tab: params.get('tab'), filtro: params.get('filtro') });
         }
     } else {
         await Promise.all([sync, cargarGrupos()]);
@@ -161,7 +161,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Navegación: usar las funciones compartidas en `js/utils.js` (`mostrarPantalla`, `cambiarTab`)
 
-async function abrirGrupo(grupo) {
+const TABS_TAREAS = ['tareas', 'personas'];
+const FILTROS_TAREAS = ['pendientes', 'todas', 'hechas'];
+
+async function abrirGrupo(grupo, opts = {}) {
     grupoActual = grupo;
     setQueryParam('abrir', grupo.id);
     document.getElementById('topbar-title').textContent = grupo.nombre;
@@ -170,15 +173,19 @@ async function abrirGrupo(grupo) {
     document.getElementById('invite-info-tareas').style.display = 'none';
     document.querySelector('#tab-personas .btn-primary').textContent = 'Agregar Persona';
     mostrarPantalla('grupo');
-    cambiarTab('tareas');
     await Promise.all([cargarPersonasTareas(), cargarTareas(), cargarListasDisponibles()]);
+    const tab = TABS_TAREAS.includes(opts.tab) ? opts.tab : 'tareas';
+    cambiarTab(tab);
+    if (tab === 'tareas') {
+        setFiltro(FILTROS_TAREAS.includes(opts.filtro) ? opts.filtro : 'pendientes');
+    }
 }
 
 function volverAGrupos() {
     if (!grupoActual) { irAlInicio(); return; }
     grupoActual = null;
     personasTareas = [];
-    setQueryParam('abrir', null);
+    clearDetailQueryParams();
     document.getElementById('topbar-title').innerHTML = '<i data-icon="check-circle" data-size="20"></i> Tareas';
     mostrarPantalla('grupos');
     cargarGrupos();
@@ -318,6 +325,7 @@ function setFiltro(f) {
     document.querySelectorAll('.filter-tab').forEach((t, i) => {
         t.classList.toggle('active', ['pendientes','todas','hechas'][i] === f);
     });
+    if (grupoActual) setQueryParam('filtro', f);
     renderTareas();
 }
 
