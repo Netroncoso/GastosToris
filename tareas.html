@@ -13,12 +13,12 @@
 <!-- TOPBAR -->
 <div class="topbar">
     <div class="topbar-left">
-        <button id="btn-back" class="btn-icon" onclick="volverAGrupos()"><span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-left.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-left.svg)"></span></button>
-        <h1 id="topbar-title"><span class="hicon" style="width:20px;height:20px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg)"></span> Tareas</h1>
+        <button id="btn-back" class="btn-icon" onclick="volverAGrupos()"><i data-icon="arrow-left" data-size="18"></i></button>
+        <h1 id="topbar-title"><i data-icon="check-circle" data-size="20"></i> Tareas</h1>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
         <span id="topbar-user" class="topbar-user"></span>
-        <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión"><span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-right-on-rectangle.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-right-on-rectangle.svg)"></span></button>
+        <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión"><i data-icon="arrow-right-on-rectangle" data-size="18"></i></button>
     </div>
 </div>
 
@@ -26,15 +26,15 @@
 <div id="screen-grupos" class="screen active">
     <div class="container">
         <div id="lista-grupos"><div class="loader">Cargando grupos...</div></div>
-        <button class="btn btn-primary btn-full mt-16" onclick="abrirModalGrupo()"><span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/plus.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/plus.svg)"></span> Nuevo Grupo</button>
+        <button class="btn btn-primary btn-full mt-16" onclick="abrirModalGrupo()"><i data-icon="plus" data-size="16"></i> Nuevo Grupo</button>
     </div>
 </div>
 
 <!-- SCREEN: GRUPO DETAIL -->
 <div id="screen-grupo" class="screen">
     <div class="tabs">
-        <div class="tab active" onclick="cambiarTab('tareas')"><span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg)"></span> Tareas</div>
-        <div class="tab" onclick="cambiarTab('personas')"><span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/users.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/users.svg)"></span> Personas</div>
+        <div class="tab active" onclick="cambiarTab('tareas')"><i data-icon="check-circle" data-size="18"></i> Tareas</div>
+        <div class="tab" onclick="cambiarTab('personas')"><i data-icon="users" data-size="18"></i> Personas</div>
     </div>
     <div class="container">
         <div id="tab-tareas" class="tab-content active">
@@ -72,11 +72,11 @@
                         <option value="">Ninguna</option>
                     </select>
                 </div>
-                <button class="btn btn-primary btn-full mt-12" onclick="agregarTarea()"><span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/plus.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/plus.svg)"></span> Agregar tarea</button>
+                <button class="btn btn-primary btn-full mt-12" onclick="agregarTarea()"><i data-icon="plus" data-size="16"></i> Agregar tarea</button>
             </div>
 
             <button class="btn btn-ghost btn-full mt-12" id="btn-borrar-hechas" onclick="borrarHechas()" style="display:none;color:var(--danger);border-color:var(--danger)">
-                <span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/trash.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/trash.svg)"></span> Borrar todas las hechas
+                <i data-icon="trash" data-size="16"></i> Borrar todas las hechas
             </button>
         </div>
 
@@ -92,7 +92,7 @@
                 <input type="email" id="input-email-persona" placeholder="martin@email.com" />
             </div>
             <div id="invite-info-tareas" class="alert alert-info" style="display:none">
-                <span class="hicon" style="width:16px;height:16px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg)"></span> Se enviará una invitación por correo para unirse a este grupo. Al aceptarla, la persona podrá acceder automáticamente a las tareas compartidas.
+                <i data-icon="envelope" data-size="16"></i> Se enviará una invitación por correo para unirse a este grupo. Al aceptarla, la persona podrá acceder automáticamente a las tareas compartidas.
             </div>
             <button class="btn btn-primary btn-full" onclick="agregarPersonaTarea()">Agregar Persona</button>
         </div>
@@ -104,7 +104,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3>Nuevo Grupo de Tareas</h3>
-            <button class="modal-close" onclick="cerrarModal('modal-grupo')"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg)"></span></button>
+            <button class="modal-close" onclick="cerrarModal('modal-grupo')"><i data-icon="x-mark" data-size="14"></i></button>
         </div>
         <div class="form-group">
             <label>Nombre del grupo</label>
@@ -130,7 +130,7 @@ let listasDisponibles = [];
 const PRIO_LABEL = { alta: 'Alta', media: 'Media', baja: 'Baja' };
 
 requireAuth(async () => {
-    await syncInvitadosTareas();
+    await syncInvitados({ personsTable: 'personas_tareas', personGroupField: 'id_grupo_tareas', membershipTable: 'grupos_tareas_miembros', membershipGroupField: 'id_grupo_tareas' });
     await cargarListasDisponibles();
     const params = new URLSearchParams(window.location.search);
     const abrirId = params.get('abrir');
@@ -147,27 +147,7 @@ requireAuth(async () => {
     }
 });
 
-// =============================================
-// SINCRONIZACIÓN DE INVITADOS
-async function syncInvitadosTareas() {
-    const user = await getCurrentUser();
-    const email = user?.email?.trim().toLowerCase();
-    if (!email || !user?.id) return;
-
-    const { data, error } = await db.from('personas_tareas')
-        .select('id_grupo_tareas')
-        .eq('email', email);
-    if (error) return;
-
-    const grupos = [...new Set((data || []).map(p => p.id_grupo_tareas))];
-    for (const id_grupo_tareas of grupos) {
-        const { error: em } = await db.from('grupos_tareas_miembros')
-            .upsert({ id_grupo_tareas, user_id: user.id }, { onConflict: ['id_grupo_tareas', 'user_id'] });
-        if (em && !em.message?.includes('duplicate')) {
-            console.warn('No se pudo sincronizar membresía invitada tareas:', em.message);
-        }
-    }
-}
+// (Sincronización de invitados movida a `js/utils.js` - use `syncInvitados(...)`)
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('input-email-persona').addEventListener('input', function() {
@@ -178,20 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// =============================================
-// NAVEGACIÓN
-// =============================================
-function mostrarPantalla(nombre) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('screen-' + nombre).classList.add('active');
-}
-
-function cambiarTab(nombre) {
-    const tabs = ['tareas', 'personas'];
-    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', tabs[i] === nombre));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    document.getElementById('tab-' + nombre).classList.add('active');
-}
+// Navegación: usar las funciones compartidas en `js/utils.js` (`mostrarPantalla`, `cambiarTab`)
 
 function abrirGrupo(grupo) {
     grupoActual = grupo;
@@ -209,27 +176,23 @@ function volverAGrupos() {
     if (!grupoActual) { irAlInicio(); return; }
     grupoActual = null;
     personasTareas = [];
-    document.getElementById('topbar-title').innerHTML = '<span class="hicon" style="width:20px;height:20px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg)"></span> Tareas';
+    document.getElementById('topbar-title').innerHTML = '<i data-icon="check-circle" data-size="20"></i> Tareas';
     mostrarPantalla('grupos');
     cargarGrupos();
 }
 
-function abrirModal(id) { document.getElementById(id).classList.add('open'); }
-function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
+// abrirModal / cerrarModal: ahora vienen de `js/utils.js`
 
 function abrirModalGrupo(grupo = null) {
-    grupoEditando = grupo;
-    document.getElementById('input-nombre-grupo').value = grupo ? grupo.nombre : '';
-    document.querySelector('#modal-grupo .modal-header h3').textContent = grupo ? 'Editar Grupo de Tareas' : 'Nuevo Grupo de Tareas';
-    document.querySelector('#modal-grupo .btn-primary').textContent = grupo ? 'Actualizar Grupo' : 'Crear Grupo';
-    abrirModal('modal-grupo');
-    setTimeout(() => document.getElementById('input-nombre-grupo').focus(), 100);
+    if (!window._gm_tareas) window._gm_tareas = crearGestorDeGrupos({ table: 'grupos_tareas', nameField: 'nombre', rpcCreate: 'crear_grupo_tareas' });
+    window._gm_tareas.abrirModalGrupo(grupo);
 }
 
 async function editarGrupo(id) {
-    const grupo = await db.from('grupos_tareas').select('*').eq('id', id).single();
-    if (grupo.error) { alert('Error: ' + grupo.error.message); return; }
-    abrirModalGrupo(grupo.data);
+    if (!window._gm_tareas) window._gm_tareas = crearGestorDeGrupos({ table: 'grupos_tareas', nameField: 'nombre', rpcCreate: 'crear_grupo_tareas' });
+    const { data, error } = await db.from('grupos_tareas').select('*').eq('id', id).single();
+    if (error) { alert('Error: ' + error.message); return; }
+    window._gm_tareas.abrirModalGrupo(data);
 }
 
 // =============================================
@@ -241,7 +204,7 @@ async function cargarGrupos() {
     const { data, error } = await db.from('grupos_tareas').select('*').order('created_at', { ascending: false });
     if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}<br>¿Ejecutaste el SQL de configuración? Ver README.</div>`; return; }
     if (!data?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><span class="hicon" style="width:40px;height:40px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg)"></span></span>Sin grupos todavía.<br>Creá uno para empezar (ej: "Casa", "Oficina").</div>`;
+        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="check-circle" data-size="40"></i></span>Sin grupos todavía.<br>Creá uno para empezar (ej: "Casa", "Oficina").</div>`;
         return;
     }
     cont.innerHTML = data.map(g => `
@@ -261,37 +224,8 @@ async function cargarGrupos() {
 }
 
 async function crearGrupo() {
-    const nombre = document.getElementById('input-nombre-grupo').value.trim();
-    if (!nombre) { alert('Ingresá un nombre.'); return; }
-    const userId = await getCurrentUserId();
-    if (!userId) { alert('No se encontró el usuario actual. Volvé a iniciar sesión.'); return; }
-
-    if (grupoEditando) {
-        const { error } = await db.from('grupos_tareas').update({ nombre }).eq('id', grupoEditando.id);
-        if (error) { alert('Error al actualizar grupo: ' + error.message); return; }
-        grupoEditando = null;
-        cerrarModal('modal-grupo');
-        cargarGrupos();
-        return;
-    }
-
-    const { data: grupo, error } = await db.rpc('crear_grupo_tareas', { p_nombre: nombre });
-    if (error) { alert('Error al crear grupo: ' + error.message); return; }
-
-    const user = await getCurrentUser();
-    if (user?.email) {
-        const { error: ep } = await db.from('personas_tareas').insert({
-            id_grupo_tareas: grupo.id,
-            nombre: getDisplayNameFromUser(user),
-            email: user.email.toLowerCase()
-        });
-        if (ep) {
-            console.warn('No se pudo agregar al creador como persona en tareas:', ep.message);
-        }
-    }
-
-    cerrarModal('modal-grupo');
-    cargarGrupos();
+    if (!window._gm_tareas) window._gm_tareas = crearGestorDeGrupos({ table: 'grupos_tareas', nameField: 'nombre', rpcCreate: 'crear_grupo_tareas' });
+    await window._gm_tareas.crearGrupo();
 }
 
 async function eliminarGrupo(id, nombre) {
@@ -315,17 +249,17 @@ async function cargarPersonasTareas() {
     const cont = document.getElementById('lista-personas-tareas');
     if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
     if (!data?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><span class="hicon" style="width:40px;height:40px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/users.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/users.svg)"></span></span>Sin personas todavía en este grupo.</div>`;
+        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="users" data-size="40"></i></span>Sin personas todavía en este grupo.</div>`;
     } else {
         cont.innerHTML = `<div class="card">${data.map(p => `
             <div class="part-item">
                 <div class="avatar">${p.nombre.charAt(0).toUpperCase()}</div>
                 <div style="flex:1;min-width:0">
                     <div class="part-name">${escapeHtml(p.nombre)}</div>
-                    ${p.email ? `<div class="text-muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/envelope.svg)"></span> ${escapeHtml(p.email)}</div>` : ''}
+                    ${p.email ? `<div class="text-muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><i data-icon="envelope" data-size="14"></i> ${escapeHtml(p.email)}</div>` : ''}
                 </div>
                 ${p.email ? '<span class="badge badge-green" style="font-size:11px">Invitado</span>' : ''}
-                <button onclick="borrarPersonaTarea(${p.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg)"></span></button>
+                <button onclick="borrarPersonaTarea(${p.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px"><i data-icon="x-mark" data-size="14"></i></button>
             </div>
         `).join('')}</div>`;
     }
@@ -341,52 +275,8 @@ function renderSelectAsignado() {
 }
 
 async function agregarPersonaTarea() {
-    const nombre = document.getElementById('input-nueva-persona').value.trim();
-    const email  = document.getElementById('input-email-persona').value.trim().toLowerCase();
-    if (!nombre) { alert('Ingresá un nombre.'); return; }
-
-    const nombreDup = personasTareas.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
-    if (nombreDup) { alert(`Ya existe "${nombre}" en este grupo.`); return; }
-    if (email) {
-        const emailDup = personasTareas.find(p => p.email?.toLowerCase() === email);
-        if (emailDup) { alert(`El email ${email} ya está registrado en este grupo (${emailDup.nombre}).`); return; }
-    }
-
-    const payload = { nombre, id_grupo_tareas: grupoActual.id };
-    if (email) payload.email = email;
-
-    const { error } = await db.from('personas_tareas').insert(payload);
-    if (error) { alert('Error: ' + error.message); return; }
-
-    if (email) {
-        const user = await getCurrentUser();
-        if (user?.email?.toLowerCase() === email) {
-            alert(`${nombre} fue agregado, pero no se envió invitación: ese es tu propio email.`);
-            document.getElementById('input-nueva-persona').value = '';
-            document.getElementById('input-email-persona').value = '';
-            document.getElementById('invite-info-tareas').style.display = 'none';
-            document.querySelector('#tab-personas .btn-primary').textContent = 'Agregar Persona';
-            cargarPersonasTareas();
-            return;
-        }
-
-        const { error: inviteError } = await db.auth.signInWithOtp({
-            email,
-            options: { emailRedirectTo: `${APP_BASE_URL}?invite_tarea=${grupoActual.id}`, shouldCreateUser: true }
-        });
-        if (inviteError) {
-            alert(`${nombre} fue agregado, pero hubo un error al enviar la invitación: ${inviteError.message}`);
-        } else {
-            alert(`✅ ${nombre} fue agregado y se le envió una invitación a ${email}.`);
-        }
-    }
-
-    document.getElementById('input-nueva-persona').value = '';
-    document.getElementById('input-email-persona').value = '';
-    document.getElementById('invite-info-tareas').style.display = 'none';
-    document.querySelector('#tab-personas .btn-primary').textContent = 'Agregar Persona';
-    document.getElementById('input-nueva-persona').focus();
-    cargarPersonasTareas();
+    if (!window._pm_tareas) window._pm_tareas = crearGestorDePersonas({ table: 'personas_tareas', nameField: 'nombre', groupField: 'id_grupo_tareas', inputNameId: 'input-nueva-persona', inputEmailId: 'input-email-persona', inviteInfoId: 'invite-info-tareas', addButtonSelector: '#tab-personas .btn-primary', currentListVar: 'personasTareas', redirectParam: 'invite_tarea' });
+    await window._pm_tareas.agregarPersona(grupoActual.id);
 }
 
 async function borrarPersonaTarea(id) {
@@ -462,7 +352,7 @@ function renderTareas() {
         hechas.length > 0 ? 'flex' : 'none';
 
     if (!items.length) {
-        const msgs = { pendientes: '<span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg)"></span> No hay tareas pendientes.', hechas: 'Sin tareas hechas todavía.', todas: '<span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/clipboard-document-list.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/clipboard-document-list.svg)"></span> No hay tareas en este grupo. Agregá una.' };
+        const msgs = { pendientes: '<i data-icon="check-circle" data-size="18"></i> No hay tareas pendientes.', hechas: 'Sin tareas hechas todavía.', todas: '<i data-icon="clipboard-document-list" data-size="18"></i> No hay tareas en este grupo. Agregá una.' };
         cont.innerHTML = `<div class="empty" style="padding:24px"><span class="empty-icon">${filtroTareas === 'pendientes' ? icon('check-circle',40) : icon('clipboard-document-list',40)}</span>${msgs[filtroTareas]}</div>`;
         return;
     }
@@ -479,12 +369,12 @@ function renderTareas() {
                 </div>
                 <div class="prio-dot prio-${t.prioridad || 'media'}" title="Prioridad ${PRIO_LABEL[t.prioridad] || 'Media'}"></div>
                 <div class="lista-nombre ${t.hecha ? 'tachado' : ''}">${escapeHtml(t.titulo)}</div>
-                <button onclick="borrarTarea(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;flex-shrink:0"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/x-mark.svg)"></span></button>
+                <button onclick="borrarTarea(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;flex-shrink:0"><i data-icon="x-mark" data-size="14"></i></button>
             </div>
             ${tieneBadges ? `
             <div class="tarea-item-badges">
-                ${t.fecha_vencimiento ? `<span class="badge badge-purple" title="${t.google_event_id ? 'Sincronizada con Google Calendar' : 'Vencimiento'}"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/calendar-days.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/calendar-days.svg)"></span> ${formatFechaHora(t.fecha_vencimiento)}</span>` : ''}
-                ${lista ? `<a href="listas.html?abrir=${t.id_lista}" class="badge badge-green" style="text-decoration:none"><span class="hicon" style="width:14px;height:14px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/shopping-cart.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/shopping-cart.svg)"></span> ${escapeHtml(lista)}</a>` : ''}
+                ${t.fecha_vencimiento ? `<span class="badge badge-purple" title="${t.google_event_id ? 'Sincronizada con Google Calendar' : 'Vencimiento'}"><i data-icon="calendar-days" data-size="14"></i> ${formatFechaHora(t.fecha_vencimiento)}</span>` : ''}
+                ${lista ? `<a href="listas.html?abrir=${t.id_lista}" class="badge badge-green" style="text-decoration:none"><i data-icon="shopping-cart" data-size="14"></i> ${escapeHtml(lista)}</a>` : ''}
                 ${asignado ? `<span class="badge badge-blue">${escapeHtml(asignado)}</span>` : ''}
             </div>` : ''}
         </div>`;

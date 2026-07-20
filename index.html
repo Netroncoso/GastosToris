@@ -13,7 +13,7 @@
 <!-- SCREEN: LOGIN -->
 <div id="screen-login" class="screen">
     <div class="login-card">
-        <div class="login-logo"><span class="hicon" style="width:48px;height:48px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/cube-transparent.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/cube-transparent.svg)"></span></div>
+        <div class="login-logo"><i data-icon="cube-transparent" data-size="48"></i></div>
         <h1>TorisApp</h1>
         <p>Compartí gastos, listas y tareas sin drama</p>
         <button class="btn-google" onclick="iniciarSesion()">
@@ -31,11 +31,11 @@
 <!-- TOPBAR -->
 <div id="topbar" class="topbar hidden">
     <div class="topbar-left">
-        <h1><span class="hicon" style="width:20px;height:20px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/cube-transparent.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/cube-transparent.svg)"></span> Mi Espacio</h1>
+        <h1><i data-icon="cube-transparent" data-size="20"></i> Mi Espacio</h1>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
         <span id="topbar-user" class="topbar-user"></span>
-        <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión"><span class="hicon" style="width:18px;height:18px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-right-on-rectangle.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/arrow-right-on-rectangle.svg)"></span></button>
+        <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión"><i data-icon="arrow-right-on-rectangle" data-size="18"></i></button>
     </div>
 </div>
 
@@ -44,7 +44,7 @@
     <div class="container">
         <div class="card card-click" onclick="location.href='gastos.html'">
             <div class="card-body dash-card">
-                <div class="dash-icon"><span class="hicon" style="width:28px;height:28px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/currency-dollar.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/currency-dollar.svg)"></span></div>
+                <div class="dash-icon"><i data-icon="currency-dollar" data-size="28"></i></div>
                 <div>
                     <div class="dash-title">Gastos</div>
                     <div class="dash-sub">Grupos, divisiones y balances</div>
@@ -54,7 +54,7 @@
         </div>
         <div class="card card-click" onclick="location.href='listas.html'">
             <div class="card-body dash-card">
-                <div class="dash-icon"><span class="hicon" style="width:28px;height:28px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/shopping-cart.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/shopping-cart.svg)"></span></div>
+                <div class="dash-icon"><i data-icon="shopping-cart" data-size="28"></i></div>
                 <div>
                     <div class="dash-title">Listas</div>
                     <div class="dash-sub">Compras, viajes y lo que necesites</div>
@@ -64,7 +64,7 @@
         </div>
         <div class="card card-click" onclick="location.href='tareas.html'">
             <div class="card-body dash-card">
-                <div class="dash-icon"><span class="hicon" style="width:28px;height:28px;-webkit-mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg);mask-image:url(https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/check-circle.svg)"></span></div>
+                <div class="dash-icon"><i data-icon="check-circle" data-size="28"></i></div>
                 <div>
                     <div class="dash-title">Tareas</div>
                     <div class="dash-sub">Pendientes del día a día</div>

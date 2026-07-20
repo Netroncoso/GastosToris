@@ -1,0 +1,12 @@
+nombre_trigger,nombre_tabla,esquema_tabla,codigo_definicion
+auto_membership_grupos,grupos,public,CREATE TRIGGER auto_membership_grupos AFTER INSERT ON public.grupos FOR EACH ROW EXECUTE FUNCTION auto_membership_grupos_fn()
+set_created_by_grupos,grupos,public,CREATE TRIGGER set_created_by_grupos BEFORE INSERT ON public.grupos FOR EACH ROW EXECUTE FUNCTION set_created_by_grupos_fn()
+trg_auto_membresia_grupo,grupos,public,CREATE TRIGGER trg_auto_membresia_grupo AFTER INSERT ON public.grupos FOR EACH ROW EXECUTE FUNCTION fn_auto_membresia_grupo()
+auto_membership_grupos_tareas,grupos_tareas,public,CREATE TRIGGER auto_membership_grupos_tareas AFTER INSERT ON public.grupos_tareas FOR EACH ROW EXECUTE FUNCTION auto_membership_grupos_tareas_fn()
+set_created_by_grupos_tareas,grupos_tareas,public,CREATE TRIGGER set_created_by_grupos_tareas BEFORE INSERT ON public.grupos_tareas FOR EACH ROW EXECUTE FUNCTION set_created_by_grupos_tareas_fn()
+trg_auto_membresia_grupo_tareas,grupos_tareas,public,CREATE TRIGGER trg_auto_membresia_grupo_tareas AFTER INSERT ON public.grupos_tareas FOR EACH ROW EXECUTE FUNCTION fn_auto_membresia_grupo_tareas()
+tr_check_filters,subscription,realtime,CREATE TRIGGER tr_check_filters BEFORE INSERT OR UPDATE ON realtime.subscription FOR EACH ROW EXECUTE FUNCTION realtime.subscription_check_filters()
+enforce_bucket_name_length_trigger,buckets,storage,CREATE TRIGGER enforce_bucket_name_length_trigger BEFORE INSERT OR UPDATE OF name ON storage.buckets FOR EACH ROW EXECUTE FUNCTION storage.enforce_bucket_name_length()
+protect_buckets_delete,buckets,storage,CREATE TRIGGER protect_buckets_delete BEFORE DELETE ON storage.buckets FOR EACH STATEMENT EXECUTE FUNCTION storage.protect_delete()
+protect_objects_delete,objects,storage,CREATE TRIGGER protect_objects_delete BEFORE DELETE ON storage.objects FOR EACH STATEMENT EXECUTE FUNCTION storage.protect_delete()
+update_objects_updated_at,objects,storage,CREATE TRIGGER update_objects_updated_at BEFORE UPDATE ON storage.objects FOR EACH ROW EXECUTE FUNCTION storage.update_updated_at_column()
