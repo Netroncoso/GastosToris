@@ -126,19 +126,30 @@ async function syncInvitados({ personsTable, personGroupField, membershipTable, 
     }
 }
 
-// Inicializa íconos para elementos con `data-icon` (útil para HTML estático)
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('[data-icon]').forEach(el => {
-        const name = el.getAttribute('data-icon');
-        const size = el.getAttribute('data-size') || 18;
-        const url = `${HEROICONS_BASE}/${name}.svg`;
-        el.style.width = `${size}px`;
-        el.style.height = `${size}px`;
-        el.style.webkitMaskImage = `url(${url})`;
-        el.style.maskImage = `url(${url})`;
-        el.classList.add('hicon');
-    });
-});
+// Inicializa íconos para elementos con `data-icon` (HTML estático Y contenido
+// insertado dinámicamente vía innerHTML, ya que un MutationObserver vigila el DOM)
+function initIcon(el) {
+    const name = el.getAttribute('data-icon');
+    const size = el.getAttribute('data-size') || 18;
+    const url = `${HEROICONS_BASE}/${name}.svg`;
+    el.style.width = `${size}px`;
+    el.style.height = `${size}px`;
+    el.style.webkitMaskImage = `url(${url})`;
+    el.style.maskImage = `url(${url})`;
+    el.classList.add('hicon');
+}
+
+function initIconsIn(root) {
+    if (root.nodeType !== 1) return;
+    if (root.matches('[data-icon]')) initIcon(root);
+    root.querySelectorAll('[data-icon]').forEach(initIcon);
+}
+
+document.addEventListener('DOMContentLoaded', () => initIconsIn(document.documentElement));
+
+new MutationObserver(mutations => {
+    mutations.forEach(m => m.addedNodes.forEach(initIconsIn));
+}).observe(document.documentElement, { childList: true, subtree: true });
 
 // =============================================
 // FACTORY: GESTOR DE GRUPOS (creación/edición/abrir modal)
