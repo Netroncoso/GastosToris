@@ -130,20 +130,21 @@ let listasDisponibles = [];
 const PRIO_LABEL = { alta: 'Alta', media: 'Media', baja: 'Baja' };
 
 requireAuth(async () => {
-    await syncInvitados({ personsTable: 'participantes', personGroupField: 'id_grupo', membershipTable: 'grupos_miembros', membershipGroupField: 'id_grupo', tipo: 'tareas' });
-    await cargarListasDisponibles();
+    const sync = syncInvitados({ personsTable: 'participantes', personGroupField: 'id_grupo', membershipTable: 'grupos_miembros', membershipGroupField: 'id_grupo', tipo: 'tareas' });
     const params = new URLSearchParams(window.location.search);
     const abrirId = params.get('abrir');
     if (abrirId) {
+        await sync;
         const { data, error } = await db.from('grupos').select('*').eq('id', abrirId).eq('tipo', 'tareas').single();
         if (error || !data) {
             alert('No se encontró ese grupo (o no tenés acceso todavía).');
+            setQueryParam('abrir', null);
             await cargarGrupos();
         } else {
-            abrirGrupo(data);
+            await abrirGrupo(data);
         }
     } else {
-        await cargarGrupos();
+        await Promise.all([sync, cargarGrupos()]);
     }
 });
 
@@ -160,8 +161,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Navegación: usar las funciones compartidas en `js/utils.js` (`mostrarPantalla`, `cambiarTab`)
 
-function abrirGrupo(grupo) {
+async function abrirGrupo(grupo) {
     grupoActual = grupo;
+    setQueryParam('abrir', grupo.id);
     document.getElementById('topbar-title').textContent = grupo.nombre;
     document.getElementById('input-nueva-persona').value = '';
     document.getElementById('input-email-persona').value = '';
@@ -169,13 +171,14 @@ function abrirGrupo(grupo) {
     document.querySelector('#tab-personas .btn-primary').textContent = 'Agregar Persona';
     mostrarPantalla('grupo');
     cambiarTab('tareas');
-    cargarPersonasTareas().then(cargarTareas);
+    await Promise.all([cargarPersonasTareas(), cargarTareas(), cargarListasDisponibles()]);
 }
 
 function volverAGrupos() {
     if (!grupoActual) { irAlInicio(); return; }
     grupoActual = null;
     personasTareas = [];
+    setQueryParam('abrir', null);
     document.getElementById('topbar-title').innerHTML = '<i data-icon="check-circle" data-size="20"></i> Tareas';
     mostrarPantalla('grupos');
     cargarGrupos();
