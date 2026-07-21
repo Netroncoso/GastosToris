@@ -66,6 +66,10 @@
                     <label style="margin-bottom:4px">Vencimiento (opcional — la agrega a Google Calendar)</label>
                     <input type="datetime-local" id="input-fecha-tarea" class="input-sm" />
                 </div>
+                <div id="section-calendar-invites" style="display:none; margin-bottom:8px; padding:10px; background:var(--border); border-radius:8px; opacity:0.95;">
+                    <label style="margin-bottom:6px; font-size:11px; color:var(--muted)">Invitar al calendario:</label>
+                    <div id="calendar-invites-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+                </div>
                 <div class="form-group" style="margin-bottom:0">
                     <label style="margin-bottom:4px">Vincular con una lista (opcional)</label>
                     <select id="input-lista-tarea" class="input-sm">
@@ -127,9 +131,12 @@ let grupoEditando = null;
 let filtroTareas = 'pendientes';
 let todasLasTareas = [];
 let listasDisponibles = [];
+let userEmail = null;
 const PRIO_LABEL = { alta: 'Alta', media: 'Media', baja: 'Baja' };
 
 requireAuth(async () => {
+    const user = await getCurrentUser();
+    if (user) userEmail = user.email?.toLowerCase() || null;
     const sync = syncInvitados({ personsTable: 'participantes', personGroupField: 'id_grupo', membershipTable: 'grupos_miembros', membershipGroupField: 'id_grupo', tipo: 'tareas' });
     const params = new URLSearchParams(window.location.search);
     const abrirId = params.get('abrir');
@@ -157,6 +164,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('#tab-personas .btn-primary').textContent =
             tieneEmail ? 'Agregar y Enviar Invitación' : 'Agregar Persona';
     });
+
+    document.getElementById('input-fecha-tarea').addEventListener('input', actualizarSeccionCalendario);
+    document.getElementById('input-fecha-tarea').addEventListener('change', actualizarSeccionCalendario);
+    document.getElementById('input-asignado-tarea').addEventListener('change', actualizarCheckboxesPorAsignado);
 });
 
 // Navegación: usar las funciones compartidas en `js/utils.js` (`mostrarPantalla`, `cambiarTab`)
@@ -278,10 +289,66 @@ async function cargarPersonasTareas() {
 
 function renderSelectAsignado() {
     const sel = document.getElementById('input-asignado-tarea');
-    const actual = sel.value;
+    let actual = sel.value;
+
+    if (!actual && userEmail) {
+        const miPersona = personasTareas.find(p => p.email && p.email.toLowerCase() === userEmail);
+        if (miPersona) {
+            actual = miPersona.id;
+        }
+    }
+
     sel.innerHTML = '<option value="">Sin asignar</option>' +
         personasTareas.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
     sel.value = actual;
+
+    actualizarCheckboxesPorAsignado();
+}
+
+function actualizarCheckboxesPorAsignado() {
+    const asignadoVal = document.getElementById('input-asignado-tarea').value;
+    const asignadoId = asignadoVal ? parseInt(asignadoVal) : null;
+    document.querySelectorAll('.calendar-invite-chk').forEach(chk => {
+        const pId = parseInt(chk.getAttribute('data-persona-id'));
+        if (pId === asignadoId) {
+            chk.checked = true;
+        }
+    });
+}
+
+function actualizarSeccionCalendario() {
+    const fechaVal = document.getElementById('input-fecha-tarea').value;
+    const div = document.getElementById('section-calendar-invites');
+    if (fechaVal) {
+        div.style.display = 'block';
+        renderCalendarInvitesList();
+    } else {
+        div.style.display = 'none';
+    }
+}
+
+function renderCalendarInvitesList() {
+    const listCont = document.getElementById('calendar-invites-list');
+    if (!listCont) return;
+
+    const conEmail = personasTareas.filter(p => p.email && p.email.trim().length > 0);
+    if (!conEmail.length) {
+        listCont.innerHTML = '<div style="font-size:12px;color:var(--muted)">Sin participantes con email para invitar.</div>';
+        return;
+    }
+
+    const asignadoVal = document.getElementById('input-asignado-tarea').value;
+    const asignadoId = asignadoVal ? parseInt(asignadoVal) : null;
+
+    listCont.innerHTML = conEmail.map(p => {
+        const isAsignado = p.id === asignadoId;
+        return `
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);text-transform:none;font-weight:normal;cursor:pointer;margin-bottom:0">
+                <input type="checkbox" class="calendar-invite-chk" value="${escapeHtml(p.email)}" data-persona-id="${p.id}" ${isAsignado ? 'checked' : ''} style="width:auto;margin:0;cursor:pointer;" />
+                <span>${escapeHtml(p.nombre)} (${escapeHtml(p.email)})</span>
+            </label>
+        `;
+    }).join('');
 }
 
 async function agregarPersonaTarea() {
@@ -407,8 +474,19 @@ async function agregarTarea() {
         .insert({ titulo, prioridad, id_asignado, id_lista, id_grupo: grupoActual.id, fecha_vencimiento }).select().single();
     if (error) { alert('Error: ' + error.message); return; }
 
+    const invitadosEmails = [];
+    if (fecha_vencimiento) {
+        document.querySelectorAll('.calendar-invite-chk:checked').forEach(chk => {
+            invitadosEmails.push(chk.value);
+        });
+    }
+
     document.getElementById('input-titulo-tarea').value = '';
     document.getElementById('input-fecha-tarea').value = '';
+    document.getElementById('input-asignado-tarea').value = '';
+    document.getElementById('input-prioridad-tarea').value = 'media';
+    renderSelectAsignado();
+    actualizarSeccionCalendario();
     document.getElementById('input-titulo-tarea').focus();
 
     todasLasTareas = [data, ...todasLasTareas];
@@ -422,7 +500,8 @@ async function agregarTarea() {
                 action: 'create',
                 titulo,
                 fecha_vencimiento,
-                asignado_email: asignadoEmail
+                asignado_email: asignadoEmail,
+                invitados_emails: invitadosEmails
             });
             await db.from('tareas').update({ google_event_id: resultado.event_id }).eq('id', data.id);
             const t = todasLasTareas.find(x => x.id === data.id);
