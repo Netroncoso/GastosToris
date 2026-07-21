@@ -134,7 +134,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 
 /* GASTO ITEM */
 .gasto-item { padding: 14px 16px; }
-.gasto-concepto { font-weight: 600; font-size: 15px; }
+.gasto-concepto { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 6px; }
 .gasto-meta { color: var(--muted); font-size: 12px; margin-top: 3px; }
 .gasto-monto { font-size: 18px; font-weight: 800; white-space: nowrap; }
 
@@ -205,6 +205,7 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .progress-row { margin-bottom: 16px; }
 .progress-row:last-child { margin-bottom: 0; }
 .progress-label-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+.progress-label-row > span:first-child { display: flex; align-items: center; gap: 6px; }
 .progress-track { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; }
 .progress-fill { height: 8px; border-radius: 4px; background: var(--primary); }
 
