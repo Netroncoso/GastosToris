@@ -146,15 +146,11 @@
             <input type="number" id="input-monto" placeholder="0.00" step="0.01" min="0" oninput="actualizarTotalSplit()" />
         </div>
         <div class="form-group">
-            <label>Tipo</label>
-            <select id="input-tipo">
-                <option value="Comida">🍽️ Comida</option>
-                <option value="Transporte">🚗 Transporte</option>
-                <option value="Alojamiento">🏠 Alojamiento</option>
-                <option value="Entretenimiento">🎉 Entretenimiento</option>
-                <option value="Compras">🛒 Compras</option>
-                <option value="Otro">📦 Otro</option>
-            </select>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <label style="margin-bottom:0">Tipo</label>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="abrirModalCategorias()" style="padding:2px 8px;font-size:12px">Gestionar</button>
+            </div>
+            <select id="input-tipo"></select>
         </div>
         <div class="form-group">
             <label>¿Quién pagó?</label>
@@ -173,6 +169,30 @@
     </div>
 </div>
 
+<!-- MODAL: GESTIONAR CATEGORÍAS -->
+<div id="modal-categorias" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3><i data-icon="tag" data-size="18"></i> Categorías de Gastos</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-categorias')"><i data-icon="x-mark" data-size="14"></i></button>
+        </div>
+        <div id="lista-categorias" class="card" style="margin-bottom:16px;max-height:240px;overflow-y:auto"></div>
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Nueva categoría</div>
+        <div class="add-item-row" style="margin-bottom:12px">
+            <div class="form-group" style="flex:1;margin-bottom:0">
+                <label>Nombre</label>
+                <input type="text" id="input-nueva-categoria" placeholder="Ej: Regalos"
+                    onkeydown="if(event.key==='Enter') agregarCategoria()" />
+            </div>
+            <div class="form-group" style="flex:1;margin-bottom:0">
+                <label>Ícono</label>
+                <select id="input-icono-categoria"></select>
+            </div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="agregarCategoria()"><i data-icon="plus" data-size="16"></i> Agregar Categoría</button>
+    </div>
+</div>
+
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/utils.js"></script>
@@ -185,8 +205,126 @@ let participantesActuales = [];
 let currentGastos = [];
 let gastoEditando = null;
 let grupoEditando = null;
+let categoriasActuales = [];
 
-const TIPO_ICONO = { Comida: icon('cake',16), Transporte: icon('truck',16), Alojamiento: icon('home',16), Entretenimiento: icon('film',16), Compras: icon('shopping-cart',16), Otro: icon('archive-box',16), Reembolso: icon('arrow-path',16) };
+const CATEGORIAS_DEFECTO = [
+    { nombre: 'Super', emoji: '🛒', icono: 'shopping-cart' },
+    { nombre: 'Carnicería', emoji: '🥩', icono: 'cake' },
+    { nombre: 'Verdulería', emoji: '🥦', icono: 'shopping-bag' },
+    { nombre: 'Gatos', emoji: '🐱', icono: 'heart' },
+    { nombre: 'Casa alquiler', emoji: '🏠', icono: 'home' },
+    { nombre: 'Casa impuestos', emoji: '⚡', icono: 'bolt' },
+    { nombre: 'Tarjetas', emoji: '💳', icono: 'credit-card' },
+    { nombre: 'Auto', emoji: '🚗', icono: 'truck' },
+    { nombre: 'Viajes', emoji: '✈️', icono: 'globe' },
+    { nombre: 'Salidas', emoji: '🎉', icono: 'film' },
+    { nombre: 'Otros', emoji: '📦', icono: 'archive-box' },
+];
+
+const ICONOS_DISPONIBLES = [
+    'shopping-cart', 'cake', 'shopping-bag', 'heart', 'home', 'bolt',
+    'credit-card', 'truck', 'globe', 'film', 'archive-box', 'gift',
+    'beaker', 'building-storefront', 'sparkles', 'tag', 'currency-dollar',
+    'device-phone-mobile', 'musical-note', 'ticket'
+];
+
+function initCategorias() {
+    if (grupoActual?.categorias && Array.isArray(grupoActual.categorias) && grupoActual.categorias.length > 0) {
+        categoriasActuales = grupoActual.categorias.map(c => ({ ...c }));
+    } else {
+        categoriasActuales = CATEGORIAS_DEFECTO.map(c => ({ ...c }));
+    }
+}
+
+function getIconoTipo(nombre) {
+    const cat = categoriasActuales.find(c => c.nombre === nombre);
+    if (cat) return icon(cat.icono, 16);
+    if (nombre === 'Reembolso') return icon('arrow-path', 16);
+    return icon('archive-box', 16);
+}
+
+function renderSelectTipo(valorActual = null) {
+    const sel = document.getElementById('input-tipo');
+    if (!sel) return;
+    sel.innerHTML = categoriasActuales.map(c =>
+        `<option value="${escapeHtml(c.nombre)}">${c.emoji} ${escapeHtml(c.nombre)}</option>`
+    ).join('');
+    if (valorActual && categoriasActuales.some(c => c.nombre === valorActual)) {
+        sel.value = valorActual;
+    } else if (categoriasActuales.length) {
+        sel.value = categoriasActuales[0].nombre;
+    }
+}
+
+function renderSelectIconos() {
+    const sel = document.getElementById('input-icono-categoria');
+    if (!sel) return;
+    sel.innerHTML = ICONOS_DISPONIBLES.map(i =>
+        `<option value="${i}">${i.replace(/-/g, ' ')}</option>`
+    ).join('');
+}
+
+function renderListaCategorias() {
+    const cont = document.getElementById('lista-categorias');
+    if (!cont) return;
+    cont.innerHTML = categoriasActuales.map((c, i) => `
+        <div class="part-item">
+            <span style="font-size:18px;line-height:1">${c.emoji}</span>
+            ${icon(c.icono, 16)}
+            <div style="flex:1;min-width:0">
+                <div class="part-name">${escapeHtml(c.nombre)}</div>
+            </div>
+            <button onclick="eliminarCategoria(${i})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px" title="Eliminar categoría"><i data-icon="x-mark" data-size="14"></i></button>
+        </div>
+    `).join('');
+}
+
+function abrirModalCategorias() {
+    renderListaCategorias();
+    renderSelectIconos();
+    document.getElementById('input-nueva-categoria').value = '';
+    abrirModal('modal-categorias');
+    setTimeout(() => document.getElementById('input-nueva-categoria').focus(), 100);
+}
+
+async function guardarCategoriasEnDB() {
+    const { error } = await db.from('grupos')
+        .update({ categorias: categoriasActuales })
+        .eq('id', grupoActual.id);
+    if (error) { alert('Error al guardar categorías: ' + error.message); return false; }
+    grupoActual.categorias = categoriasActuales.map(c => ({ ...c }));
+    return true;
+}
+
+async function agregarCategoria() {
+    const nombre = document.getElementById('input-nueva-categoria').value.trim();
+    const icono = document.getElementById('input-icono-categoria').value;
+    if (!nombre) { document.getElementById('input-nueva-categoria').focus(); return; }
+    if (categoriasActuales.some(c => c.nombre.toLowerCase() === nombre.toLowerCase())) {
+        alert('Ya existe una categoría con ese nombre.');
+        return;
+    }
+    categoriasActuales.push({ nombre, emoji: '📌', icono });
+    if (!await guardarCategoriasEnDB()) return;
+    document.getElementById('input-nueva-categoria').value = '';
+    renderListaCategorias();
+    renderSelectTipo(document.getElementById('input-tipo').value);
+    cargarGastos();
+}
+
+async function eliminarCategoria(index) {
+    if (categoriasActuales.length <= 1) {
+        alert('Debe haber al menos una categoría.');
+        return;
+    }
+    const cat = categoriasActuales[index];
+    if (!confirm(`¿Eliminar la categoría "${cat.nombre}"?`)) return;
+    categoriasActuales.splice(index, 1);
+    if (!await guardarCategoriasEnDB()) return;
+    renderListaCategorias();
+    renderSelectTipo();
+    cargarGastos();
+}
 
 requireAuth(async () => {
     const sync = syncInvitados({ personsTable: 'participantes', personGroupField: 'id_grupo', membershipTable: 'grupos_miembros', membershipGroupField: 'id_grupo', tipo: 'gastos' });
@@ -221,6 +359,7 @@ const TABS_GASTOS = ['gastos', 'participantes', 'balance', 'resumen'];
 
 async function abrirGrupo(grupo, opts = {}) {
     grupoActual = grupo;
+    initCategorias();
     setQueryParam('abrir', grupo.id);
     document.getElementById('topbar-title').textContent = grupo.nombre;
     mostrarPantalla('grupo');
@@ -286,7 +425,7 @@ function abrirModalGasto() {
     document.getElementById('input-concepto').value = '';
     document.getElementById('input-fecha-gasto').value = hoyISO();
     document.getElementById('input-monto').value = '';
-    document.getElementById('input-tipo').value = 'Comida';
+    renderSelectTipo();
 
     const sel = document.getElementById('input-pagador');
     sel.innerHTML = participantesActuales.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
@@ -315,7 +454,7 @@ async function editarGasto(id) {
     document.getElementById('input-concepto').value = gasto.concepto || '';
     document.getElementById('input-fecha-gasto').value = gasto.fecha_gasto || hoyISO();
     document.getElementById('input-monto').value = gasto.monto || '';
-    document.getElementById('input-tipo').value = gasto.tipo_gasto || 'Comida';
+    renderSelectTipo(gasto.tipo_gasto || categoriasActuales[0]?.nombre);
 
     const sel = document.getElementById('input-pagador');
     sel.innerHTML = participantesActuales.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
@@ -566,7 +705,7 @@ async function cargarGastos() {
         <div class="card" style="${esReembolso ? 'opacity:0.8' : ''}">
             <div class="gasto-item flex-between">
                 <div style="min-width:0">
-                    <div class="gasto-concepto">${TIPO_ICONO[g.tipo_gasto] || icon('archive-box',16)} ${escapeHtml(g.concepto)}</div>
+                    <div class="gasto-concepto">${getIconoTipo(g.tipo_gasto)} ${escapeHtml(g.concepto)}</div>
                     <div class="gasto-meta">${esReembolso ? '' : `Pagó <strong>${escapeHtml(pagMap[g.id_pagador] || '?')}</strong> · `}${parseFechaLocal(g.fecha_gasto)?.toLocaleDateString('es-AR') || new Date(g.created_at).toLocaleDateString('es-AR')}</div>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px">
@@ -788,7 +927,7 @@ async function calcularYMostrarResumen() {
             ${filas.map(f => `
                 <div class="progress-row">
                     <div class="progress-label-row">
-                        <span>${TIPO_ICONO[f.tipo] || icon('archive-box',16)} ${escapeHtml(f.tipo)}</span>
+                        <span>${getIconoTipo(f.tipo)} ${escapeHtml(f.tipo)}</span>
                         <span class="text-muted">$${fmt(f.monto)} · ${f.pct.toFixed(0)}%</span>
                     </div>
                     <div class="progress-track">

@@ -103,6 +103,51 @@
     </div>
 </div>
 
+<!-- MODAL: EDITAR TAREA -->
+<div id="modal-editar-tarea" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3><i data-icon="pencil-square" data-size="18"></i> Editar Tarea</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-editar-tarea')"><i data-icon="x-mark" data-size="14"></i></button>
+        </div>
+        <div class="form-group">
+            <label>Título</label>
+            <input type="text" id="input-edit-titulo-tarea" placeholder="Ej: Pagar el alquiler" />
+        </div>
+        <div class="add-item-row" style="margin-bottom:12px">
+            <div class="form-group" style="flex:1;margin-bottom:0">
+                <label>Prioridad</label>
+                <select id="input-edit-prioridad-tarea">
+                    <option value="baja">Baja</option>
+                    <option value="media">Media</option>
+                    <option value="alta">Alta</option>
+                </select>
+            </div>
+            <div class="form-group" style="flex:1;margin-bottom:0">
+                <label>Asignado</label>
+                <select id="input-edit-asignado-tarea">
+                    <option value="">Sin asignar</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Vencimiento (opcional — la agrega a Google Calendar)</label>
+            <input type="datetime-local" id="input-edit-fecha-tarea" />
+        </div>
+        <div id="section-edit-calendar-invites" style="display:none; margin-bottom:12px; padding:10px; background:var(--border); border-radius:8px; opacity:0.95;">
+            <label style="margin-bottom:6px; font-size:11px; color:var(--muted)">Invitar al calendario:</label>
+            <div id="calendar-edit-invites-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+        </div>
+        <div class="form-group">
+            <label>Vincular con una lista (opcional)</label>
+            <select id="input-edit-lista-tarea">
+                <option value="">Ninguna</option>
+            </select>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="guardarEdicionTarea()">Guardar Cambios</button>
+    </div>
+</div>
+
 <!-- MODAL: NUEVO GRUPO -->
 <div id="modal-grupo" class="modal-overlay">
     <div class="modal">
@@ -132,7 +177,15 @@ let filtroTareas = 'pendientes';
 let todasLasTareas = [];
 let listasDisponibles = [];
 let userEmail = null;
+let tareaEditando = null;
 const PRIO_LABEL = { alta: 'Alta', media: 'Media', baja: 'Baja' };
+
+function isoToDatetimeLocal(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const tz = d.getTimezoneOffset() * 60000;
+    return new Date(d - tz).toISOString().slice(0, 16);
+}
 
 requireAuth(async () => {
     const user = await getCurrentUser();
@@ -168,6 +221,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('input-fecha-tarea').addEventListener('input', actualizarSeccionCalendario);
     document.getElementById('input-fecha-tarea').addEventListener('change', actualizarSeccionCalendario);
     document.getElementById('input-asignado-tarea').addEventListener('change', actualizarCheckboxesPorAsignado);
+
+    document.getElementById('input-edit-fecha-tarea').addEventListener('input', () => actualizarSeccionCalendarioEdit());
+    document.getElementById('input-edit-fecha-tarea').addEventListener('change', () => actualizarSeccionCalendarioEdit());
+    document.getElementById('input-edit-asignado-tarea').addEventListener('change', actualizarCheckboxesEditPorAsignado);
 });
 
 // Navegación: usar las funciones compartidas en `js/utils.js` (`mostrarPantalla`, `cambiarTab`)
@@ -447,7 +504,8 @@ function renderTareas() {
                 </div>
                 <div class="prio-dot prio-${t.prioridad || 'media'}" title="Prioridad ${PRIO_LABEL[t.prioridad] || 'Media'}"></div>
                 <div class="lista-nombre ${t.hecha ? 'tachado' : ''}">${escapeHtml(t.titulo)}</div>
-                <button onclick="borrarTarea(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;flex-shrink:0"><i data-icon="x-mark" data-size="14"></i></button>
+                <button onclick="abrirModalEditarTarea(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;flex-shrink:0" title="Editar tarea"><i data-icon="pencil-square" data-size="14"></i></button>
+                <button onclick="borrarTarea(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;flex-shrink:0" title="Eliminar tarea"><i data-icon="x-mark" data-size="14"></i></button>
             </div>
             ${tieneBadges ? `
             <div class="tarea-item-badges">
@@ -470,16 +528,16 @@ async function agregarTarea() {
     const fecha_vencimiento = fechaVal ? new Date(fechaVal).toISOString() : null;
     if (!titulo) { document.getElementById('input-titulo-tarea').focus(); return; }
 
-    const { data, error } = await db.from('tareas')
-        .insert({ titulo, prioridad, id_asignado, id_lista, id_grupo: grupoActual.id, fecha_vencimiento }).select().single();
-    if (error) { alert('Error: ' + error.message); return; }
-
     const invitadosEmails = [];
     if (fecha_vencimiento) {
         document.querySelectorAll('.calendar-invite-chk:checked').forEach(chk => {
             invitadosEmails.push(chk.value);
         });
     }
+
+    const { data, error } = await db.from('tareas')
+        .insert({ titulo, prioridad, id_asignado, id_lista, id_grupo: grupoActual.id, fecha_vencimiento, invitados_calendar: invitadosEmails }).select().single();
+    if (error) { alert('Error: ' + error.message); return; }
 
     document.getElementById('input-titulo-tarea').value = '';
     document.getElementById('input-fecha-tarea').value = '';
@@ -546,6 +604,158 @@ async function borrarHechas() {
     const { error } = await db.from('tareas').delete().in('id', ids);
     if (error) { alert('Error: ' + error.message); return; }
     todasLasTareas = todasLasTareas.filter(t => !t.hecha);
+    renderTareas();
+}
+
+// =============================================
+// EDITAR TAREA
+// =============================================
+function actualizarCheckboxesEditPorAsignado() {
+    const asignadoVal = document.getElementById('input-edit-asignado-tarea').value;
+    const asignadoId = asignadoVal ? parseInt(asignadoVal) : null;
+    document.querySelectorAll('.calendar-edit-invite-chk').forEach(chk => {
+        const pId = parseInt(chk.getAttribute('data-persona-id'));
+        if (pId === asignadoId) chk.checked = true;
+    });
+}
+
+function actualizarSeccionCalendarioEdit(invitadosGuardados = null) {
+    const fechaVal = document.getElementById('input-edit-fecha-tarea').value;
+    const div = document.getElementById('section-edit-calendar-invites');
+    if (fechaVal) {
+        div.style.display = 'block';
+        renderCalendarInvitesListEdit(invitadosGuardados);
+    } else {
+        div.style.display = 'none';
+    }
+}
+
+function renderCalendarInvitesListEdit(invitadosGuardados = null) {
+    const listCont = document.getElementById('calendar-edit-invites-list');
+    if (!listCont) return;
+
+    const conEmail = personasTareas.filter(p => p.email && p.email.trim().length > 0);
+    if (!conEmail.length) {
+        listCont.innerHTML = '<div style="font-size:12px;color:var(--muted)">Sin participantes con email para invitar.</div>';
+        return;
+    }
+
+    const asignadoVal = document.getElementById('input-edit-asignado-tarea').value;
+    const asignadoId = asignadoVal ? parseInt(asignadoVal) : null;
+    const invitadosSet = invitadosGuardados
+        ? new Set(invitadosGuardados.map(e => e.toLowerCase()))
+        : null;
+
+    listCont.innerHTML = conEmail.map(p => {
+        const emailLower = p.email.toLowerCase();
+        const isAsignado = p.id === asignadoId;
+        const isChecked = invitadosSet
+            ? invitadosSet.has(emailLower) || isAsignado
+            : isAsignado;
+        return `
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);text-transform:none;font-weight:normal;cursor:pointer;margin-bottom:0">
+                <input type="checkbox" class="calendar-edit-invite-chk" value="${escapeHtml(p.email)}" data-persona-id="${p.id}" ${isChecked ? 'checked' : ''} style="width:auto;margin:0;cursor:pointer;" />
+                <span>${escapeHtml(p.nombre)} (${escapeHtml(p.email)})</span>
+            </label>
+        `;
+    }).join('');
+}
+
+function abrirModalEditarTarea(id) {
+    const tarea = todasLasTareas.find(t => t.id === id);
+    if (!tarea) return;
+    tareaEditando = id;
+
+    document.getElementById('input-edit-titulo-tarea').value = tarea.titulo || '';
+    document.getElementById('input-edit-prioridad-tarea').value = tarea.prioridad || 'media';
+
+    const selAsignado = document.getElementById('input-edit-asignado-tarea');
+    selAsignado.innerHTML = '<option value="">Sin asignar</option>' +
+        personasTareas.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
+    selAsignado.value = tarea.id_asignado || '';
+
+    document.getElementById('input-edit-fecha-tarea').value = isoToDatetimeLocal(tarea.fecha_vencimiento);
+
+    const selLista = document.getElementById('input-edit-lista-tarea');
+    selLista.innerHTML = '<option value="">Ninguna</option>' +
+        listasDisponibles.map(l => `<option value="${l.id}">${escapeHtml(l.nombre)}</option>`).join('');
+    selLista.value = tarea.id_lista || '';
+
+    actualizarSeccionCalendarioEdit(tarea.invitados_calendar || []);
+    abrirModal('modal-editar-tarea');
+    setTimeout(() => document.getElementById('input-edit-titulo-tarea').focus(), 100);
+}
+
+async function guardarEdicionTarea() {
+    const tarea = todasLasTareas.find(t => t.id === tareaEditando);
+    if (!tarea) return;
+
+    const titulo = document.getElementById('input-edit-titulo-tarea').value.trim();
+    const prioridad = document.getElementById('input-edit-prioridad-tarea').value;
+    const asignadoVal = document.getElementById('input-edit-asignado-tarea').value;
+    const listaVal = document.getElementById('input-edit-lista-tarea').value;
+    const fechaVal = document.getElementById('input-edit-fecha-tarea').value;
+    const id_asignado = asignadoVal ? parseInt(asignadoVal) : null;
+    const id_lista = listaVal ? parseInt(listaVal) : null;
+    const fecha_vencimiento = fechaVal ? new Date(fechaVal).toISOString() : null;
+
+    if (!titulo) { document.getElementById('input-edit-titulo-tarea').focus(); return; }
+
+    const invitadosEmails = [];
+    if (fecha_vencimiento) {
+        document.querySelectorAll('.calendar-edit-invite-chk:checked').forEach(chk => {
+            invitadosEmails.push(chk.value);
+        });
+    }
+
+    const { error } = await db.from('tareas').update({
+        titulo, prioridad, id_asignado, id_lista, fecha_vencimiento,
+        invitados_calendar: invitadosEmails
+    }).eq('id', tareaEditando);
+    if (error) { alert('Error: ' + error.message); return; }
+
+    const hadEvent = tarea.google_event_id;
+    let nuevoEventId = hadEvent;
+
+    try {
+        if (fecha_vencimiento && hadEvent) {
+            const asignadoEmail = personasTareas.find(p => p.id === id_asignado)?.email || null;
+            await callCalendarSync({
+                action: 'update',
+                event_id: hadEvent,
+                titulo,
+                fecha_vencimiento,
+                asignado_email: asignadoEmail,
+                invitados_emails: invitadosEmails
+            });
+        } else if (fecha_vencimiento && !hadEvent) {
+            const asignadoEmail = personasTareas.find(p => p.id === id_asignado)?.email || null;
+            const resultado = await callCalendarSync({
+                action: 'create',
+                titulo,
+                fecha_vencimiento,
+                asignado_email: asignadoEmail,
+                invitados_emails: invitadosEmails
+            });
+            nuevoEventId = resultado.event_id;
+            await db.from('tareas').update({ google_event_id: nuevoEventId }).eq('id', tareaEditando);
+        } else if (!fecha_vencimiento && hadEvent) {
+            await callCalendarSync({ action: 'delete', event_id: hadEvent });
+            nuevoEventId = null;
+            await db.from('tareas').update({ google_event_id: null }).eq('id', tareaEditando);
+        }
+    } catch (e) {
+        alert('La tarea se guardó, pero hubo un problema con Google Calendar: ' + e.message);
+    }
+
+    Object.assign(tarea, {
+        titulo, prioridad, id_asignado, id_lista, fecha_vencimiento,
+        invitados_calendar: invitadosEmails,
+        google_event_id: nuevoEventId
+    });
+
+    tareaEditando = null;
+    cerrarModal('modal-editar-tarea');
     renderTareas();
 }
 </script>
