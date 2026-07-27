@@ -12,7 +12,7 @@
 
 <div class="topbar">
     <div class="topbar-left">
-        <button class="btn-icon" onclick="irAlInicio()" title="Volver"><i data-icon="arrow-left" data-size="18"></i></button>
+        <button class="btn-icon" onclick="volverAtras()" title="Volver"><i data-icon="arrow-left" data-size="18"></i></button>
         <h1 id="topbar-title">Círculo</h1>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -21,38 +21,65 @@
     </div>
 </div>
 
-<div id="screen-circulo" class="screen active">
-    <div class="tabs">
-        <div class="tab active" data-tab="gastos" onclick="cambiarTab('gastos')"><i data-icon="currency-dollar" data-size="18"></i> Gastos</div>
-        <div class="tab" data-tab="listas" onclick="cambiarTab('listas')"><i data-icon="shopping-cart" data-size="18"></i> Listas</div>
-        <div class="tab" data-tab="tareas" onclick="cambiarTab('tareas')"><i data-icon="check-circle" data-size="18"></i> Tareas</div>
-        <div class="tab" data-tab="personas" onclick="cambiarTab('personas')"><i data-icon="users" data-size="18"></i> Personas</div>
-    </div>
+<!-- MENÚ DEL CÍRCULO (mismo estilo que el index viejo) -->
+<div id="screen-menu" class="screen active">
     <div class="container">
-        <div id="tab-gastos" class="tab-content active">
-            <div id="lista-periodos"><div class="loader">Cargando periodos...</div></div>
-            <button class="btn btn-primary btn-full mt-16" onclick="abrirModalPeriodo()"><i data-icon="plus" data-size="16"></i> Nuevo periodo</button>
-        </div>
-        <div id="tab-listas" class="tab-content">
-            <div id="lista-de-listas"><div class="loader">Cargando...</div></div>
-            <button class="btn btn-primary btn-full mt-16" onclick="abrirModalLista()"><i data-icon="plus" data-size="16"></i> Nueva lista</button>
-        </div>
-        <div id="tab-tareas" class="tab-content">
-            <div class="card card-click" onclick="irATareas()">
-                <div class="card-body dash-card">
-                    <div class="dash-icon"><i data-icon="check-circle" data-size="28"></i></div>
-                    <div>
-                        <div class="dash-title">Abrir tareas</div>
-                        <div class="dash-sub">Pendientes y calendario de este círculo</div>
-                    </div>
-                    <div class="dash-arrow">›</div>
+        <div class="card card-click" onclick="abrirSeccion('gastos')">
+            <div class="card-body dash-card">
+                <div class="dash-icon"><i data-icon="currency-dollar" data-size="28"></i></div>
+                <div>
+                    <div class="dash-title">Gastos</div>
+                    <div class="dash-sub">Periodos, divisiones y balances</div>
                 </div>
+                <div class="dash-arrow">›</div>
             </div>
         </div>
-        <div id="tab-personas" class="tab-content">
-            <div id="lista-participantes"><div class="loader">Cargando...</div></div>
-            <button class="btn btn-ghost btn-full mt-16" onclick="abrirModalParticipante()"><i data-icon="plus" data-size="16"></i> Agregar persona</button>
+        <div class="card card-click" onclick="irAListas()">
+            <div class="card-body dash-card">
+                <div class="dash-icon"><i data-icon="shopping-cart" data-size="28"></i></div>
+                <div>
+                    <div class="dash-title">Listas</div>
+                    <div class="dash-sub">Compras, viajes y lo que necesites</div>
+                </div>
+                <div class="dash-arrow">›</div>
+            </div>
         </div>
+        <div class="card card-click" onclick="irATareas()">
+            <div class="card-body dash-card">
+                <div class="dash-icon"><i data-icon="check-circle" data-size="28"></i></div>
+                <div>
+                    <div class="dash-title">Tareas</div>
+                    <div class="dash-sub">Pendientes del día a día</div>
+                </div>
+                <div class="dash-arrow">›</div>
+            </div>
+        </div>
+        <div class="card card-click" onclick="abrirSeccion('personas')">
+            <div class="card-body dash-card">
+                <div class="dash-icon"><i data-icon="users" data-size="28"></i></div>
+                <div>
+                    <div class="dash-title">Personas</div>
+                    <div class="dash-sub">Quién comparte este círculo</div>
+                </div>
+                <div class="dash-arrow">›</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- GASTOS: periodos -->
+<div id="screen-gastos" class="screen">
+    <div class="container">
+        <div id="lista-periodos"><div class="loader">Cargando periodos...</div></div>
+        <button class="btn btn-primary btn-full mt-16" onclick="abrirModalPeriodo()"><i data-icon="plus" data-size="16"></i> Nuevo periodo</button>
+    </div>
+</div>
+
+<!-- PERSONAS -->
+<div id="screen-personas" class="screen">
+    <div class="container">
+        <div id="lista-participantes"><div class="loader">Cargando...</div></div>
+        <button class="btn btn-ghost btn-full mt-16" onclick="abrirModalParticipante()"><i data-icon="plus" data-size="16"></i> Agregar persona</button>
     </div>
 </div>
 
@@ -67,20 +94,6 @@
             <input type="text" id="input-nombre-periodo" placeholder="Ej: Agosto, Viaje Entre Ríos..." />
         </div>
         <button class="btn btn-primary btn-full" onclick="crearPeriodo()">Crear periodo</button>
-    </div>
-</div>
-
-<div id="modal-lista" class="modal-overlay">
-    <div class="modal">
-        <div class="modal-header">
-            <h3>Nueva lista</h3>
-            <button class="modal-close" onclick="cerrarModal('modal-lista')"><i data-icon="x-mark" data-size="14"></i></button>
-        </div>
-        <div class="form-group">
-            <label>Nombre</label>
-            <input type="text" id="input-nombre-lista" placeholder="Ej: Supermercado..." />
-        </div>
-        <button class="btn btn-primary btn-full" onclick="crearLista()">Crear lista</button>
     </div>
 </div>
 
@@ -111,12 +124,7 @@
 <script>
 let circuloActual = null;
 let participantesActuales = [];
-const TABS = ['gastos', 'listas', 'tareas', 'personas'];
-
-window.onTab_gastos = () => cargarPeriodos();
-window.onTab_listas = () => cargarListas();
-window.onTab_tareas = () => { /* contenido estático: card para abrir tareas */ };
-window.onTab_personas = () => cargarParticipantes();
+let seccionActual = 'menu';
 
 requireAuth(async () => {
     await syncInvitados();
@@ -130,10 +138,14 @@ requireAuth(async () => {
         return;
     }
     circuloActual = data;
-    document.getElementById('topbar-title').textContent = data.nombre;
     setQueryParam('abrir', data.id);
-    const tab = TABS.includes(params.get('tab')) ? params.get('tab') : 'gastos';
-    cambiarTab(tab);
+
+    const seccion = params.get('seccion') || params.get('tab');
+    if (seccion === 'gastos') abrirSeccion('gastos');
+    else if (seccion === 'personas') abrirSeccion('personas');
+    else if (seccion === 'listas') irAListas();
+    else if (seccion === 'tareas') irATareas();
+    else mostrarMenu();
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -148,6 +160,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+function mostrarMenu() {
+    seccionActual = 'menu';
+    setQueryParam('seccion', null);
+    setQueryParam('tab', null);
+    document.getElementById('topbar-title').textContent = circuloActual.nombre;
+    mostrarPantalla('menu');
+}
+
+function abrirSeccion(nombre) {
+    seccionActual = nombre;
+    setQueryParam('seccion', nombre);
+    if (nombre === 'gastos') {
+        document.getElementById('topbar-title').textContent = 'Gastos';
+        mostrarPantalla('gastos');
+        cargarPeriodos();
+    } else if (nombre === 'personas') {
+        document.getElementById('topbar-title').textContent = 'Personas';
+        mostrarPantalla('personas');
+        cargarParticipantes();
+    }
+}
+
+function volverAtras() {
+    if (seccionActual === 'menu' || !circuloActual) {
+        irAlInicio();
+        return;
+    }
+    mostrarMenu();
+}
+
+function irAListas() {
+    if (!circuloActual) return;
+    window.location.href = `listas.html?circulo=${circuloActual.id}`;
+}
+
 function irATareas() {
     if (!circuloActual) return;
     window.location.href = `tareas.html?abrir=${circuloActual.id}`;
@@ -157,11 +204,6 @@ function abrirPeriodo(periodo) {
     window.location.href = `gastos.html?circulo=${circuloActual.id}&periodo=${periodo.id}`;
 }
 
-function abrirListaDetalle(lista) {
-    window.location.href = `listas.html?circulo=${circuloActual.id}&abrir=${lista.id}`;
-}
-
-// --- Periodos ---
 async function cargarPeriodos() {
     const cont = document.getElementById('lista-periodos');
     cont.innerHTML = '<div class="loader">Cargando periodos...</div>';
@@ -188,7 +230,6 @@ async function cargarPeriodos() {
 
 function abrirModalPeriodo() {
     document.getElementById('input-nombre-periodo').value = '';
-    document.querySelector('#modal-periodo .modal-header h3').textContent = 'Nuevo periodo';
     abrirModal('modal-periodo');
     setTimeout(() => document.getElementById('input-nombre-periodo').focus(), 100);
 }
@@ -210,57 +251,6 @@ async function eliminarPeriodo(id, nombre) {
     cargarPeriodos();
 }
 
-// --- Listas ---
-async function cargarListas() {
-    const cont = document.getElementById('lista-de-listas');
-    cont.innerHTML = '<div class="loader">Cargando...</div>';
-    const { data, error } = await db.from('listas')
-        .select('*').eq('id_circulo', circuloActual.id)
-        .order('created_at', { ascending: false });
-    if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
-    if (!data?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="shopping-cart" data-size="40"></i></span>Sin listas todavía.</div>`;
-        return;
-    }
-    cont.innerHTML = data.map(l => `
-        <div class="card" style="overflow:visible">
-            <div class="card-body flex-between" style="gap:10px">
-                <div class="card-click" style="flex:1;min-width:0" onclick='abrirListaDetalle(${JSON.stringify(l)})'>
-                    <div style="font-weight:700;font-size:16px">${escapeHtml(l.nombre)}</div>
-                    <div class="text-muted">${new Date(l.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })}</div>
-                </div>
-                <button class="btn btn-danger btn-sm" onclick="eliminarLista(${l.id}, '${escapeJs(l.nombre)}')">${icon('trash',16)}</button>
-            </div>
-        </div>
-    `).join('');
-}
-
-function abrirModalLista() {
-    document.getElementById('input-nombre-lista').value = '';
-    abrirModal('modal-lista');
-    setTimeout(() => document.getElementById('input-nombre-lista').focus(), 100);
-}
-
-async function crearLista() {
-    const nombre = document.getElementById('input-nombre-lista').value.trim();
-    if (!nombre) { alert('Ingresá un nombre.'); return; }
-    const { data, error } = await db.from('listas').insert({ nombre, id_circulo: circuloActual.id }).select().single();
-    if (error) { alert('Error: ' + error.message); return; }
-    cerrarModal('modal-lista');
-    if (data) abrirListaDetalle(data);
-    else cargarListas();
-}
-
-async function eliminarLista(id, nombre) {
-    if (!confirm(`¿Eliminar la lista "${nombre}"?`)) return;
-    const { error: ei } = await db.from('lista_compras').delete().eq('id_lista', id);
-    if (ei) { alert('Error: ' + ei.message); return; }
-    const { error } = await db.from('listas').delete().eq('id', id);
-    if (error) { alert('Error: ' + error.message); return; }
-    cargarListas();
-}
-
-// --- Personas ---
 function abrirModalParticipante() {
     document.getElementById('input-nombre-participante').value = '';
     document.getElementById('input-email-participante').value = '';

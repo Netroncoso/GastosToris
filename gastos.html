@@ -296,7 +296,7 @@ requireAuth(async () => {
         return;
     }
     if (!periodoId) {
-        window.location.href = `circulo.html?abrir=${circuloId}&tab=gastos`;
+        window.location.href = `circulo.html?abrir=${circuloId}&seccion=gastos`;
         return;
     }
     if (!circuloId) {
@@ -311,7 +311,7 @@ requireAuth(async () => {
 
     if (ep || !periodo || ec || !circulo || Number(periodo.id_circulo) !== Number(circuloId)) {
         alert('No se encontró ese periodo (o no tenés acceso todavía).');
-        window.location.href = `circulo.html?abrir=${circuloId}&tab=gastos`;
+        window.location.href = `circulo.html?abrir=${circuloId}&seccion=gastos`;
         return;
     }
 
@@ -336,7 +336,7 @@ window.onTab_resumen = () => calcularYMostrarResumen();
 
 function volverAlCirculo() {
     if (!circuloActual) { irAlInicio(); return; }
-    window.location.href = `circulo.html?abrir=${circuloActual.id}&tab=gastos`;
+    window.location.href = `circulo.html?abrir=${circuloActual.id}&seccion=gastos`;
 }
 
 // =============================================
