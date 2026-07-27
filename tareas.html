@@ -13,7 +13,7 @@
 <!-- TOPBAR -->
 <div class="topbar">
     <div class="topbar-left">
-        <button id="btn-back" class="btn-icon" onclick="volverAGrupos()"><i data-icon="arrow-left" data-size="18"></i></button>
+        <button id="btn-back" class="btn-icon" onclick="volverAlCirculo()"><i data-icon="arrow-left" data-size="18"></i></button>
         <h1 id="topbar-title"><i data-icon="check-circle" data-size="20"></i> Tareas</h1>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -22,23 +22,10 @@
     </div>
 </div>
 
-<!-- SCREEN: GRUPOS DE TAREAS -->
-<div id="screen-grupos" class="screen active">
+<!-- SCREEN: TAREAS DEL CÍRCULO -->
+<div id="screen-grupo" class="screen active">
     <div class="container">
-        <div id="lista-grupos"><div class="loader">Cargando grupos...</div></div>
-        <button class="btn btn-primary btn-full mt-16" onclick="abrirModalGrupo()"><i data-icon="plus" data-size="16"></i> Nuevo Grupo</button>
-    </div>
-</div>
-
-<!-- SCREEN: GRUPO DETAIL -->
-<div id="screen-grupo" class="screen">
-    <div class="tabs">
-        <div class="tab active" onclick="cambiarTab('tareas')"><i data-icon="check-circle" data-size="18"></i> Tareas</div>
-        <div class="tab" onclick="cambiarTab('personas')"><i data-icon="users" data-size="18"></i> Personas</div>
-    </div>
-    <div class="container">
-        <div id="tab-tareas" class="tab-content active">
-            <div class="filter-tabs">
+        <div class="filter-tabs">
                 <div class="filter-tab active" onclick="setFiltro('pendientes')">Pendientes</div>
                 <div class="filter-tab" onclick="setFiltro('todas')">Todas</div>
                 <div class="filter-tab" onclick="setFiltro('hechas')">Hechas</div>
@@ -82,24 +69,6 @@
             <button class="btn btn-ghost btn-full mt-12" id="btn-borrar-hechas" onclick="borrarHechas()" style="display:none;color:var(--danger);border-color:var(--danger)">
                 <i data-icon="trash" data-size="16"></i> Borrar todas las hechas
             </button>
-        </div>
-
-        <div id="tab-personas" class="tab-content">
-            <div id="lista-personas-tareas"><div class="loader">Cargando...</div></div>
-            <div class="form-group mt-16">
-                <label>Nombre</label>
-                <input type="text" id="input-nueva-persona" placeholder="Ej: Martín"
-                    onkeydown="if(event.key==='Enter') agregarPersonaTarea()" />
-            </div>
-            <div class="form-group">
-                <label>Email (opcional — para invitarla)</label>
-                <input type="email" id="input-email-persona" placeholder="martin@email.com" />
-            </div>
-            <div id="invite-info-tareas" class="alert alert-info" style="display:none">
-                <i data-icon="envelope" data-size="16"></i> Se enviará una invitación por correo para unirse a este grupo. Al aceptarla, la persona podrá acceder automáticamente a las tareas compartidas.
-            </div>
-            <button class="btn btn-primary btn-full" onclick="agregarPersonaTarea()">Agregar Persona</button>
-        </div>
     </div>
 </div>
 
@@ -148,21 +117,6 @@
     </div>
 </div>
 
-<!-- MODAL: NUEVO GRUPO -->
-<div id="modal-grupo" class="modal-overlay">
-    <div class="modal">
-        <div class="modal-header">
-            <h3>Nuevo Grupo de Tareas</h3>
-            <button class="modal-close" onclick="cerrarModal('modal-grupo')"><i data-icon="x-mark" data-size="14"></i></button>
-        </div>
-        <div class="form-group">
-            <label>Nombre del grupo</label>
-            <input type="text" id="input-nombre-grupo" placeholder="Ej: Casa, Oficina..." />
-        </div>
-        <button class="btn btn-primary btn-full" onclick="crearGrupo()">Crear Grupo</button>
-    </div>
-</div>
-
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/utils.js"></script>
@@ -172,7 +126,6 @@
 // =============================================
 let grupoActual = null;
 let personasTareas = [];
-let grupoEditando = null;
 let filtroTareas = 'pendientes';
 let todasLasTareas = [];
 let listasDisponibles = [];
@@ -190,34 +143,28 @@ function isoToDatetimeLocal(iso) {
 requireAuth(async () => {
     const user = await getCurrentUser();
     if (user) userEmail = user.email?.toLowerCase() || null;
-    const sync = syncInvitados({ personsTable: 'participantes', personGroupField: 'id_grupo', membershipTable: 'grupos_miembros', membershipGroupField: 'id_grupo', tipo: 'tareas' });
+
     const params = new URLSearchParams(window.location.search);
     const abrirId = params.get('abrir');
-    if (abrirId) {
-        await sync;
-        const { data, error } = await db.from('grupos').select('*').eq('id', abrirId).eq('tipo', 'tareas').single();
-        if (error || !data) {
-            alert('No se encontró ese grupo (o no tenés acceso todavía).');
-            clearDetailQueryParams();
-            await cargarGrupos();
-        } else {
-            await abrirGrupo(data, { tab: params.get('tab'), filtro: params.get('filtro') });
-        }
-    } else {
-        await Promise.all([sync, cargarGrupos()]);
+    if (!abrirId) {
+        window.location.href = 'index.html';
+        return;
     }
+
+    await syncInvitados({ personsTable: 'participantes', personGroupField: 'id_circulo', membershipTable: 'circulos_miembros', membershipGroupField: 'id_circulo' });
+
+    const { data, error } = await db.from('circulos').select('*').eq('id', abrirId).single();
+    if (error || !data) {
+        alert('No se encontró ese círculo (o no tenés acceso todavía).');
+        window.location.href = 'index.html';
+        return;
+    }
+    await abrirGrupo(data, { filtro: params.get('filtro') });
 });
 
 // (Sincronización de invitados movida a `js/utils.js` - use `syncInvitados(...)`)
 
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('input-email-persona').addEventListener('input', function() {
-        const tieneEmail = this.value.trim().length > 0;
-        document.getElementById('invite-info-tareas').style.display = tieneEmail ? 'block' : 'none';
-        document.querySelector('#tab-personas .btn-primary').textContent =
-            tieneEmail ? 'Agregar y Enviar Invitación' : 'Agregar Persona';
-    });
-
     document.getElementById('input-fecha-tarea').addEventListener('input', actualizarSeccionCalendario);
     document.getElementById('input-fecha-tarea').addEventListener('change', actualizarSeccionCalendario);
     document.getElementById('input-asignado-tarea').addEventListener('change', actualizarCheckboxesPorAsignado);
@@ -229,118 +176,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Navegación: usar las funciones compartidas en `js/utils.js` (`mostrarPantalla`, `cambiarTab`)
 
-const TABS_TAREAS = ['tareas', 'personas'];
 const FILTROS_TAREAS = ['pendientes', 'todas', 'hechas'];
 
 async function abrirGrupo(grupo, opts = {}) {
     grupoActual = grupo;
     setQueryParam('abrir', grupo.id);
     document.getElementById('topbar-title').textContent = grupo.nombre;
-    document.getElementById('input-nueva-persona').value = '';
-    document.getElementById('input-email-persona').value = '';
-    document.getElementById('invite-info-tareas').style.display = 'none';
-    document.querySelector('#tab-personas .btn-primary').textContent = 'Agregar Persona';
-    mostrarPantalla('grupo');
     await Promise.all([cargarPersonasTareas(), cargarTareas(), cargarListasDisponibles()]);
-    const tab = TABS_TAREAS.includes(opts.tab) ? opts.tab : 'tareas';
-    cambiarTab(tab);
-    if (tab === 'tareas') {
-        setFiltro(FILTROS_TAREAS.includes(opts.filtro) ? opts.filtro : 'pendientes');
+    setFiltro(FILTROS_TAREAS.includes(opts.filtro) ? opts.filtro : 'pendientes');
+}
+
+function volverAlCirculo() {
+    if (grupoActual) {
+        irAlCirculo(grupoActual.id, 'tareas');
+    } else {
+        irAlInicio();
     }
 }
-
-function volverAGrupos() {
-    if (!grupoActual) { irAlInicio(); return; }
-    grupoActual = null;
-    personasTareas = [];
-    clearDetailQueryParams();
-    document.getElementById('topbar-title').innerHTML = '<i data-icon="check-circle" data-size="20"></i> Tareas';
-    mostrarPantalla('grupos');
-    cargarGrupos();
-}
-
-// abrirModal / cerrarModal: ahora vienen de `js/utils.js`
-
-function abrirModalGrupo(grupo = null) {
-    if (!window._gm_tareas) window._gm_tareas = crearGestorDeGrupos({ table: 'grupos', nameField: 'nombre', rpcCreate: 'crear_grupo_tareas' });
-    window._gm_tareas.abrirModalGrupo(grupo);
-}
-
-async function editarGrupo(id) {
-    if (!window._gm_tareas) window._gm_tareas = crearGestorDeGrupos({ table: 'grupos', nameField: 'nombre', rpcCreate: 'crear_grupo_tareas' });
-    const { data, error } = await db.from('grupos').select('*').eq('id', id).eq('tipo', 'tareas').single();
-    if (error) { alert('Error: ' + error.message); return; }
-    window._gm_tareas.abrirModalGrupo(data);
-}
-
 // =============================================
-// GRUPOS DE TAREAS (propios, independientes de los grupos de Gastos)
-// =============================================
-async function cargarGrupos() {
-    const cont = document.getElementById('lista-grupos');
-    cont.innerHTML = '<div class="loader">Cargando grupos...</div>';
-    const { data, error } = await db.from('grupos').select('*').eq('tipo', 'tareas').order('created_at', { ascending: false });
-    if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}<br>¿Ejecutaste el SQL de configuración? Ver README.</div>`; return; }
-    if (!data?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="check-circle" data-size="40"></i></span>Sin grupos todavía.<br>Creá uno para empezar (ej: "Casa", "Oficina").</div>`;
-        return;
-    }
-    cont.innerHTML = data.map(g => `
-        <div class="card" style="overflow:visible">
-            <div class="card-body flex-between" style="gap:10px">
-                <div class="card-click" style="flex:1;min-width:0" onclick='abrirGrupo(${JSON.stringify(g)})'>
-                    <div style="font-weight:700;font-size:16px">${escapeHtml(g.nombre)}</div>
-                    <div class="text-muted">${new Date(g.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })}</div>
-                </div>
-                <div style="display:flex;gap:8px;align-items:center">
-                    <button class="btn btn-ghost btn-sm" onclick="editarGrupo(${g.id})" title="Editar grupo">${icon('pencil-square',16)}</button>
-                    <button class="btn btn-danger btn-sm" onclick="eliminarGrupo(${g.id}, '${g.nombre.replace(/'/g,"\\'")}')" title="Eliminar grupo">${icon('trash',16)}</button>
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-async function crearGrupo() {
-    if (!window._gm_tareas) window._gm_tareas = crearGestorDeGrupos({ table: 'grupos', nameField: 'nombre', rpcCreate: 'crear_grupo_tareas' });
-    await window._gm_tareas.crearGrupo();
-}
-
-async function eliminarGrupo(id, nombre) {
-    if (!confirm(`¿Eliminar el grupo "${nombre}"?\nSe borrarán sus tareas y personas.`)) return;
-    const { error: et } = await db.from('tareas').delete().eq('id_grupo', id);
-    if (et) { alert('Error al borrar tareas: ' + et.message); return; }
-    const { error: ep } = await db.from('participantes').delete().eq('id_grupo', id);
-    if (ep) { alert('Error al borrar personas: ' + ep.message); return; }
-    const { error: eg } = await db.from('grupos').delete().eq('id', id);
-    if (eg) { alert('Error al borrar grupo: ' + eg.message); return; }
-    cargarGrupos();
-}
-
-// =============================================
-// PERSONAS DEL GRUPO DE TAREAS (propias, no comparten con Gastos)
+// PARTICIPANTES DEL CÍRCULO (para asignación e invitaciones de calendario)
 // =============================================
 async function cargarPersonasTareas() {
     const { data, error } = await db.from('participantes')
-        .select('*').eq('id_grupo', grupoActual.id).order('nombre');
+        .select('*').eq('id_circulo', grupoActual.id).order('nombre');
     personasTareas = data || [];
-    const cont = document.getElementById('lista-personas-tareas');
-    if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
-    if (!data?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="users" data-size="40"></i></span>Sin personas todavía en este grupo.</div>`;
-    } else {
-        cont.innerHTML = `<div class="card">${data.map(p => `
-            <div class="part-item">
-                <div class="avatar">${p.nombre.charAt(0).toUpperCase()}</div>
-                <div style="flex:1;min-width:0">
-                    <div class="part-name">${escapeHtml(p.nombre)}</div>
-                    ${p.email ? `<div class="text-muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><i data-icon="envelope" data-size="14"></i> ${escapeHtml(p.email)}</div>` : ''}
-                </div>
-                ${p.email ? '<span class="badge badge-green" style="font-size:11px">Invitado</span>' : ''}
-                <button onclick="borrarPersonaTarea(${p.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px"><i data-icon="x-mark" data-size="14"></i></button>
-            </div>
-        `).join('')}</div>`;
-    }
+    if (error) { console.error(error); return; }
     renderSelectAsignado();
 }
 
@@ -408,24 +268,11 @@ function renderCalendarInvitesList() {
     }).join('');
 }
 
-async function agregarPersonaTarea() {
-    if (!window._pm_tareas) window._pm_tareas = crearGestorDePersonas({ table: 'participantes', nameField: 'nombre', groupField: 'id_grupo', inputNameId: 'input-nueva-persona', inputEmailId: 'input-email-persona', inviteInfoId: 'invite-info-tareas', addButtonSelector: '#tab-personas .btn-primary', currentListVar: 'personasTareas', redirectParam: 'invite_tarea' });
-    await window._pm_tareas.agregarPersona(grupoActual.id);
-}
-
-async function borrarPersonaTarea(id) {
-    if (!confirm('¿Eliminar esta persona? Las tareas asignadas quedarán sin asignar.')) return;
-    const { error } = await db.from('participantes').delete().eq('id', id);
-    if (error) { alert('Error: ' + error.message); return; }
-    cargarPersonasTareas();
-    cargarTareas();
-}
-
 // =============================================
-// LISTAS DISPONIBLES (globales, para vincular una tarea con una lista de compras)
+// LISTAS DEL CÍRCULO (para vincular una tarea con una lista de compras)
 // =============================================
 async function cargarListasDisponibles() {
-    const { data, error } = await db.from('listas').select('*').order('nombre');
+    const { data, error } = await db.from('listas').select('*').eq('id_circulo', grupoActual.id).order('nombre');
     if (error) { console.error(error); return; }
     listasDisponibles = data || [];
     const sel = document.getElementById('input-lista-tarea');
@@ -457,7 +304,7 @@ async function cargarTareas() {
     const cont = document.getElementById('tareas-items');
     cont.innerHTML = '<div class="loader">Cargando tareas...</div>';
     const { data, error } = await db.from('tareas')
-        .select('*').eq('id_grupo', grupoActual.id)
+        .select('*').eq('id_circulo', grupoActual.id)
         .order('hecha').order('created_at', { ascending: false });
     if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}<br>¿Ejecutaste el SQL de configuración? Ver README.</div>`; return; }
     todasLasTareas = data || [];
@@ -510,7 +357,7 @@ function renderTareas() {
             ${tieneBadges ? `
             <div class="tarea-item-badges">
                 ${t.fecha_vencimiento ? `<span class="badge badge-purple" title="${t.google_event_id ? 'Sincronizada con Google Calendar' : 'Vencimiento'}"><i data-icon="calendar-days" data-size="14"></i> ${formatFechaHora(t.fecha_vencimiento)}</span>` : ''}
-                ${lista ? `<a href="listas.html?abrir=${t.id_lista}" class="badge badge-green" style="text-decoration:none"><i data-icon="shopping-cart" data-size="14"></i> ${escapeHtml(lista)}</a>` : ''}
+                ${lista ? `<a href="listas.html?circulo=${grupoActual.id}&abrir=${t.id_lista}" class="badge badge-green" style="text-decoration:none"><i data-icon="shopping-cart" data-size="14"></i> ${escapeHtml(lista)}</a>` : ''}
                 ${asignado ? `<span class="badge badge-blue">${escapeHtml(asignado)}</span>` : ''}
             </div>` : ''}
         </div>`;
@@ -536,7 +383,7 @@ async function agregarTarea() {
     }
 
     const { data, error } = await db.from('tareas')
-        .insert({ titulo, prioridad, id_asignado, id_lista, id_grupo: grupoActual.id, fecha_vencimiento, invitados_calendar: invitadosEmails }).select().single();
+        .insert({ titulo, prioridad, id_asignado, id_lista, id_circulo: grupoActual.id, fecha_vencimiento, invitados_calendar: invitadosEmails }).select().single();
     if (error) { alert('Error: ' + error.message); return; }
 
     document.getElementById('input-titulo-tarea').value = '';

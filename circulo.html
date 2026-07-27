@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TorisApp • Círculo</title>
+    <link rel="icon" href="https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/cube-transparent.svg">
+    <link rel="stylesheet" href="css/shared.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="topbar-left">
+        <button class="btn-icon" onclick="irAlInicio()" title="Volver"><i data-icon="arrow-left" data-size="18"></i></button>
+        <h1 id="topbar-title">Círculo</h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+        <span id="topbar-user" class="topbar-user"></span>
+        <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión"><i data-icon="arrow-right-on-rectangle" data-size="18"></i></button>
+    </div>
+</div>
+
+<div id="screen-circulo" class="screen active">
+    <div class="tabs">
+        <div class="tab active" data-tab="gastos" onclick="cambiarTab('gastos')"><i data-icon="currency-dollar" data-size="18"></i> Gastos</div>
+        <div class="tab" data-tab="listas" onclick="cambiarTab('listas')"><i data-icon="shopping-cart" data-size="18"></i> Listas</div>
+        <div class="tab" data-tab="tareas" onclick="cambiarTab('tareas')"><i data-icon="check-circle" data-size="18"></i> Tareas</div>
+        <div class="tab" data-tab="personas" onclick="cambiarTab('personas')"><i data-icon="users" data-size="18"></i> Personas</div>
+    </div>
+    <div class="container">
+        <div id="tab-gastos" class="tab-content active">
+            <div id="lista-periodos"><div class="loader">Cargando periodos...</div></div>
+            <button class="btn btn-primary btn-full mt-16" onclick="abrirModalPeriodo()"><i data-icon="plus" data-size="16"></i> Nuevo periodo</button>
+        </div>
+        <div id="tab-listas" class="tab-content">
+            <div id="lista-de-listas"><div class="loader">Cargando...</div></div>
+            <button class="btn btn-primary btn-full mt-16" onclick="abrirModalLista()"><i data-icon="plus" data-size="16"></i> Nueva lista</button>
+        </div>
+        <div id="tab-tareas" class="tab-content">
+            <div class="card card-click" onclick="irATareas()">
+                <div class="card-body dash-card">
+                    <div class="dash-icon"><i data-icon="check-circle" data-size="28"></i></div>
+                    <div>
+                        <div class="dash-title">Abrir tareas</div>
+                        <div class="dash-sub">Pendientes y calendario de este círculo</div>
+                    </div>
+                    <div class="dash-arrow">›</div>
+                </div>
+            </div>
+        </div>
+        <div id="tab-personas" class="tab-content">
+            <div id="lista-participantes"><div class="loader">Cargando...</div></div>
+            <button class="btn btn-ghost btn-full mt-16" onclick="abrirModalParticipante()"><i data-icon="plus" data-size="16"></i> Agregar persona</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-periodo" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Nuevo periodo</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-periodo')"><i data-icon="x-mark" data-size="14"></i></button>
+        </div>
+        <div class="form-group">
+            <label>Nombre</label>
+            <input type="text" id="input-nombre-periodo" placeholder="Ej: Agosto, Viaje Entre Ríos..." />
+        </div>
+        <button class="btn btn-primary btn-full" onclick="crearPeriodo()">Crear periodo</button>
+    </div>
+</div>
+
+<div id="modal-lista" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Nueva lista</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-lista')"><i data-icon="x-mark" data-size="14"></i></button>
+        </div>
+        <div class="form-group">
+            <label>Nombre</label>
+            <input type="text" id="input-nombre-lista" placeholder="Ej: Supermercado..." />
+        </div>
+        <button class="btn btn-primary btn-full" onclick="crearLista()">Crear lista</button>
+    </div>
+</div>
+
+<div id="modal-participante" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Agregar persona</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-participante')"><i data-icon="x-mark" data-size="14"></i></button>
+        </div>
+        <div class="form-group">
+            <label>Nombre</label>
+            <input type="text" id="input-nombre-participante" placeholder="Ej: Martín" />
+        </div>
+        <div class="form-group">
+            <label>Email (opcional — para invitarla)</label>
+            <input type="email" id="input-email-participante" placeholder="martin@email.com" />
+        </div>
+        <div id="invite-info" class="alert alert-info" style="display:none">
+            <i data-icon="envelope" data-size="16"></i> Se enviará una invitación por correo para unirse a este círculo.
+        </div>
+        <button class="btn btn-primary btn-full" onclick="agregarParticipante()">Agregar</button>
+    </div>
+</div>
+
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/utils.js"></script>
+<script>
+let circuloActual = null;
+let participantesActuales = [];
+const TABS = ['gastos', 'listas', 'tareas', 'personas'];
+
+window.onTab_gastos = () => cargarPeriodos();
+window.onTab_listas = () => cargarListas();
+window.onTab_tareas = () => { /* contenido estático: card para abrir tareas */ };
+window.onTab_personas = () => cargarParticipantes();
+
+requireAuth(async () => {
+    await syncInvitados();
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('abrir');
+    if (!id) { irAlInicio(); return; }
+    const { data, error } = await db.from('circulos').select('*').eq('id', id).single();
+    if (error || !data) {
+        alert('No se encontró ese círculo (o no tenés acceso todavía).');
+        irAlInicio();
+        return;
+    }
+    circuloActual = data;
+    document.getElementById('topbar-title').textContent = data.nombre;
+    setQueryParam('abrir', data.id);
+    const tab = TABS.includes(params.get('tab')) ? params.get('tab') : 'gastos';
+    cambiarTab(tab);
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const emailInput = document.getElementById('input-email-participante');
+    if (emailInput) {
+        emailInput.addEventListener('input', function() {
+            const tieneEmail = this.value.trim().length > 0;
+            document.getElementById('invite-info').style.display = tieneEmail ? 'block' : 'none';
+            document.querySelector('#modal-participante .btn-primary').textContent =
+                tieneEmail ? 'Agregar y enviar invitación' : 'Agregar';
+        });
+    }
+});
+
+function irATareas() {
+    if (!circuloActual) return;
+    window.location.href = `tareas.html?abrir=${circuloActual.id}`;
+}
+
+function abrirPeriodo(periodo) {
+    window.location.href = `gastos.html?circulo=${circuloActual.id}&periodo=${periodo.id}`;
+}
+
+function abrirListaDetalle(lista) {
+    window.location.href = `listas.html?circulo=${circuloActual.id}&abrir=${lista.id}`;
+}
+
+// --- Periodos ---
+async function cargarPeriodos() {
+    const cont = document.getElementById('lista-periodos');
+    cont.innerHTML = '<div class="loader">Cargando periodos...</div>';
+    const { data, error } = await db.from('periodos')
+        .select('*').eq('id_circulo', circuloActual.id)
+        .order('created_at', { ascending: false });
+    if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
+    if (!data?.length) {
+        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="currency-dollar" data-size="40"></i></span>Sin periodos todavía.<br>Creá uno (ej: Agosto).</div>`;
+        return;
+    }
+    cont.innerHTML = data.map(p => `
+        <div class="card" style="overflow:visible">
+            <div class="card-body flex-between" style="gap:10px">
+                <div class="card-click" style="flex:1;min-width:0" onclick='abrirPeriodo(${JSON.stringify(p)})'>
+                    <div style="font-weight:700;font-size:16px">${escapeHtml(p.nombre)}</div>
+                    <div class="text-muted">${new Date(p.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })}</div>
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="eliminarPeriodo(${p.id}, '${escapeJs(p.nombre)}')" title="Eliminar">${icon('trash',16)}</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function abrirModalPeriodo() {
+    document.getElementById('input-nombre-periodo').value = '';
+    document.querySelector('#modal-periodo .modal-header h3').textContent = 'Nuevo periodo';
+    abrirModal('modal-periodo');
+    setTimeout(() => document.getElementById('input-nombre-periodo').focus(), 100);
+}
+
+async function crearPeriodo() {
+    const nombre = document.getElementById('input-nombre-periodo').value.trim();
+    if (!nombre) { alert('Ingresá un nombre.'); return; }
+    const { data, error } = await db.rpc('crear_periodo', { p_id_circulo: circuloActual.id, p_nombre: nombre });
+    if (error) { alert('Error: ' + error.message); return; }
+    cerrarModal('modal-periodo');
+    if (data) abrirPeriodo(data);
+    else cargarPeriodos();
+}
+
+async function eliminarPeriodo(id, nombre) {
+    if (!confirm(`¿Eliminar el periodo "${nombre}"?\nSe borrarán todos sus gastos.`)) return;
+    const { error } = await db.from('periodos').delete().eq('id', id);
+    if (error) { alert('Error: ' + error.message); return; }
+    cargarPeriodos();
+}
+
+// --- Listas ---
+async function cargarListas() {
+    const cont = document.getElementById('lista-de-listas');
+    cont.innerHTML = '<div class="loader">Cargando...</div>';
+    const { data, error } = await db.from('listas')
+        .select('*').eq('id_circulo', circuloActual.id)
+        .order('created_at', { ascending: false });
+    if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
+    if (!data?.length) {
+        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="shopping-cart" data-size="40"></i></span>Sin listas todavía.</div>`;
+        return;
+    }
+    cont.innerHTML = data.map(l => `
+        <div class="card" style="overflow:visible">
+            <div class="card-body flex-between" style="gap:10px">
+                <div class="card-click" style="flex:1;min-width:0" onclick='abrirListaDetalle(${JSON.stringify(l)})'>
+                    <div style="font-weight:700;font-size:16px">${escapeHtml(l.nombre)}</div>
+                    <div class="text-muted">${new Date(l.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })}</div>
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="eliminarLista(${l.id}, '${escapeJs(l.nombre)}')">${icon('trash',16)}</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function abrirModalLista() {
+    document.getElementById('input-nombre-lista').value = '';
+    abrirModal('modal-lista');
+    setTimeout(() => document.getElementById('input-nombre-lista').focus(), 100);
+}
+
+async function crearLista() {
+    const nombre = document.getElementById('input-nombre-lista').value.trim();
+    if (!nombre) { alert('Ingresá un nombre.'); return; }
+    const { data, error } = await db.from('listas').insert({ nombre, id_circulo: circuloActual.id }).select().single();
+    if (error) { alert('Error: ' + error.message); return; }
+    cerrarModal('modal-lista');
+    if (data) abrirListaDetalle(data);
+    else cargarListas();
+}
+
+async function eliminarLista(id, nombre) {
+    if (!confirm(`¿Eliminar la lista "${nombre}"?`)) return;
+    const { error: ei } = await db.from('lista_compras').delete().eq('id_lista', id);
+    if (ei) { alert('Error: ' + ei.message); return; }
+    const { error } = await db.from('listas').delete().eq('id', id);
+    if (error) { alert('Error: ' + error.message); return; }
+    cargarListas();
+}
+
+// --- Personas ---
+function abrirModalParticipante() {
+    document.getElementById('input-nombre-participante').value = '';
+    document.getElementById('input-email-participante').value = '';
+    document.getElementById('invite-info').style.display = 'none';
+    document.querySelector('#modal-participante .btn-primary').textContent = 'Agregar';
+    abrirModal('modal-participante');
+    setTimeout(() => document.getElementById('input-nombre-participante').focus(), 100);
+}
+
+async function cargarParticipantes() {
+    const { data, error } = await db.from('participantes')
+        .select('*').eq('id_circulo', circuloActual.id).order('id');
+    participantesActuales = data || [];
+    const cont = document.getElementById('lista-participantes');
+    if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
+    if (!data?.length) {
+        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="users" data-size="40"></i></span>Sin personas todavía.<br>Podés usarlo solo o agregar a quien compartís el círculo.</div>`;
+        return;
+    }
+    cont.innerHTML = `<div class="card">${data.map(p => `
+        <div class="part-item">
+            <div class="avatar">${p.nombre.charAt(0).toUpperCase()}</div>
+            <div style="flex:1;min-width:0">
+                <div class="part-name">${escapeHtml(p.nombre)}</div>
+                ${p.email ? `<div class="text-muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><i data-icon="envelope" data-size="14"></i> ${escapeHtml(p.email)}</div>` : ''}
+            </div>
+            ${p.email ? '<span class="badge badge-green" style="font-size:11px">Invitado</span>' : ''}
+        </div>
+    `).join('')}</div>`;
+}
+
+async function agregarParticipante() {
+    if (!window._pm) window._pm = crearGestorDePersonas({
+        table: 'participantes', nameField: 'nombre', groupField: 'id_circulo',
+        inputNameId: 'input-nombre-participante', inputEmailId: 'input-email-participante',
+        inviteInfoId: 'invite-info', addButtonSelector: '#modal-participante .btn-primary',
+        currentListVar: 'participantesActuales', redirectParam: 'invite'
+    });
+    await window._pm.agregarPersona(circuloActual.id);
+    cerrarModal('modal-participante');
+}
+
+function escapeJs(value) {
+    return String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+</script>
+</body>
+</html>

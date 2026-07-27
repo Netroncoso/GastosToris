@@ -13,7 +13,7 @@
 <!-- TOPBAR -->
 <div class="topbar">
     <div class="topbar-left">
-        <button id="btn-back" class="btn-icon" onclick="volverAGrupos()"><i data-icon="arrow-left" data-size="18"></i></button>
+        <button id="btn-back" class="btn-icon" onclick="volverAlCirculo()"><i data-icon="arrow-left" data-size="18"></i></button>
         <h1 id="topbar-title"><i data-icon="currency-dollar" data-size="20"></i> Gastos</h1>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -22,19 +22,10 @@
     </div>
 </div>
 
-<!-- SCREEN: GRUPOS -->
-<div id="screen-grupos" class="screen active">
-    <div class="container">
-        <div id="lista-grupos"><div class="loader">Cargando grupos...</div></div>
-        <button class="btn btn-primary btn-full mt-16" onclick="abrirModalGrupo()"><i data-icon="plus" data-size="16"></i> Nuevo Grupo</button>
-    </div>
-</div>
-
-<!-- SCREEN: GRUPO DETAIL -->
-<div id="screen-grupo" class="screen">
+<!-- SCREEN: PERIODO -->
+<div id="screen-periodo" class="screen active">
     <div class="tabs">
         <div class="tab active" onclick="cambiarTab('gastos')"><i data-icon="currency-dollar" data-size="18"></i> Gastos</div>
-        <div class="tab" onclick="cambiarTab('participantes')"><i data-icon="users" data-size="18"></i> Personas</div>
         <div class="tab" onclick="cambiarTab('balance')"><i data-icon="scale" data-size="18"></i> Balance</div>
         <div class="tab" onclick="cambiarTab('resumen')"><i data-icon="chart-bar" data-size="18"></i> Resumen</div>
     </div>
@@ -46,53 +37,12 @@
                 <button class="btn btn-ghost btn-full" onclick="abrirModalReembolso()"><i data-icon="arrow-path" data-size="16"></i> Reembolso</button>
             </div>
         </div>
-        <div id="tab-participantes" class="tab-content">
-            <div id="lista-participantes"><div class="loader">Cargando...</div></div>
-            <button class="btn btn-ghost btn-full mt-16" onclick="abrirModalParticipante()"><i data-icon="plus" data-size="16"></i> Agregar Persona</button>
-        </div>
         <div id="tab-balance" class="tab-content">
             <div id="contenido-balance"><div class="loader">Calculando...</div></div>
         </div>
         <div id="tab-resumen" class="tab-content">
             <div id="contenido-resumen"><div class="loader">Calculando...</div></div>
         </div>
-    </div>
-</div>
-
-<!-- MODAL: NUEVO GRUPO -->
-<div id="modal-grupo" class="modal-overlay">
-    <div class="modal">
-        <div class="modal-header">
-            <h3>Nuevo Grupo</h3>
-            <button class="modal-close" onclick="cerrarModal('modal-grupo')"><i data-icon="x-mark" data-size="14"></i></button>
-        </div>
-        <div class="form-group">
-            <label>Nombre del grupo</label>
-            <input type="text" id="input-nombre-grupo" placeholder="Ej: Viaje a Bariloche" />
-        </div>
-        <button class="btn btn-primary btn-full" onclick="crearGrupo()">Crear Grupo</button>
-    </div>
-</div>
-
-<!-- MODAL: NUEVA PERSONA -->
-<div id="modal-participante" class="modal-overlay">
-    <div class="modal">
-        <div class="modal-header">
-            <h3>Agregar Persona</h3>
-            <button class="modal-close" onclick="cerrarModal('modal-participante')"><i data-icon="x-mark" data-size="14"></i></button>
-        </div>
-        <div class="form-group">
-            <label>Nombre</label>
-            <input type="text" id="input-nombre-participante" placeholder="Ej: Martín" />
-        </div>
-        <div class="form-group">
-            <label>Email (opcional — para invitarla)</label>
-            <input type="email" id="input-email-participante" placeholder="martin@email.com" />
-        </div>
-        <div id="invite-info" class="alert alert-info" style="display:none">
-            <i data-icon="envelope" data-size="16"></i> Se enviará una invitación por correo para unirse a este grupo. Al aceptarla, la persona podrá acceder automáticamente a los gastos compartidos.
-        </div>
-        <button class="btn btn-primary btn-full" onclick="agregarParticipante()">Agregar y Enviar Invitación</button>
     </div>
 </div>
 
@@ -200,11 +150,11 @@
 // =============================================
 // ESTADO GLOBAL
 // =============================================
-let grupoActual = null;
+let circuloActual = null;
+let periodoActual = null;
 let participantesActuales = [];
 let currentGastos = [];
 let gastoEditando = null;
-let grupoEditando = null;
 let categoriasActuales = [];
 
 const CATEGORIAS_DEFECTO = [
@@ -228,13 +178,15 @@ const ICONOS_DISPONIBLES = [
     'device-phone-mobile', 'musical-note', 'ticket', 'paper-airplane'
 ];
 
+const TABS_GASTOS = ['gastos', 'balance', 'resumen'];
+
 function normalizarCategoria(c) {
     return { nombre: c.nombre, icono: c.icono || 'archive-box' };
 }
 
 function initCategorias() {
-    if (grupoActual?.categorias && Array.isArray(grupoActual.categorias) && grupoActual.categorias.length > 0) {
-        categoriasActuales = grupoActual.categorias.map(normalizarCategoria);
+    if (circuloActual?.categorias && Array.isArray(circuloActual.categorias) && circuloActual.categorias.length > 0) {
+        categoriasActuales = circuloActual.categorias.map(normalizarCategoria);
     } else {
         categoriasActuales = CATEGORIAS_DEFECTO.map(c => ({ ...c }));
     }
@@ -295,11 +247,11 @@ function abrirModalCategorias() {
 }
 
 async function guardarCategoriasEnDB() {
-    const { error } = await db.from('grupos')
+    const { error } = await db.from('circulos')
         .update({ categorias: categoriasActuales })
-        .eq('id', grupoActual.id);
+        .eq('id', circuloActual.id);
     if (error) { alert('Error al guardar categorías: ' + error.message); return false; }
-    grupoActual.categorias = categoriasActuales.map(c => ({ ...c }));
+    circuloActual.categorias = categoriasActuales.map(c => ({ ...c }));
     return true;
 }
 
@@ -334,97 +286,76 @@ async function eliminarCategoria(index) {
 }
 
 requireAuth(async () => {
-    const sync = syncInvitados({ personsTable: 'participantes', personGroupField: 'id_grupo', membershipTable: 'grupos_miembros', membershipGroupField: 'id_grupo', tipo: 'gastos' });
+    await syncInvitados({ personsTable: 'participantes', personGroupField: 'id_circulo', membershipTable: 'circulos_miembros', membershipGroupField: 'id_circulo' });
     const params = new URLSearchParams(window.location.search);
-    const abrirId = params.get('abrir');
-    if (abrirId) {
-        await sync;
-        const { data, error } = await db.from('grupos').select('*').eq('id', abrirId).eq('tipo', 'gastos').single();
-        if (error || !data) {
-            alert('No se encontró ese grupo (o no tenés acceso todavía).');
-            clearDetailQueryParams();
-            await cargarGrupos();
-        } else {
-            await abrirGrupo(data, { tab: params.get('tab') });
-        }
-    } else {
-        await Promise.all([sync, cargarGrupos()]);
-    }
-});
+    const circuloId = params.get('circulo');
+    const periodoId = params.get('periodo');
 
-// (Sincronización de invitados movida a `js/utils.js` - use `syncInvitados(...)`)
+    if (!circuloId && !periodoId) {
+        irAlInicio();
+        return;
+    }
+    if (!periodoId) {
+        window.location.href = `circulo.html?abrir=${circuloId}&tab=gastos`;
+        return;
+    }
+    if (!circuloId) {
+        irAlInicio();
+        return;
+    }
+
+    const [{ data: periodo, error: ep }, { data: circulo, error: ec }] = await Promise.all([
+        db.from('periodos').select('*').eq('id', periodoId).single(),
+        db.from('circulos').select('*').eq('id', circuloId).single()
+    ]);
+
+    if (ep || !periodo || ec || !circulo || Number(periodo.id_circulo) !== Number(circuloId)) {
+        alert('No se encontró ese periodo (o no tenés acceso todavía).');
+        window.location.href = `circulo.html?abrir=${circuloId}&tab=gastos`;
+        return;
+    }
+
+    circuloActual = circulo;
+    periodoActual = periodo;
+    initCategorias();
+    document.getElementById('topbar-title').textContent = periodo.nombre;
+    setQueryParam('circulo', circuloId);
+    setQueryParam('periodo', periodoId);
+
+    await cargarParticipantes();
+    await cargarGastos();
+    const tab = TABS_GASTOS.includes(params.get('tab')) ? params.get('tab') : 'gastos';
+    cambiarTab(tab);
+});
 
 // =============================================
 // NAVEGACIÓN
 // =============================================
-// cambiarTab (utils.js) invoca `onTab_<nombre>` al cambiar de pestaña
 window.onTab_balance = () => calcularYMostrarBalance();
 window.onTab_resumen = () => calcularYMostrarResumen();
-window.onTab_participantes = () => cargarParticipantes();
 
-const TABS_GASTOS = ['gastos', 'participantes', 'balance', 'resumen'];
-
-async function abrirGrupo(grupo, opts = {}) {
-    grupoActual = grupo;
-    initCategorias();
-    setQueryParam('abrir', grupo.id);
-    document.getElementById('topbar-title').textContent = grupo.nombre;
-    mostrarPantalla('grupo');
-    await cargarParticipantes();
-    await cargarGastos();
-    const tab = TABS_GASTOS.includes(opts.tab) ? opts.tab : 'gastos';
-    cambiarTab(tab);
+function volverAlCirculo() {
+    if (!circuloActual) { irAlInicio(); return; }
+    window.location.href = `circulo.html?abrir=${circuloActual.id}&tab=gastos`;
 }
 
-function volverAGrupos() {
-    if (!grupoActual) { irAlInicio(); return; }
-    grupoActual = null;
-    participantesActuales = [];
-    clearDetailQueryParams();
-    document.getElementById('topbar-title').innerHTML = '<i data-icon="currency-dollar" data-size="20"></i> Gastos';
-    mostrarPantalla('grupos');
-    cargarGrupos();
+// =============================================
+// PARTICIPANTES (solo datos, sin UI)
+// =============================================
+async function cargarParticipantes() {
+    const { data, error } = await db.from('participantes')
+        .select('*').eq('id_circulo', circuloActual.id).order('id');
+    if (error) { alert('Error al cargar personas: ' + error.message); return; }
+    participantesActuales = data || [];
 }
 
 // =============================================
 // MODALES
 // =============================================
-// abrirModal / cerrarModal: ahora vienen de `js/utils.js`
-
-function abrirModalGrupo(grupo = null) {
-    // delegate to shared group manager
-    if (!window._gm_gastos) window._gm_gastos = crearGestorDeGrupos({ table: 'grupos', nameField: 'nombre', rpcCreate: 'crear_grupo_gastos' });
-    window._gm_gastos.abrirModalGrupo(grupo);
-}
-
-async function editarGrupo(id) {
-    if (!window._gm_gastos) window._gm_gastos = crearGestorDeGrupos({ table: 'grupos', nameField: 'nombre', rpcCreate: 'crear_grupo_gastos' });
-    const { data, error } = await db.from('grupos').select('*').eq('id', id).single();
-    if (error) { alert('Error: ' + error.message); return; }
-    window._gm_gastos.abrirModalGrupo(data);
-}
-
-function abrirModalParticipante() {
-    document.getElementById('input-nombre-participante').value = '';
-    document.getElementById('input-email-participante').value = '';
-    document.getElementById('invite-info').style.display = 'none';
-    document.querySelector('#modal-participante .btn-primary').textContent = 'Agregar';
-    abrirModal('modal-participante');
-    setTimeout(() => document.getElementById('input-nombre-participante').focus(), 100);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('input-email-participante').addEventListener('input', function() {
-        const tieneEmail = this.value.trim().length > 0;
-        document.getElementById('invite-info').style.display = tieneEmail ? 'block' : 'none';
-        document.querySelector('#modal-participante .btn-primary').textContent =
-            tieneEmail ? 'Agregar y Enviar Invitación' : 'Agregar';
-    });
-});
 
 function abrirModalGasto() {
     if (participantesActuales.length === 0) {
-        alert('Primero agregá personas al grupo desde la pestaña "Personas".');
+        alert('Primero agregá personas al círculo.');
         return;
     }
     gastoEditando = null;
@@ -455,7 +386,7 @@ function escapeJsString(value) {
 
 async function editarGasto(id) {
     if (participantesActuales.length === 0) {
-        alert('Primero agregá personas al grupo desde la pestaña "Personas".');
+        alert('Primero agregá personas al círculo.');
         return;
     }
     const gasto = currentGastos.find(g => g.id === id);
@@ -515,7 +446,6 @@ function repartirIgual() {
     const monto = parseFloat(document.getElementById('input-monto').value) || 0;
     const n = participantesActuales.length;
     if (!monto || n === 0) return;
-    // Repartir y ajustar el centavo sobrante al primero
     const base = Math.floor((monto / n) * 100) / 100;
     const resto = Math.round((monto - base * n) * 100) / 100;
     participantesActuales.forEach((p, i) => {
@@ -550,104 +480,16 @@ function actualizarTotalSplit() {
 }
 
 // =============================================
-// GRUPOS
-// =============================================
-async function cargarGrupos() {
-    const cont = document.getElementById('lista-grupos');
-    cont.innerHTML = '<div class="loader">Cargando grupos...</div>';
-    const { data, error } = await db.from('grupos').select('*').eq('tipo', 'gastos').order('created_at', { ascending: false });
-    if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}</div>`; return; }
-    if (!data?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="home" data-size="40"></i></span>Sin grupos todavía.<br>Creá uno para empezar.</div>`;
-        return;
-    }
-    cont.innerHTML = data.map(g => `
-        <div class="card" style="overflow:visible">
-            <div class="card-body flex-between" style="gap:10px">
-                <div class="card-click" style="flex:1;min-width:0" onclick='abrirGrupo(${JSON.stringify(g)})'>
-                    <div style="font-weight:700;font-size:16px">${escapeHtml(g.nombre)}</div>
-                    <div class="text-muted">${new Date(g.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })}</div>
-                </div>
-                <div style="display:flex;gap:8px;align-items:center">
-                    <button class="btn btn-ghost btn-sm" onclick="editarGrupo(${g.id})" title="Editar grupo">${icon('pencil-square',16)}</button>
-                    <button class="btn btn-danger btn-sm" onclick="eliminarGrupo(${g.id}, '${g.nombre.replace(/'/g,"\\'")}')" title="Eliminar grupo">${icon('trash',16)}</button>
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-async function crearGrupo() {
-    if (!window._gm_gastos) window._gm_gastos = crearGestorDeGrupos({ table: 'grupos', nameField: 'nombre', rpcCreate: 'crear_grupo_gastos' });
-    await window._gm_gastos.crearGrupo();
-}
-
-async function eliminarGrupo(id, nombre) {
-    if (!confirm(`¿Eliminar el grupo "${nombre}"?\nSe borrarán todos los gastos y participantes.`)) return;
-
-    // Borrar en orden: splits → gastos → participantes → grupo
-    const { data: gastos, error: eg } = await db.from('gastos').select('id').eq('id_grupo', id);
-    if (eg) { alert('Error al leer gastos: ' + eg.message); return; }
-
-    if (gastos?.length) {
-        const { error: es } = await db.from('gastos_participantes').delete().in('id_gasto', gastos.map(g => g.id));
-        if (es) { alert('Error al borrar divisiones: ' + es.message); return; }
-
-        const { error: eg2 } = await db.from('gastos').delete().eq('id_grupo', id);
-        if (eg2) { alert('Error al borrar gastos: ' + eg2.message); return; }
-    }
-
-    const { error: ep } = await db.from('participantes').delete().eq('id_grupo', id);
-    if (ep) { alert('Error al borrar participantes: ' + ep.message); return; }
-
-    const { error: egr } = await db.from('grupos').delete().eq('id', id);
-    if (egr) { alert('Error al borrar grupo: ' + egr.message); return; }
-
-    cargarGrupos();
-}
-
-// =============================================
-// PARTICIPANTES
-// =============================================
-async function cargarParticipantes() {
-    const { data, error } = await db.from('participantes')
-        .select('*').eq('id_grupo', grupoActual.id).order('id');
-    participantesActuales = data || [];
-    const cont = document.getElementById('lista-participantes');
-    if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
-    if (!data?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="users" data-size="40"></i></span>Sin personas todavía.<br>Agregá a quienes comparten los gastos.</div>`;
-        return;
-    }
-    cont.innerHTML = `<div class="card">${data.map(p => `
-        <div class="part-item">
-            <div class="avatar">${p.nombre.charAt(0).toUpperCase()}</div>
-            <div style="flex:1;min-width:0">
-                <div class="part-name">${escapeHtml(p.nombre)}</div>
-                ${p.email ? `<div class="text-muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><i data-icon="envelope" data-size="14"></i> ${escapeHtml(p.email)}</div>` : ''}
-            </div>
-            ${p.email ? '<span class="badge badge-green" style="font-size:11px">Invitado</span>' : ''}
-        </div>
-    `).join('')}</div>`;
-}
-
-async function agregarParticipante() {
-    if (!window._pm_gastos) window._pm_gastos = crearGestorDePersonas({ table: 'participantes', nameField: 'nombre', groupField: 'id_grupo', inputNameId: 'input-nombre-participante', inputEmailId: 'input-email-participante', inviteInfoId: 'invite-info', addButtonSelector: '#modal-participante .btn-primary', currentListVar: 'participantesActuales', redirectParam: 'invite_gasto' });
-    await window._pm_gastos.agregarPersona(grupoActual.id);
-}
-
-// =============================================
 // REEMBOLSOS
 // =============================================
 function abrirModalReembolso() {
     if (participantesActuales.length < 2) {
-        alert('Necesitás al menos 2 personas en el grupo para registrar un reembolso.');
+        alert('Necesitás al menos 2 personas en el círculo para registrar un reembolso.');
         return;
     }
     const opts = participantesActuales.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
     document.getElementById('reembolso-de').innerHTML = opts;
     document.getElementById('reembolso-para').innerHTML = opts;
-    // Preseleccionar distinto
     if (participantesActuales.length >= 2)
         document.getElementById('reembolso-para').selectedIndex = 1;
     document.getElementById('reembolso-monto').value = '';
@@ -668,9 +510,9 @@ async function guardarReembolso() {
     const nombreDe   = participantesActuales.find(p => p.id === de)?.nombre;
     const nombrePara = participantesActuales.find(p => p.id === para)?.nombre;
 
-    // Guardar como gasto especial: pagador = quien devuelve, split = quien recibe
     const { data: gastoData, error: e1 } = await db.from('gastos').insert({
-        id_grupo: grupoActual.id,
+        id_periodo: periodoActual.id,
+        id_circulo: circuloActual.id,
         id_pagador: de,
         concepto: `Reembolso de ${nombreDe} a ${nombrePara}`,
         monto,
@@ -696,7 +538,7 @@ async function cargarGastos() {
     const cont = document.getElementById('lista-gastos');
     cont.innerHTML = '<div class="loader">Cargando gastos...</div>';
     const { data, error } = await db.from('gastos')
-        .select('*').eq('id_grupo', grupoActual.id)
+        .select('*').eq('id_periodo', periodoActual.id)
         .order('fecha_gasto', { ascending: false })
         .order('created_at', { ascending: false });
     if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
@@ -780,7 +622,7 @@ async function guardarGasto() {
         gastoEditando = null;
     } else {
         const { data: gastoData, error: e1 } = await db.from('gastos').insert({
-            id_grupo: grupoActual.id, id_pagador: pagador, concepto, monto, tipo_gasto: tipo, fecha_gasto: fecha
+            id_periodo: periodoActual.id, id_circulo: circuloActual.id, id_pagador: pagador, concepto, monto, tipo_gasto: tipo, fecha_gasto: fecha
         }).select().single();
 
         if (e1) { alert('Error al guardar gasto: ' + e1.message); return; }
@@ -803,12 +645,12 @@ async function calcularYMostrarBalance() {
     cont.innerHTML = '<div class="loader">Calculando balances...</div>';
 
     if (!participantesActuales.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="users" data-size="40"></i></span>Primero agregá personas al grupo.</div>`;
+        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="users" data-size="40"></i></span>Primero agregá personas al círculo.</div>`;
         return;
     }
 
     const { data: gastos, error: e1 } = await db.from('gastos')
-        .select('id, id_pagador, monto').eq('id_grupo', grupoActual.id);
+        .select('id, id_pagador, monto').eq('id_periodo', periodoActual.id);
     if (e1) { cont.innerHTML = `<div class="alert alert-error">${e1.message}</div>`; return; }
 
     if (!gastos?.length) {
@@ -824,7 +666,6 @@ async function calcularYMostrarBalance() {
         return;
     }
 
-    // Calcular balance neto
     const balance = {};
     participantesActuales.forEach(p => balance[p.id] = 0);
     gastos.forEach(g => { balance[g.id_pagador] = (balance[g.id_pagador] || 0) + Number(g.monto); });
@@ -900,7 +741,7 @@ function simplificarDeudas(balance) {
 }
 
 // =============================================
-// RESUMEN POR TIPO DE GASTO (todo el grupo, sin filtrar por fecha)
+// RESUMEN POR TIPO DE GASTO
 // =============================================
 async function calcularYMostrarResumen() {
     const cont = document.getElementById('contenido-resumen');
@@ -908,7 +749,7 @@ async function calcularYMostrarResumen() {
 
     const { data: gastos, error } = await db.from('gastos')
         .select('monto, tipo_gasto')
-        .eq('id_grupo', grupoActual.id)
+        .eq('id_periodo', periodoActual.id)
         .neq('tipo_gasto', 'Reembolso');
 
     if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
