@@ -1,6 +1,6 @@
 :root {
-    --primary: #4f46e5;
-    --primary-dark: #4338ca;
+    --primary: #1b4079;
+    --primary-dark: #153566;
     --danger: #ef4444;
     --success: #16a34a;
     --bg: #f1f5f9;
@@ -9,8 +9,8 @@
     --muted: #64748b;
     --border: #e2e8f0;
     --input-bg: #ffffff;
-    --ghost-hover: #ede9fe;
-    --soft: #ede9fe;
+    --ghost-hover: #e8eef5;
+    --soft: #e8eef5;
     --shadow: 0 1px 4px rgba(0,0,0,0.07);
     --shadow-hover: 0 4px 12px rgba(0,0,0,0.1);
     --overlay: rgba(0,0,0,0.5);
@@ -20,7 +20,7 @@
     --badge-red-fg: #b91c1c;
     --badge-blue-bg: #dbeafe;
     --badge-blue-fg: #1d4ed8;
-    --badge-purple-bg: #ede9fe;
+    --badge-purple-bg: #e8eef5;
     --alert-info-bg: #eff6ff;
     --alert-info-fg: #1e40af;
     --alert-info-bd: #bfdbfe;
@@ -30,7 +30,7 @@
     --alert-err-bg: #fef2f2;
     --alert-err-fg: #b91c1c;
     --alert-err-bd: #fecaca;
-    --login-grad: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    --login-grad: linear-gradient(135deg, #1b4079 0%, #153566 100%);
     color-scheme: light;
 }
 [data-theme="dark"] {

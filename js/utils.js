@@ -23,7 +23,7 @@ function applyTheme(theme) {
     try { localStorage.setItem('toris-theme', next); } catch (_) {}
     // Misma tinta que el topbar (arriba del notch / chrome del celu)
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', next === 'dark' ? '#1b4079' : '#4f46e5');
+    if (meta) meta.setAttribute('content', '#1b4079');
     document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
         const icon = next === 'dark' ? 'sun' : 'moon';
         btn.setAttribute('title', next === 'dark' ? 'Modo claro' : 'Modo oscuro');
