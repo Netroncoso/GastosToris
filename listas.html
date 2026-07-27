@@ -91,13 +91,42 @@
 // =============================================
 // ESTADO GLOBAL
 // =============================================
+let circuloId = null;
+let circuloActual = null;
 let listaActual = null;
 let filtroLista = 'pendientes';
 let todosLosItems = [];
 
 requireAuth(async () => {
+    await syncInvitados({ personsTable: 'participantes', personGroupField: 'id_circulo', membershipTable: 'circulos_miembros', membershipGroupField: 'id_circulo' });
+
     const params = new URLSearchParams(window.location.search);
+    let circuloParam = params.get('circulo');
     const abrirId = params.get('abrir');
+
+    if (!circuloParam && abrirId) {
+        const { data } = await db.from('listas').select('id_circulo').eq('id', abrirId).single();
+        if (data?.id_circulo) {
+            circuloParam = String(data.id_circulo);
+            setQueryParam('circulo', circuloParam);
+        }
+    }
+
+    if (!circuloParam) {
+        window.location.href = 'index.html';
+        return;
+    }
+
+    circuloId = parseInt(circuloParam, 10);
+    const { data: circulo, error } = await db.from('circulos').select('*').eq('id', circuloId).single();
+    if (error || !circulo) {
+        alert('No se encontró ese círculo.');
+        window.location.href = 'index.html';
+        return;
+    }
+    circuloActual = circulo;
+    actualizarTopbarListas();
+
     if (abrirId) {
         await abrirListaPorId(parseInt(abrirId, 10), { filtro: params.get('filtro') });
     } else {
@@ -111,12 +140,31 @@ async function abrirListaPorId(id, opts = {}) {
     const { data, error } = await db.from('listas').select('*').eq('id', id).single();
     if (error || !data) {
         alert('No se encontró esa lista.');
-        clearDetailQueryParams();
+        clearListaDetailParams();
+        await cargarListas();
+        mostrarPantalla('listas');
+        return;
+    }
+    if (data.id_circulo !== circuloId) {
+        alert('Esa lista no pertenece a este círculo.');
+        clearListaDetailParams();
         await cargarListas();
         mostrarPantalla('listas');
         return;
     }
     await abrirLista(data, opts);
+}
+
+function clearListaDetailParams() {
+    ['abrir', 'filtro'].forEach(k => setQueryParam(k, null));
+}
+
+function actualizarTopbarListas() {
+    if (listaActual) {
+        document.getElementById('topbar-title').textContent = listaActual.nombre;
+    } else {
+        document.getElementById('topbar-title').textContent = circuloActual?.nombre || 'Listas';
+    }
 }
 
 // =============================================
@@ -128,12 +176,15 @@ function mostrarPantalla(nombre) {
 }
 
 function volverAListas() {
-    if (!listaActual) { irAlInicio(); return; }
-    listaActual = null;
-    clearDetailQueryParams();
-    document.getElementById('topbar-title').innerHTML = '<i data-icon="shopping-cart" data-size="20"></i> Listas';
-    mostrarPantalla('listas');
-    cargarListas();
+    if (listaActual) {
+        listaActual = null;
+        clearListaDetailParams();
+        actualizarTopbarListas();
+        mostrarPantalla('listas');
+        cargarListas();
+        return;
+    }
+    irAlCirculo(circuloId, 'listas');
 }
 
 function abrirModal(id) { document.getElementById(id).classList.add('open'); }
@@ -145,7 +196,7 @@ function cerrarModal(id) { document.getElementById(id).classList.remove('open');
 async function cargarListas() {
     const cont = document.getElementById('lista-de-listas');
     cont.innerHTML = '<div class="loader">Cargando listas...</div>';
-    const { data, error } = await db.from('listas').select('*').order('created_at', { ascending: false });
+    const { data, error } = await db.from('listas').select('*').eq('id_circulo', circuloId).order('created_at', { ascending: false });
     if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}<br>¿Ejecutaste el SQL de configuración? Ver README.</div>`; return; }
     if (!data?.length) {
         cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="shopping-cart" data-size="40"></i></span>Sin listas todavía.<br>Creá una para empezar.</div>`;
@@ -173,7 +224,7 @@ function abrirModalLista() {
 async function crearLista() {
     const nombre = document.getElementById('input-nombre-lista').value.trim();
     if (!nombre) { alert('Ingresá un nombre.'); return; }
-    const { error } = await db.from('listas').insert({ nombre });
+    const { error } = await db.from('listas').insert({ nombre, id_circulo: circuloId });
     if (error) { alert('Error: ' + error.message); return; }
     cerrarModal('modal-lista');
     cargarListas();

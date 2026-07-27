@@ -110,7 +110,13 @@ function setQueryParam(key, value) {
 }
 
 function clearDetailQueryParams() {
-    ['abrir', 'tab', 'filtro'].forEach(k => setQueryParam(k, null));
+    ['abrir', 'tab', 'filtro', 'circulo', 'periodo'].forEach(k => setQueryParam(k, null));
+}
+
+function irAlCirculo(id, tab = null) {
+    const q = new URLSearchParams({ abrir: String(id) });
+    if (tab) q.set('tab', tab);
+    window.location.href = `circulo.html?${q.toString()}`;
 }
 
 // cambiarTab: busca el contenedor de contenido `tab-<nombre>` y activa la pestaña
@@ -125,18 +131,14 @@ function cambiarTab(nombre) {
     if (el) el.classList.add('active');
     const cb = window['onTab_' + nombre];
     if (typeof cb === 'function') cb();
-    if (el && document.querySelector('#screen-grupo.active, #screen-detalle.active')) {
+    if (el && document.querySelector('#screen-grupo.active, #screen-detalle.active, #screen-periodo.active, #screen-circulo.active')) {
         setQueryParam('tab', nombre);
     }
 }
 
-// Generador genérico para sincronizar invitados entre tablas de personas y tabla de miembros
-// `tipo` (opcional) acota a grupos de gastos o de tareas: como `participantes` y `grupos_miembros`
-// son compartidos por ambos módulos, sin este filtro cada página repite el trabajo de la otra.
-async function syncInvitados({ personsTable, personGroupField, membershipTable, membershipGroupField, tipo }) {
-    // La membresía a un grupo casi no cambia durante una sesión: evitamos repetir
-    // este sync (3 round-trips) en cada carga de pantalla, solo 1 vez por pestaña.
-    const cacheKey = `_synced_invitados_${tipo || 'default'}`;
+// Sincroniza invitados (participantes.email) → membresía en circulos_miembros. 1 vez por sesión.
+async function syncInvitados({ personsTable = 'participantes', personGroupField = 'id_circulo', membershipTable = 'circulos_miembros', membershipGroupField = 'id_circulo' } = {}) {
+    const cacheKey = '_synced_invitados_circulos';
     if (sessionStorage.getItem(cacheKey)) return;
 
     const user = await getCurrentUser();
@@ -144,17 +146,10 @@ async function syncInvitados({ personsTable, personGroupField, membershipTable, 
     if (!email || !user?.id) return;
     sessionStorage.setItem(cacheKey, '1');
 
-    const [q, gt] = await Promise.all([
-        db.from(personsTable).select(personGroupField).eq('email', email),
-        tipo ? db.from('grupos').select('id').eq('tipo', tipo) : Promise.resolve({ data: null })
-    ]);
-    if (q.error) return;
+    const { data, error } = await db.from(personsTable).select(personGroupField).eq('email', email);
+    if (error) return;
 
-    let grupos = [...new Set((q.data || []).map(p => p[personGroupField]))];
-    if (tipo) {
-        const idsValidos = new Set((gt.data || []).map(g => g.id));
-        grupos = grupos.filter(id => idsValidos.has(id));
-    }
+    const grupos = [...new Set((data || []).map(p => p[personGroupField]).filter(Boolean))];
     if (!grupos.length) return;
 
     const rows = grupos.map(id_gr => ({ [membershipGroupField]: id_gr, user_id: user.id }));
@@ -195,8 +190,8 @@ function crearGestorDeGrupos({ table, nameField = 'nombre', rpcCreate }) {
         abrirModalGrupo: function(grupo = null, modalId = 'modal-grupo', inputId = 'input-nombre-grupo') {
             window.grupoEditando = grupo;
             const val = grupo ? grupo[nameField] : '';
-            const hdr = grupo ? 'Editar Grupo' : 'Nuevo Grupo';
-            const btnText = grupo ? 'Actualizar Grupo' : 'Crear Grupo';
+            const hdr = grupo ? 'Editar círculo' : 'Nuevo círculo';
+            const btnText = grupo ? 'Actualizar' : 'Crear círculo';
             const headerEl = document.querySelector('#' + modalId + ' .modal-header h3');
             if (headerEl) headerEl.textContent = hdr;
             const btn = document.querySelector('#' + modalId + ' .btn-primary');
@@ -215,26 +210,26 @@ function crearGestorDeGrupos({ table, nameField = 'nombre', rpcCreate }) {
 
             if (window.grupoEditando) {
                 const { error } = await db.from(table).update({ [nameField]: nombre }).eq('id', window.grupoEditando.id);
-                if (error) { alert('Error al actualizar grupo: ' + error.message); return; }
+                if (error) { alert('Error al actualizar: ' + error.message); return; }
                 window.grupoEditando = null;
                 cerrarModal(modalId);
                 if (typeof window.cargarGrupos === 'function') window.cargarGrupos();
                 return;
             }
 
-            const { data: grupo, error } = await db.rpc(rpcCreate, { p_nombre: nombre });
-            if (error) { alert('Error al crear grupo: ' + error.message); return; }
+            const { data: grupo, error } = await db.rpc(rpcCreate || 'crear_circulo', { p_nombre: nombre });
+            if (error) { alert('Error al crear círculo: ' + error.message); return; }
 
-            // Agregar al creador como persona (tabla `participantes`, compartida por gastos y tareas)
             const user = await getCurrentUser();
             if (user?.email) {
                 try {
-                    await db.from('participantes').insert({ id_grupo: grupo.id, nombre: getDisplayNameFromUser(user), email: user.email.toLowerCase() });
+                    await db.from('participantes').insert({ id_circulo: grupo.id, nombre: getDisplayNameFromUser(user), email: user.email.toLowerCase() });
                 } catch (e) { console.warn('No se pudo agregar al creador como persona:', e.message); }
             }
 
             cerrarModal(modalId);
             if (typeof window.cargarGrupos === 'function') window.cargarGrupos();
+            return grupo;
         }
     };
 }
@@ -242,7 +237,7 @@ function crearGestorDeGrupos({ table, nameField = 'nombre', rpcCreate }) {
 // =============================================
 // FACTORY: GESTOR DE PERSONAS (añadir e invitar)
 // =============================================
-function crearGestorDePersonas({ table, nameField = 'nombre', groupField, inputNameId, inputEmailId, inviteInfoId, addButtonSelector, currentListVar, redirectParam }) {
+function crearGestorDePersonas({ table, nameField = 'nombre', groupField, inputNameId, inputEmailId, inviteInfoId, addButtonSelector, currentListVar, redirectParam = 'invite' }) {
     return {
         agregarPersona: async function(groupId) {
             const nombre = document.getElementById(inputNameId).value.trim();
@@ -281,7 +276,7 @@ function crearGestorDePersonas({ table, nameField = 'nombre', groupField, inputN
                 if (inviteError) {
                     alert(`${nombre} fue agregado, pero hubo un error al enviar la invitación: ${inviteError.message}`);
                 } else {
-                    alert(`✅ ${nombre} fue agregado y se le envió una invitación a ${email}.`);
+                    alert(`${nombre} fue agregado y se le envió una invitación a ${email}.`);
                 }
             }
 
