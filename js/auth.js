@@ -45,6 +45,7 @@ function pintarTopbarUser(user) {
 }
 
 async function cerrarSesion() {
+    clearLastRoute();
     await db.auth.signOut();
     window.location.href = 'index.html';
 }

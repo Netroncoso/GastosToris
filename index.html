@@ -89,6 +89,7 @@
     }
 
     async function cerrarSesion() {
+        clearLastRoute();
         await db.auth.signOut();
     }
 
@@ -125,6 +126,8 @@
             window.location.href = `circulo.html?abrir=${invite}`;
             return;
         }
+
+        if (redirectToLastRouteIfAny()) return;
 
         mostrarPantalla('dashboard');
         await syncInvitados();
