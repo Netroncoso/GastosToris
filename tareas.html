@@ -8,7 +8,8 @@
     <link rel="stylesheet" href="css/shared.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body>
+<body class="app-booting">
+<div id="boot-splash">Cargando...</div>
 
 <!-- TOPBAR -->
 <div class="topbar">
@@ -183,8 +184,13 @@ async function abrirGrupo(grupo, opts = {}) {
     const filtro = FILTROS_TAREAS.includes(opts.filtro) ? opts.filtro : 'pendientes';
     setQueryParams({ abrir: grupo.id, filtro });
     document.getElementById('topbar-title').textContent = grupo.nombre;
+    filtroTareas = filtro;
+    document.querySelectorAll('.filter-tab').forEach((t, i) => {
+        t.classList.toggle('active', ['pendientes','todas','hechas'][i] === filtro);
+    });
+    appReady();
     await Promise.all([cargarPersonasTareas(), cargarTareas(), cargarListasDisponibles()]);
-    setFiltro(filtro);
+    renderTareas();
 }
 
 function volverAlCirculo() {
@@ -366,6 +372,7 @@ function renderTareas() {
 }
 
 async function agregarTarea() {
+    await withBusyButton('.add-item-form .btn-primary', async () => {
     const titulo = document.getElementById('input-titulo-tarea').value.trim();
     const prioridad = document.getElementById('input-prioridad-tarea').value;
     const asignadoVal = document.getElementById('input-asignado-tarea').value;
@@ -417,6 +424,7 @@ async function agregarTarea() {
             alert('La tarea se creó, pero no se pudo agregar a Google Calendar: ' + e.message);
         }
     }
+    });
 }
 
 async function toggleTarea(id, estaHecha) {

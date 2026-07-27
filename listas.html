@@ -8,7 +8,8 @@
     <link rel="stylesheet" href="css/shared.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body>
+<body class="app-booting">
+<div id="boot-splash">Cargando...</div>
 
 <!-- TOPBAR -->
 <div class="topbar">
@@ -126,12 +127,16 @@ requireAuth(async () => {
     }
     circuloActual = circulo;
     setQueryParams({ circulo: circuloId });
-    actualizarTopbarListas();
 
     if (abrirId) {
+        bootScreen('detalle');
+        appReady();
         await abrirListaPorId(parseInt(abrirId, 10), { filtro: params.get('filtro') });
     } else {
+        bootScreen('listas');
+        actualizarTopbarListas();
         setQueryParams({ circulo: circuloId, abrir: null, filtro: null });
+        appReady();
         await cargarListas();
     }
 });
@@ -205,13 +210,15 @@ async function cargarListas() {
         return;
     }
     cont.innerHTML = data.map(l => `
-        <div class="card" style="overflow:visible">
+        <div class="card card-click" onclick='abrirLista(${JSON.stringify(l)})'>
             <div class="card-body flex-between" style="gap:10px">
-                <div class="card-click" style="flex:1;min-width:0" onclick='abrirLista(${JSON.stringify(l)})'>
+                <div style="flex:1;min-width:0">
                     <div style="font-weight:700;font-size:16px">${escapeHtml(l.nombre)}</div>
                     <div class="text-muted">${new Date(l.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })}</div>
                 </div>
-                    <button class="btn btn-danger btn-sm" onclick="eliminarLista(${l.id}, '${l.nombre.replace(/'/g,"\\'")}')"><i data-icon="trash" data-size="16"></i></button>
+                <div class="card-actions" onclick="event.stopPropagation()">
+                    <button class="btn btn-danger btn-sm" onclick="eliminarLista(${l.id}, '${l.nombre.replace(/'/g,"\\'")}')">${icon('trash',16)}</button>
+                </div>
             </div>
         </div>
     `).join('');
@@ -224,12 +231,15 @@ function abrirModalLista() {
 }
 
 async function crearLista() {
-    const nombre = document.getElementById('input-nombre-lista').value.trim();
-    if (!nombre) { alert('Ingresá un nombre.'); return; }
-    const { error } = await db.from('listas').insert({ nombre, id_circulo: circuloId });
-    if (error) { alert('Error: ' + error.message); return; }
-    cerrarModal('modal-lista');
-    cargarListas();
+    await withBusyButton('#modal-lista .btn-primary', async () => {
+        const nombre = document.getElementById('input-nombre-lista').value.trim();
+        if (!nombre) { alert('Ingresá un nombre.'); return; }
+        const { error } = await db.from('listas').insert({ nombre, id_circulo: circuloId });
+        if (error) { alert('Error: ' + error.message); return; }
+        document.getElementById('input-nombre-lista').value = '';
+        cerrarModal('modal-lista');
+        cargarListas();
+    });
 }
 
 async function eliminarLista(id, nombre) {

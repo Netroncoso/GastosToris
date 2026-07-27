@@ -8,7 +8,8 @@
     <link rel="stylesheet" href="css/shared.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body>
+<body class="app-booting">
+<div id="boot-splash">Cargando...</div>
 
 <!-- TOPBAR -->
 <div class="topbar">
@@ -256,19 +257,24 @@ async function guardarCategoriasEnDB() {
 }
 
 async function agregarCategoria() {
-    const nombre = document.getElementById('input-nueva-categoria').value.trim();
-    const icono = document.getElementById('input-icono-categoria').value;
-    if (!nombre) { document.getElementById('input-nueva-categoria').focus(); return; }
-    if (categoriasActuales.some(c => c.nombre.toLowerCase() === nombre.toLowerCase())) {
-        alert('Ya existe una categoría con ese nombre.');
-        return;
-    }
-    categoriasActuales.push({ nombre, icono });
-    if (!await guardarCategoriasEnDB()) return;
-    document.getElementById('input-nueva-categoria').value = '';
-    renderListaCategorias();
-    renderSelectTipo(document.getElementById('input-tipo').value);
-    cargarGastos();
+    await withBusyButton('#modal-categorias .btn-primary', async () => {
+        const nombre = document.getElementById('input-nueva-categoria').value.trim();
+        const icono = document.getElementById('input-icono-categoria').value;
+        if (!nombre) { document.getElementById('input-nueva-categoria').focus(); return; }
+        if (categoriasActuales.some(c => c.nombre.toLowerCase() === nombre.toLowerCase())) {
+            alert('Ya existe una categoría con ese nombre.');
+            return;
+        }
+        categoriasActuales.push({ nombre, icono });
+        if (!await guardarCategoriasEnDB()) {
+            categoriasActuales.pop();
+            return;
+        }
+        document.getElementById('input-nueva-categoria').value = '';
+        renderListaCategorias();
+        renderSelectTipo(document.getElementById('input-tipo').value);
+        cargarGastos();
+    });
 }
 
 async function eliminarCategoria(index) {
@@ -322,10 +328,16 @@ requireAuth(async () => {
 
     const tab = TABS_GASTOS.includes(params.get('tab')) ? params.get('tab') : 'gastos';
     setQueryParams({ circulo: circuloId, periodo: periodoId, tab });
+    bootTab(tab);
+    appReady();
 
     await cargarParticipantes();
-    await cargarGastos();
-    cambiarTab(tab);
+    if (tab === 'gastos') {
+        await cargarGastos();
+    } else {
+        // Balance/Resumen cargan sus datos al activar la pestaña
+        cambiarTab(tab);
+    }
 });
 
 // =============================================
@@ -499,36 +511,38 @@ function abrirModalReembolso() {
 }
 
 async function guardarReembolso() {
-    const de    = parseInt(document.getElementById('reembolso-de').value);
-    const para  = parseInt(document.getElementById('reembolso-para').value);
-    const monto = parseFloat(document.getElementById('reembolso-monto').value);
-    const fecha = document.getElementById('reembolso-fecha').value || hoyISO();
+    await withBusyButton('#modal-reembolso .btn-primary', async () => {
+        const de    = parseInt(document.getElementById('reembolso-de').value);
+        const para  = parseInt(document.getElementById('reembolso-para').value);
+        const monto = parseFloat(document.getElementById('reembolso-monto').value);
+        const fecha = document.getElementById('reembolso-fecha').value || hoyISO();
 
-    if (de === para) { alert('La persona que paga y la que recibe no pueden ser la misma.'); return; }
-    if (!monto || monto <= 0) { alert('Ingresá un monto válido.'); return; }
+        if (de === para) { alert('La persona que paga y la que recibe no pueden ser la misma.'); return; }
+        if (!monto || monto <= 0) { alert('Ingresá un monto válido.'); return; }
 
-    const nombreDe   = participantesActuales.find(p => p.id === de)?.nombre;
-    const nombrePara = participantesActuales.find(p => p.id === para)?.nombre;
+        const nombreDe   = participantesActuales.find(p => p.id === de)?.nombre;
+        const nombrePara = participantesActuales.find(p => p.id === para)?.nombre;
 
-    const { data: gastoData, error: e1 } = await db.from('gastos').insert({
-        id_periodo: periodoActual.id,
-        id_circulo: circuloActual.id,
-        id_pagador: de,
-        concepto: `Reembolso de ${nombreDe} a ${nombrePara}`,
-        monto,
-        tipo_gasto: 'Reembolso',
-        fecha_gasto: fecha
-    }).select().single();
+        const { data: gastoData, error: e1 } = await db.from('gastos').insert({
+            id_periodo: periodoActual.id,
+            id_circulo: circuloActual.id,
+            id_pagador: de,
+            concepto: `Reembolso de ${nombreDe} a ${nombrePara}`,
+            monto,
+            tipo_gasto: 'Reembolso',
+            fecha_gasto: fecha
+        }).select().single();
 
-    if (e1) { alert('Error: ' + e1.message); return; }
+        if (e1) { alert('Error: ' + e1.message); return; }
 
-    const { error: e2 } = await db.from('gastos_participantes')
-        .insert({ id_gasto: gastoData.id, id_participante: para, monto });
+        const { error: e2 } = await db.from('gastos_participantes')
+            .insert({ id_gasto: gastoData.id, id_participante: para, monto });
 
-    if (e2) { alert('Error al guardar división: ' + e2.message); return; }
+        if (e2) { alert('Error al guardar división: ' + e2.message); return; }
 
-    cerrarModal('modal-reembolso');
-    cargarGastos();
+        cerrarModal('modal-reembolso');
+        cargarGastos();
+    });
 }
 
 // =============================================
@@ -582,59 +596,61 @@ async function cargarGastos() {
 }
 
 async function guardarGasto() {
-    const concepto = document.getElementById('input-concepto').value.trim();
-    const fecha    = document.getElementById('input-fecha-gasto').value || hoyISO();
-    const monto    = parseFloat(document.getElementById('input-monto').value);
-    const tipo     = document.getElementById('input-tipo').value;
-    const pagadorRaw = document.getElementById('input-pagador').value;
-    const pagador = pagadorRaw ? Number(pagadorRaw) : null;
+    await withBusyButton('#modal-gasto .btn-primary', async () => {
+        const concepto = document.getElementById('input-concepto').value.trim();
+        const fecha    = document.getElementById('input-fecha-gasto').value || hoyISO();
+        const monto    = parseFloat(document.getElementById('input-monto').value);
+        const tipo     = document.getElementById('input-tipo').value;
+        const pagadorRaw = document.getElementById('input-pagador').value;
+        const pagador = pagadorRaw ? Number(pagadorRaw) : null;
 
-    if (!concepto) { alert('Ingresá un concepto.'); return; }
-    if (!monto || monto <= 0) { alert('Ingresá un monto válido.'); return; }
-    if (!pagador || Number.isNaN(pagador)) { alert('Seleccioná quién pagó.'); return; }
+        if (!concepto) { alert('Ingresá un concepto.'); return; }
+        if (!monto || monto <= 0) { alert('Ingresá un monto válido.'); return; }
+        if (!pagador || Number.isNaN(pagador)) { alert('Seleccioná quién pagó.'); return; }
 
-    const splits = [];
-    let totalSplit = 0;
-    participantesActuales.forEach(p => {
-        const val = parseFloat(document.getElementById('split-' + p.id)?.value || 0);
-        if (val > 0) { splits.push({ id_participante: p.id, monto: val }); totalSplit += val; }
+        const splits = [];
+        let totalSplit = 0;
+        participantesActuales.forEach(p => {
+            const val = parseFloat(document.getElementById('split-' + p.id)?.value || 0);
+            if (val > 0) { splits.push({ id_participante: p.id, monto: val }); totalSplit += val; }
+        });
+
+        if (!splits.length) { alert('Distribuí el gasto entre las personas.'); return; }
+        if (Math.abs(totalSplit - monto) > 0.02) {
+            alert(`La suma de la división ($${fmt(totalSplit)}) no coincide con el monto ($${fmt(monto)}).`);
+            return;
+        }
+
+        if (gastoEditando) {
+            const { error: e1 } = await db.from('gastos').update({
+                id_pagador: pagador, concepto, monto, tipo_gasto: tipo, fecha_gasto: fecha
+            }).eq('id', gastoEditando);
+            if (e1) { alert('Error al actualizar gasto: ' + e1.message); return; }
+
+            const { error: e3 } = await db.from('gastos_participantes').delete().eq('id_gasto', gastoEditando);
+            if (e3) { alert('Error al borrar división anterior: ' + e3.message); return; }
+
+            const { error: e2 } = await db.from('gastos_participantes')
+                .insert(splits.map(s => ({ ...s, id_gasto: gastoEditando })));
+            if (e2) { alert('Gasto actualizado, pero error en la división: ' + e2.message); return; }
+
+            gastoEditando = null;
+        } else {
+            const { data: gastoData, error: e1 } = await db.from('gastos').insert({
+                id_periodo: periodoActual.id, id_circulo: circuloActual.id, id_pagador: pagador, concepto, monto, tipo_gasto: tipo, fecha_gasto: fecha
+            }).select().single();
+
+            if (e1) { alert('Error al guardar gasto: ' + e1.message); return; }
+
+            const { error: e2 } = await db.from('gastos_participantes')
+                .insert(splits.map(s => ({ ...s, id_gasto: gastoData.id })));
+
+            if (e2) { alert('Gasto guardado, pero error en la división: ' + e2.message); return; }
+        }
+
+        cerrarModal('modal-gasto');
+        cargarGastos();
     });
-
-    if (!splits.length) { alert('Distribuí el gasto entre las personas.'); return; }
-    if (Math.abs(totalSplit - monto) > 0.02) {
-        alert(`La suma de la división ($${fmt(totalSplit)}) no coincide con el monto ($${fmt(monto)}).`);
-        return;
-    }
-
-    if (gastoEditando) {
-        const { error: e1 } = await db.from('gastos').update({
-            id_pagador: pagador, concepto, monto, tipo_gasto: tipo, fecha_gasto: fecha
-        }).eq('id', gastoEditando);
-        if (e1) { alert('Error al actualizar gasto: ' + e1.message); return; }
-
-        const { error: e3 } = await db.from('gastos_participantes').delete().eq('id_gasto', gastoEditando);
-        if (e3) { alert('Error al borrar división anterior: ' + e3.message); return; }
-
-        const { error: e2 } = await db.from('gastos_participantes')
-            .insert(splits.map(s => ({ ...s, id_gasto: gastoEditando })));
-        if (e2) { alert('Gasto actualizado, pero error en la división: ' + e2.message + '\n¿Ejecutaste el SQL de configuración?'); return; }
-
-        gastoEditando = null;
-    } else {
-        const { data: gastoData, error: e1 } = await db.from('gastos').insert({
-            id_periodo: periodoActual.id, id_circulo: circuloActual.id, id_pagador: pagador, concepto, monto, tipo_gasto: tipo, fecha_gasto: fecha
-        }).select().single();
-
-        if (e1) { alert('Error al guardar gasto: ' + e1.message); return; }
-
-        const { error: e2 } = await db.from('gastos_participantes')
-            .insert(splits.map(s => ({ ...s, id_gasto: gastoData.id })));
-
-        if (e2) { alert('Gasto guardado, pero error en la división: ' + e2.message + '\n¿Ejecutaste el SQL de configuración?'); return; }
-    }
-
-    cerrarModal('modal-gasto');
-    cargarGastos();
 }
 
 // =============================================
