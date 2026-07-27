@@ -110,12 +110,12 @@ function setQueryParam(key, value) {
 }
 
 function clearDetailQueryParams() {
-    ['abrir', 'tab', 'filtro', 'circulo', 'periodo'].forEach(k => setQueryParam(k, null));
+    ['abrir', 'tab', 'filtro', 'circulo', 'periodo', 'seccion'].forEach(k => setQueryParam(k, null));
 }
 
-function irAlCirculo(id, tab = null) {
+function irAlCirculo(id, seccion = null) {
     const q = new URLSearchParams({ abrir: String(id) });
-    if (tab) q.set('tab', tab);
+    if (seccion) q.set('seccion', seccion);
     window.location.href = `circulo.html?${q.toString()}`;
 }
 
