@@ -1,6 +1,41 @@
 // =============================================
 // UTILS COMPARTIDOS
 // =============================================
+
+// Tema: aplicar lo antes posible (utils carga en <head> o al inicio del body)
+(function initThemeEarly() {
+    try {
+        const saved = localStorage.getItem('toris-theme');
+        const dark = saved === 'dark' || (saved !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'light');
+    }
+})();
+
+function getTheme() {
+    return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+}
+
+function applyTheme(theme) {
+    const next = theme === 'dark' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('toris-theme', next); } catch (_) {}
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', next === 'dark' ? '#0f172a' : '#4f46e5');
+    document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
+        const icon = next === 'dark' ? 'sun' : 'moon';
+        btn.setAttribute('title', next === 'dark' ? 'Modo claro' : 'Modo oscuro');
+        btn.innerHTML = `<i data-icon="${icon}" data-size="18"></i>`;
+        if (typeof initIconsIn === 'function') initIconsIn(btn);
+    });
+}
+
+function toggleTheme() {
+    applyTheme(getTheme() === 'dark' ? 'light' : 'dark');
+}
+
+document.addEventListener('DOMContentLoaded', () => applyTheme(getTheme()));
 function fmt(n) {
     // Formato ARS: separador de miles = punto, decimal = coma, sin decimales si es entero
     const num = Number(n);
