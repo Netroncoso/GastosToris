@@ -3,12 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1b4079">
+    <script>(function(){try{var t=localStorage.getItem('toris-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content','#1b4079');}catch(e){}})();</script>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="TorisApp">
     <title>TorisApp • Listas</title>
-    <link rel="icon" href="https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/cube-transparent.svg">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
     <link rel="stylesheet" href="css/shared.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body>
+<body class="app-booting">
+<div id="boot-splash">Cargando...</div>
 
 <!-- TOPBAR -->
 <div class="topbar">
@@ -18,6 +27,7 @@
     </div>
     <div style="display:flex;align-items:center;gap:8px">
         <span id="topbar-user" class="topbar-user"></span>
+        <button class="btn-icon" data-theme-toggle onclick="toggleTheme()" title="Modo oscuro"><i data-icon="moon" data-size="18"></i></button>
         <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión"><i data-icon="arrow-right-on-rectangle" data-size="18"></i></button>
     </div>
 </div>
@@ -91,16 +101,51 @@
 // =============================================
 // ESTADO GLOBAL
 // =============================================
+let circuloId = null;
+let circuloActual = null;
 let listaActual = null;
 let filtroLista = 'pendientes';
 let todosLosItems = [];
 
 requireAuth(async () => {
+    await syncInvitados({ personsTable: 'participantes', personGroupField: 'id_circulo', membershipTable: 'circulos_miembros', membershipGroupField: 'id_circulo' });
+
     const params = new URLSearchParams(window.location.search);
+    let circuloParam = params.get('circulo');
     const abrirId = params.get('abrir');
+
+    if (!circuloParam && abrirId) {
+        const { data } = await db.from('listas').select('id_circulo').eq('id', abrirId).single();
+        if (data?.id_circulo) {
+            circuloParam = String(data.id_circulo);
+            setQueryParam('circulo', circuloParam);
+        }
+    }
+
+    if (!circuloParam) {
+        window.location.href = 'index.html';
+        return;
+    }
+
+    circuloId = parseInt(circuloParam, 10);
+    const { data: circulo, error } = await db.from('circulos').select('*').eq('id', circuloId).single();
+    if (error || !circulo) {
+        alert('No se encontró ese círculo.');
+        window.location.href = 'index.html';
+        return;
+    }
+    circuloActual = circulo;
+    setQueryParams({ circulo: circuloId });
+
     if (abrirId) {
+        bootScreen('detalle');
+        appReady();
         await abrirListaPorId(parseInt(abrirId, 10), { filtro: params.get('filtro') });
     } else {
+        bootScreen('listas');
+        actualizarTopbarListas();
+        setQueryParams({ circulo: circuloId, abrir: null, filtro: null });
+        appReady();
         await cargarListas();
     }
 });
@@ -111,12 +156,31 @@ async function abrirListaPorId(id, opts = {}) {
     const { data, error } = await db.from('listas').select('*').eq('id', id).single();
     if (error || !data) {
         alert('No se encontró esa lista.');
-        clearDetailQueryParams();
+        clearListaDetailParams();
+        await cargarListas();
+        mostrarPantalla('listas');
+        return;
+    }
+    if (data.id_circulo !== circuloId) {
+        alert('Esa lista no pertenece a este círculo.');
+        clearListaDetailParams();
         await cargarListas();
         mostrarPantalla('listas');
         return;
     }
     await abrirLista(data, opts);
+}
+
+function clearListaDetailParams() {
+    setQueryParams({ abrir: null, filtro: null, circulo: circuloId });
+}
+
+function actualizarTopbarListas() {
+    if (listaActual) {
+        document.getElementById('topbar-title').textContent = listaActual.nombre;
+    } else {
+        document.getElementById('topbar-title').textContent = circuloActual?.nombre || 'Listas';
+    }
 }
 
 // =============================================
@@ -128,16 +192,16 @@ function mostrarPantalla(nombre) {
 }
 
 function volverAListas() {
-    if (!listaActual) { irAlInicio(); return; }
-    listaActual = null;
-    clearDetailQueryParams();
-    document.getElementById('topbar-title').innerHTML = '<i data-icon="shopping-cart" data-size="20"></i> Listas';
-    mostrarPantalla('listas');
-    cargarListas();
+    if (listaActual) {
+        listaActual = null;
+        clearListaDetailParams();
+        actualizarTopbarListas();
+        mostrarPantalla('listas');
+        cargarListas();
+        return;
+    }
+    irAlCirculo(circuloId);
 }
-
-function abrirModal(id) { document.getElementById(id).classList.add('open'); }
-function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
 
 // =============================================
 // LISTA DE LISTAS (las "carpetas": Supermercado, Viaje, etc.)
@@ -145,20 +209,22 @@ function cerrarModal(id) { document.getElementById(id).classList.remove('open');
 async function cargarListas() {
     const cont = document.getElementById('lista-de-listas');
     cont.innerHTML = '<div class="loader">Cargando listas...</div>';
-    const { data, error } = await db.from('listas').select('*').order('created_at', { ascending: false });
+    const { data, error } = await db.from('listas').select('*').eq('id_circulo', circuloId).order('created_at', { ascending: false });
     if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}<br>¿Ejecutaste el SQL de configuración? Ver README.</div>`; return; }
     if (!data?.length) {
         cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="shopping-cart" data-size="40"></i></span>Sin listas todavía.<br>Creá una para empezar.</div>`;
         return;
     }
     cont.innerHTML = data.map(l => `
-        <div class="card" style="overflow:visible">
+        <div class="card card-click" onclick='abrirLista(${JSON.stringify(l)})'>
             <div class="card-body flex-between" style="gap:10px">
-                <div class="card-click" style="flex:1;min-width:0" onclick='abrirLista(${JSON.stringify(l)})'>
+                <div style="flex:1;min-width:0">
                     <div style="font-weight:700;font-size:16px">${escapeHtml(l.nombre)}</div>
                     <div class="text-muted">${new Date(l.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })}</div>
                 </div>
-                    <button class="btn btn-danger btn-sm" onclick="eliminarLista(${l.id}, '${l.nombre.replace(/'/g,"\\'")}')"><i data-icon="trash" data-size="16"></i></button>
+                <div class="card-actions" onclick="event.stopPropagation()">
+                    <button class="btn btn-danger btn-sm" onclick="eliminarLista(${l.id}, '${l.nombre.replace(/'/g,"\\'")}')">${icon('trash',16)}</button>
+                </div>
             </div>
         </div>
     `).join('');
@@ -171,12 +237,15 @@ function abrirModalLista() {
 }
 
 async function crearLista() {
-    const nombre = document.getElementById('input-nombre-lista').value.trim();
-    if (!nombre) { alert('Ingresá un nombre.'); return; }
-    const { error } = await db.from('listas').insert({ nombre });
-    if (error) { alert('Error: ' + error.message); return; }
-    cerrarModal('modal-lista');
-    cargarListas();
+    await withBusyButton('#modal-lista .btn-primary', async () => {
+        const nombre = document.getElementById('input-nombre-lista').value.trim();
+        if (!nombre) { alert('Ingresá un nombre.'); return; }
+        const { error } = await db.from('listas').insert({ nombre, id_circulo: circuloId });
+        if (error) { alert('Error: ' + error.message); return; }
+        document.getElementById('input-nombre-lista').value = '';
+        cerrarModal('modal-lista');
+        cargarListas();
+    });
 }
 
 async function eliminarLista(id, nombre) {
@@ -190,11 +259,12 @@ async function eliminarLista(id, nombre) {
 
 async function abrirLista(lista, opts = {}) {
     listaActual = lista;
-    setQueryParam('abrir', lista.id);
+    const filtro = FILTROS_LISTA.includes(opts.filtro) ? opts.filtro : 'pendientes';
+    setQueryParams({ circulo: circuloId, abrir: lista.id, filtro });
     document.getElementById('topbar-title').textContent = lista.nombre;
     mostrarPantalla('detalle');
     await cargarItems();
-    setFiltro(FILTROS_LISTA.includes(opts.filtro) ? opts.filtro : 'pendientes');
+    setFiltro(filtro);
 }
 
 // =============================================
@@ -205,7 +275,7 @@ function setFiltro(f) {
     document.querySelectorAll('.filter-tab').forEach((t, i) => {
         t.classList.toggle('active', ['pendientes','todos','comprados'][i] === f);
     });
-    if (listaActual) setQueryParam('filtro', f);
+    if (listaActual) setQueryParams({ circulo: circuloId, abrir: listaActual.id, filtro: f });
     renderItems();
 }
 

@@ -1,6 +1,42 @@
 // =============================================
 // UTILS COMPARTIDOS
 // =============================================
+
+// Tema: aplicar lo antes posible (utils carga en <head> o al inicio del body)
+(function initThemeEarly() {
+    try {
+        const saved = localStorage.getItem('toris-theme');
+        const dark = saved === 'dark' || (saved !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'light');
+    }
+})();
+
+function getTheme() {
+    return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+}
+
+function applyTheme(theme) {
+    const next = theme === 'dark' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('toris-theme', next); } catch (_) {}
+    // Misma tinta que el topbar (arriba del notch / chrome del celu)
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', '#1b4079');
+    document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
+        const icon = next === 'dark' ? 'sun' : 'moon';
+        btn.setAttribute('title', next === 'dark' ? 'Modo claro' : 'Modo oscuro');
+        btn.innerHTML = `<i data-icon="${icon}" data-size="18"></i>`;
+        if (typeof initIconsIn === 'function') initIconsIn(btn);
+    });
+}
+
+function toggleTheme() {
+    applyTheme(getTheme() === 'dark' ? 'light' : 'dark');
+}
+
+document.addEventListener('DOMContentLoaded', () => applyTheme(getTheme()));
 function fmt(n) {
     // Formato ARS: separador de miles = punto, decimal = coma, sin decimales si es entero
     const num = Number(n);
@@ -94,14 +130,85 @@ function mostrarPantalla(nombre) {
     if (el) el.classList.add('active');
 }
 
-function abrirModal(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
-function cerrarModal(id) { const el = document.getElementById(id); if (el) el.classList.remove('open'); }
+/** Sincroniza el overlay de modales con el viewport visible (sube con el teclado). */
+function syncVisualViewport() {
+    const root = document.documentElement;
+    const vv = window.visualViewport;
+    if (!vv) {
+        root.style.setProperty('--vv-top', '0px');
+        root.style.setProperty('--vv-left', '0px');
+        root.style.setProperty('--vv-width', '100%');
+        root.style.setProperty('--vv-height', '100dvh');
+        return;
+    }
+    root.style.setProperty('--vv-top', `${Math.round(vv.offsetTop)}px`);
+    root.style.setProperty('--vv-left', `${Math.round(vv.offsetLeft)}px`);
+    root.style.setProperty('--vv-width', `${Math.round(vv.width)}px`);
+    root.style.setProperty('--vv-height', `${Math.round(vv.height)}px`);
+}
+
+function abrirModal(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    syncVisualViewport();
+    el.classList.add('open');
+    document.body.classList.add('modal-open');
+}
+
+function cerrarModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('open');
+    if (!document.querySelector('.modal-overlay.open')) {
+        document.body.classList.remove('modal-open');
+    }
+}
+
+syncVisualViewport();
+window.addEventListener('resize', syncVisualViewport);
+if (window.visualViewport) {
+    visualViewport.addEventListener('resize', syncVisualViewport);
+    visualViewport.addEventListener('scroll', syncVisualViewport);
+}
+
+// Al enfocar un campo, reacomodar y traer el input a la zona visible sobre el teclado
+document.addEventListener('focusin', (e) => {
+    const field = e.target;
+    if (!field?.closest?.('.modal-overlay.open')) return;
+    const bringIntoView = () => {
+        syncVisualViewport();
+        field.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+    };
+    bringIntoView();
+    setTimeout(bringIntoView, 280);
+});
+
+/** Evita doble submit: deshabilita el botón mientras corre la acción. */
+async function withBusyButton(btnOrSelector, fn) {
+    const btn = typeof btnOrSelector === 'string'
+        ? document.querySelector(btnOrSelector)
+        : btnOrSelector;
+    if (btn?.dataset.busy === '1') return;
+    const prevText = btn?.textContent;
+    if (btn) {
+        btn.dataset.busy = '1';
+        btn.disabled = true;
+    }
+    try {
+        return await fn(btn, prevText);
+    } finally {
+        if (btn) {
+            btn.dataset.busy = '';
+            btn.disabled = false;
+            if (prevText != null) btn.textContent = prevText;
+        }
+    }
+}
 
 function getQueryParam(key) {
     return new URLSearchParams(window.location.search).get(key);
 }
 
-// Actualiza query params sin recargar (permite refrescar dentro de un grupo/lista)
+// Actualiza query params sin recargar (permite F5 sin perder el lugar)
 function setQueryParam(key, value) {
     const url = new URL(window.location.href);
     if (value == null || value === '') url.searchParams.delete(key);
@@ -109,13 +216,43 @@ function setQueryParam(key, value) {
     history.replaceState(null, '', url);
 }
 
-function clearDetailQueryParams() {
-    ['abrir', 'tab', 'filtro'].forEach(k => setQueryParam(k, null));
+/** Setea varios query params de una vez (más estable que varios replaceState seguidos). */
+function setQueryParams(map) {
+    const url = new URL(window.location.href);
+    Object.entries(map).forEach(([key, value]) => {
+        if (value == null || value === '') url.searchParams.delete(key);
+        else url.searchParams.set(key, String(value));
+    });
+    history.replaceState(null, '', url);
 }
 
-// cambiarTab: busca el contenedor de contenido `tab-<nombre>` y activa la pestaña
-// También invoca una función global opcional `onTab_<nombre>` si existe.
-function cambiarTab(nombre) {
+function clearDetailQueryParams() {
+    setQueryParams({
+        abrir: null, tab: null, filtro: null,
+        circulo: null, periodo: null, seccion: null
+    });
+}
+
+function irAlCirculo(id, seccion = null) {
+    const q = new URLSearchParams({ abrir: String(id) });
+    if (seccion) q.set('seccion', seccion);
+    window.location.href = `circulo.html?${q.toString()}`;
+}
+
+/** Quita el splash de boot (llamar cuando la pantalla correcta ya está activa). */
+function appReady() {
+    document.body.classList.remove('app-booting');
+}
+
+/** Activa una pantalla sin animaciones intermedias (para restaurar F5). */
+function bootScreen(nombre) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const el = document.getElementById('screen-' + nombre);
+    if (el) el.classList.add('active');
+}
+
+/** Activa pestaña de contenido sin disparar side-effects (onTab_*). */
+function bootTab(nombre) {
     document.querySelectorAll('.tab').forEach(t => {
         const tabName = t.getAttribute('data-tab') || (t.getAttribute('onclick') || '').match(/cambiarTab\('([^']+)'\)/)?.[1];
         t.classList.toggle('active', tabName === nombre);
@@ -123,20 +260,28 @@ function cambiarTab(nombre) {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     const el = document.getElementById('tab-' + nombre);
     if (el) el.classList.add('active');
-    const cb = window['onTab_' + nombre];
-    if (typeof cb === 'function') cb();
-    if (el && document.querySelector('#screen-grupo.active, #screen-detalle.active')) {
-        setQueryParam('tab', nombre);
-    }
 }
 
-// Generador genérico para sincronizar invitados entre tablas de personas y tabla de miembros
-// `tipo` (opcional) acota a grupos de gastos o de tareas: como `participantes` y `grupos_miembros`
-// son compartidos por ambos módulos, sin este filtro cada página repite el trabajo de la otra.
-async function syncInvitados({ personsTable, personGroupField, membershipTable, membershipGroupField, tipo }) {
-    // La membresía a un grupo casi no cambia durante una sesión: evitamos repetir
-    // este sync (3 round-trips) en cada carga de pantalla, solo 1 vez por pestaña.
-    const cacheKey = `_synced_invitados_${tipo || 'default'}`;
+// cambiarTab: busca el contenedor `tab-<nombre>` y activa la pestaña.
+// Persiste `tab` en la URL siempre que exista el contenido (para que F5 restaure).
+function cambiarTab(nombre) {
+    document.querySelectorAll('.tab').forEach(t => {
+        const tabName = t.getAttribute('data-tab') || (t.getAttribute('onclick') || '').match(/cambiarTab\('([^']+)'\)/)?.[1];
+        t.classList.toggle('active', tabName === nombre);
+    });
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    const el = document.getElementById('tab-' + nombre);
+    if (el) {
+        el.classList.add('active');
+        setQueryParam('tab', nombre);
+    }
+    const cb = window['onTab_' + nombre];
+    if (typeof cb === 'function') cb();
+}
+
+// Sincroniza invitados (participantes.email) → membresía en circulos_miembros. 1 vez por sesión.
+async function syncInvitados({ personsTable = 'participantes', personGroupField = 'id_circulo', membershipTable = 'circulos_miembros', membershipGroupField = 'id_circulo' } = {}) {
+    const cacheKey = '_synced_invitados_circulos';
     if (sessionStorage.getItem(cacheKey)) return;
 
     const user = await getCurrentUser();
@@ -144,17 +289,10 @@ async function syncInvitados({ personsTable, personGroupField, membershipTable, 
     if (!email || !user?.id) return;
     sessionStorage.setItem(cacheKey, '1');
 
-    const [q, gt] = await Promise.all([
-        db.from(personsTable).select(personGroupField).eq('email', email),
-        tipo ? db.from('grupos').select('id').eq('tipo', tipo) : Promise.resolve({ data: null })
-    ]);
-    if (q.error) return;
+    const { data, error } = await db.from(personsTable).select(personGroupField).eq('email', email);
+    if (error) return;
 
-    let grupos = [...new Set((q.data || []).map(p => p[personGroupField]))];
-    if (tipo) {
-        const idsValidos = new Set((gt.data || []).map(g => g.id));
-        grupos = grupos.filter(id => idsValidos.has(id));
-    }
+    const grupos = [...new Set((data || []).map(p => p[personGroupField]).filter(Boolean))];
     if (!grupos.length) return;
 
     const rows = grupos.map(id_gr => ({ [membershipGroupField]: id_gr, user_id: user.id }));
@@ -187,6 +325,13 @@ new MutationObserver(mutations => {
     mutations.forEach(m => m.addedNodes.forEach(initIconsIn));
 }).observe(document.documentElement, { childList: true, subtree: true });
 
+// PWA: abre como app (sin pestaña nueva cada vez) y cachea estáticos
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+}
+
 // =============================================
 // FACTORY: GESTOR DE GRUPOS (creación/edición/abrir modal)
 // =============================================
@@ -195,12 +340,16 @@ function crearGestorDeGrupos({ table, nameField = 'nombre', rpcCreate }) {
         abrirModalGrupo: function(grupo = null, modalId = 'modal-grupo', inputId = 'input-nombre-grupo') {
             window.grupoEditando = grupo;
             const val = grupo ? grupo[nameField] : '';
-            const hdr = grupo ? 'Editar Grupo' : 'Nuevo Grupo';
-            const btnText = grupo ? 'Actualizar Grupo' : 'Crear Grupo';
+            const hdr = grupo ? 'Editar círculo' : 'Nuevo círculo';
+            const btnText = grupo ? 'Actualizar' : 'Crear círculo';
             const headerEl = document.querySelector('#' + modalId + ' .modal-header h3');
             if (headerEl) headerEl.textContent = hdr;
             const btn = document.querySelector('#' + modalId + ' .btn-primary');
-            if (btn) btn.textContent = btnText;
+            if (btn) {
+                btn.textContent = btnText;
+                btn.disabled = false;
+                btn.dataset.busy = '';
+            }
             const inp = document.getElementById(inputId);
             if (inp) inp.value = val;
             abrirModal(modalId);
@@ -208,33 +357,42 @@ function crearGestorDeGrupos({ table, nameField = 'nombre', rpcCreate }) {
         },
 
         crearGrupo: async function(modalId = 'modal-grupo', inputId = 'input-nombre-grupo') {
-            const nombre = document.getElementById(inputId).value.trim();
-            if (!nombre) { alert('Ingresá un nombre.'); return; }
-            const userId = await getCurrentUserId();
-            if (!userId) { alert('No se encontró el usuario actual. Volvé a iniciar sesión.'); return; }
+            return withBusyButton('#' + modalId + ' .btn-primary', async () => {
+                const nombre = document.getElementById(inputId).value.trim();
+                if (!nombre) { alert('Ingresá un nombre.'); return; }
+                const userId = await getCurrentUserId();
+                if (!userId) { alert('No se encontró el usuario actual. Volvé a iniciar sesión.'); return; }
 
-            if (window.grupoEditando) {
-                const { error } = await db.from(table).update({ [nameField]: nombre }).eq('id', window.grupoEditando.id);
-                if (error) { alert('Error al actualizar grupo: ' + error.message); return; }
-                window.grupoEditando = null;
+                if (window.grupoEditando) {
+                    const { error } = await db.from(table).update({ [nameField]: nombre }).eq('id', window.grupoEditando.id);
+                    if (error) { alert('Error al actualizar: ' + error.message); return; }
+                    window.grupoEditando = null;
+                    cerrarModal(modalId);
+                    if (typeof window.cargarGrupos === 'function') window.cargarGrupos();
+                    return;
+                }
+
+                const { data: grupo, error } = await db.rpc(rpcCreate || 'crear_circulo', { p_nombre: nombre });
+                if (error) { alert('Error al crear círculo: ' + error.message); return; }
+
+                // Cerrar ya: el resto no debe dejar el modal colgado
+                document.getElementById(inputId).value = '';
                 cerrarModal(modalId);
+
+                const user = await getCurrentUser();
+                if (user?.email) {
+                    try {
+                        await db.from('participantes').insert({
+                            id_circulo: grupo.id,
+                            nombre: getDisplayNameFromUser(user),
+                            email: user.email.toLowerCase()
+                        });
+                    } catch (e) { console.warn('No se pudo agregar al creador como persona:', e.message); }
+                }
+
                 if (typeof window.cargarGrupos === 'function') window.cargarGrupos();
-                return;
-            }
-
-            const { data: grupo, error } = await db.rpc(rpcCreate, { p_nombre: nombre });
-            if (error) { alert('Error al crear grupo: ' + error.message); return; }
-
-            // Agregar al creador como persona (tabla `participantes`, compartida por gastos y tareas)
-            const user = await getCurrentUser();
-            if (user?.email) {
-                try {
-                    await db.from('participantes').insert({ id_grupo: grupo.id, nombre: getDisplayNameFromUser(user), email: user.email.toLowerCase() });
-                } catch (e) { console.warn('No se pudo agregar al creador como persona:', e.message); }
-            }
-
-            cerrarModal(modalId);
-            if (typeof window.cargarGrupos === 'function') window.cargarGrupos();
+                return grupo;
+            });
         }
     };
 }
@@ -242,60 +400,66 @@ function crearGestorDeGrupos({ table, nameField = 'nombre', rpcCreate }) {
 // =============================================
 // FACTORY: GESTOR DE PERSONAS (añadir e invitar)
 // =============================================
-function crearGestorDePersonas({ table, nameField = 'nombre', groupField, inputNameId, inputEmailId, inviteInfoId, addButtonSelector, currentListVar, redirectParam }) {
+function crearGestorDePersonas({ table, nameField = 'nombre', groupField, inputNameId, inputEmailId, inviteInfoId, addButtonSelector, currentListVar, redirectParam = 'invite', modalId = 'modal-participante' }) {
     return {
         agregarPersona: async function(groupId) {
-            const nombre = document.getElementById(inputNameId).value.trim();
-            const email  = document.getElementById(inputEmailId).value.trim().toLowerCase();
-            if (!nombre) { alert('Ingresá un nombre.'); return; }
+            return withBusyButton(addButtonSelector || '#' + modalId + ' .btn-primary', async (btn) => {
+                const nombre = document.getElementById(inputNameId).value.trim();
+                const email  = document.getElementById(inputEmailId).value.trim().toLowerCase();
+                if (!nombre) { alert('Ingresá un nombre.'); return false; }
 
-            const currentList = window[currentListVar] || [];
-            const nombreDup = currentList.find(p => (p[nameField] || '').toLowerCase() === nombre.toLowerCase());
-            if (nombreDup) { alert(`Ya existe "${nombre}" en este grupo.`); return; }
-            if (email) {
-                const emailDup = currentList.find(p => p.email?.toLowerCase() === email);
-                if (emailDup) { alert(`El email ${email} ya está registrado en este grupo (${emailDup[nameField]}).`); return; }
-            }
-
-            const payload = { [groupField]: groupId, [nameField]: nombre };
-            if (email) payload.email = email;
-
-            const { error } = await db.from(table).insert(payload);
-            if (error) { alert('Error: ' + error.message); return; }
-
-            if (email) {
-                const user = await getCurrentUser();
-                if (user?.email?.toLowerCase() === email) {
-                    alert(`${nombre} fue agregado, pero no se envió invitación: ese es tu propio email.`);
-                    if (inviteInfoId) document.getElementById(inviteInfoId).style.display = 'none';
-                    if (addButtonSelector) document.querySelector(addButtonSelector).textContent = addButtonSelector.includes('modal') ? 'Agregar' : 'Agregar Persona';
-                    if (typeof window.cargarParticipantes === 'function') window.cargarParticipantes();
-                    if (typeof window.cargarPersonasTareas === 'function') window.cargarPersonasTareas();
-                    return;
+                const currentList = window[currentListVar] || [];
+                const nombreDup = currentList.find(p => (p[nameField] || '').toLowerCase() === nombre.toLowerCase());
+                if (nombreDup) { alert(`Ya existe "${nombre}" en este círculo.`); return false; }
+                if (email) {
+                    const emailDup = currentList.find(p => p.email?.toLowerCase() === email);
+                    if (emailDup) { alert(`El email ${email} ya está registrado en este círculo (${emailDup[nameField]}).`); return false; }
                 }
 
-                const { error: inviteError } = await db.auth.signInWithOtp({
-                    email,
-                    options: { emailRedirectTo: `${APP_BASE_URL}?${redirectParam}=${groupId}`, shouldCreateUser: true }
-                });
-                if (inviteError) {
-                    alert(`${nombre} fue agregado, pero hubo un error al enviar la invitación: ${inviteError.message}`);
-                } else {
-                    alert(`✅ ${nombre} fue agregado y se le envió una invitación a ${email}.`);
+                const payload = { [groupField]: groupId, [nameField]: nombre };
+                if (email) payload.email = email;
+
+                const { data: inserted, error } = await db.from(table).insert(payload).select().single();
+                if (error) {
+                    if (error.code === '23505') alert('Esa persona o email ya existe en este círculo.');
+                    else alert('Error: ' + error.message);
+                    return false;
                 }
-            }
 
-            // Reset form and reload
-            if (inputNameId) document.getElementById(inputNameId).value = '';
-            if (inputEmailId) document.getElementById(inputEmailId).value = '';
-            if (inviteInfoId) document.getElementById(inviteInfoId).style.display = 'none';
-            if (addButtonSelector) {
-                const btn = document.querySelector(addButtonSelector);
-                if (btn) btn.textContent = addButtonSelector.includes('modal') ? 'Agregar' : 'Agregar Persona';
-            }
+                // Actualizar lista local ya (evita un segundo click antes del reload)
+                if (inserted && Array.isArray(window[currentListVar])) {
+                    window[currentListVar] = [...window[currentListVar], inserted];
+                }
 
-            if (typeof window.cargarParticipantes === 'function') window.cargarParticipantes();
-            if (typeof window.cargarPersonasTareas === 'function') window.cargarPersonasTareas();
+                // Cerrar modal YA — no esperar el OTP (eso es lo que dejaba todo tildado)
+                if (inputNameId) document.getElementById(inputNameId).value = '';
+                if (inputEmailId) document.getElementById(inputEmailId).value = '';
+                if (inviteInfoId) document.getElementById(inviteInfoId).style.display = 'none';
+                if (btn) btn.textContent = 'Agregar';
+                cerrarModal(modalId);
+
+                if (typeof window.cargarParticipantes === 'function') window.cargarParticipantes();
+                if (typeof window.cargarPersonasTareas === 'function') window.cargarPersonasTareas();
+
+                // Invitación en segundo plano
+                if (email) {
+                    const user = await getCurrentUser();
+                    if (user?.email?.toLowerCase() === email) {
+                        alert(`${nombre} fue agregado, pero no se envió invitación: ese es tu propio email.`);
+                        return true;
+                    }
+                    const { error: inviteError } = await db.auth.signInWithOtp({
+                        email,
+                        options: { emailRedirectTo: `${APP_BASE_URL}?${redirectParam}=${groupId}`, shouldCreateUser: true }
+                    });
+                    if (inviteError) {
+                        alert(`${nombre} fue agregado, pero hubo un error al enviar la invitación: ${inviteError.message}`);
+                    } else {
+                        alert(`${nombre} fue agregado y se le envió una invitación a ${email}.`);
+                    }
+                }
+                return true;
+            });
         }
     };
 }
