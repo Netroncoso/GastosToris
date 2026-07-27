@@ -22,7 +22,7 @@
 <!-- TOPBAR -->
 <div class="topbar">
     <div class="topbar-left">
-        <button id="btn-back" class="btn-icon" onclick="volverAlCirculo()"><i data-icon="arrow-left" data-size="18"></i></button>
+        <button id="btn-back" class="btn-icon" onclick="volverAlCirculo()" title="Menú del círculo"><i data-icon="arrow-left" data-size="18"></i></button>
         <h1 id="topbar-title"><i data-icon="currency-dollar" data-size="20"></i> Gastos</h1>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -311,7 +311,7 @@ requireAuth(async () => {
         return;
     }
     if (!periodoId) {
-        window.location.href = `circulo.html?abrir=${circuloId}&seccion=gastos`;
+        window.location.href = `./circulo.html?abrir=${circuloId}&seccion=gastos`;
         return;
     }
     if (!circuloId) {
@@ -326,7 +326,7 @@ requireAuth(async () => {
 
     if (ep || !periodo || ec || !circulo || Number(periodo.id_circulo) !== Number(circuloId)) {
         alert('No se encontró ese periodo (o no tenés acceso todavía).');
-        window.location.href = `circulo.html?abrir=${circuloId}&seccion=gastos`;
+        window.location.href = `./circulo.html?abrir=${circuloId}&seccion=gastos`;
         return;
     }
 
@@ -357,7 +357,7 @@ window.onTab_resumen = () => calcularYMostrarResumen();
 
 function volverAlCirculo() {
     if (!circuloActual) { irAlInicio(); return; }
-    window.location.href = `circulo.html?abrir=${circuloActual.id}&seccion=gastos`;
+    window.location.href = `./circulo.html?abrir=${circuloActual.id}`;
 }
 
 // =============================================

@@ -24,7 +24,7 @@ async function requireAuth(onReady) {
         });
     }
     if (!session) {
-        window.location.href = 'index.html';
+        window.location.href = './index.html';
         return;
     }
     pintarTopbarUser(session.user);
@@ -33,7 +33,7 @@ async function requireAuth(onReady) {
 
 db.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT') {
-        window.location.href = 'index.html';
+        window.location.href = './index.html';
     }
 });
 
@@ -45,11 +45,12 @@ function pintarTopbarUser(user) {
 }
 
 async function cerrarSesion() {
-    clearLastRoute();
+    try { localStorage.removeItem('toris-last-route'); } catch (_) {}
     await db.auth.signOut();
-    window.location.href = 'index.html';
+    window.location.href = './index.html';
 }
 
 function irAlInicio() {
-    window.location.href = 'index.html';
+    try { localStorage.removeItem('toris-last-route'); } catch (_) {}
+    window.location.href = './index.html';
 }

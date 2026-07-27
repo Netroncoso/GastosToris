@@ -1,6 +1,6 @@
 /* Service worker liviano: cachea estáticos de GitHub Pages.
-   No cachea llamadas a Supabase (siempre van a la red). */
-const CACHE = 'torisapp-static-v12';
+   HTML/JS/CSS van network-first para no quedar con versiones viejas en el teléfono. */
+const CACHE = 'torisapp-static-v13';
 const PRECACHE = [
   './',
   './index.html',
@@ -31,13 +31,20 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+function cacheResponse(req, res) {
+  if (res && res.ok) {
+    const clone = res.clone();
+    caches.open(CACHE).then((cache) => cache.put(req, clone));
+  }
+  return res;
+}
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
 
-  // Nunca cachear Supabase / Google / CDNs de auth
   if (
     url.hostname.includes('supabase.co') ||
     url.hostname.includes('googleapis.com') ||
@@ -46,19 +53,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Estáticos propios: cache-first
-  if (url.origin === self.location.origin) {
+  if (url.origin !== self.location.origin) return;
+
+  const path = url.pathname;
+  const isAppCode = /\.(html|js|css)$/.test(path) || path.endsWith('/');
+
+  if (isAppCode) {
     event.respondWith(
-      caches.match(req).then((cached) => {
-        const fetchPromise = fetch(req).then((res) => {
-          if (res && res.ok) {
-            const clone = res.clone();
-            caches.open(CACHE).then((cache) => cache.put(req, clone));
-          }
-          return res;
-        }).catch(() => cached);
-        return cached || fetchPromise;
-      })
+      fetch(req)
+        .then((res) => cacheResponse(req, res))
+        .catch(() => caches.match(req))
     );
+    return;
   }
+
+  event.respondWith(
+    caches.match(req).then((cached) => {
+      if (cached) return cached;
+      return fetch(req).then((res) => cacheResponse(req, res));
+    })
+  );
 });

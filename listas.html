@@ -123,7 +123,7 @@ requireAuth(async () => {
     }
 
     if (!circuloParam) {
-        window.location.href = 'index.html';
+        window.location.href = './index.html';
         return;
     }
 
@@ -131,7 +131,7 @@ requireAuth(async () => {
     const { data: circulo, error } = await db.from('circulos').select('*').eq('id', circuloId).single();
     if (error || !circulo) {
         alert('No se encontró ese círculo.');
-        window.location.href = 'index.html';
+        window.location.href = './index.html';
         return;
     }
     circuloActual = circulo;

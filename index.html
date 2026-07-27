@@ -89,17 +89,31 @@
     }
 
     async function cerrarSesion() {
-        clearLastRoute();
+        try { localStorage.removeItem('toris-last-route'); } catch (_) {}
         await db.auth.signOut();
     }
 
+    let _appLista = false;
+
     db.auth.onAuthStateChange((event, session) => {
-        if (session) {
-            activarApp(session.user);
-            if (event === 'SIGNED_IN' && session.provider_refresh_token) {
-                guardarTokenGoogle(session.user.id, session.provider_refresh_token);
+        if (event === 'INITIAL_SESSION') {
+            if (session) activarApp(session.user);
+            else {
+                mostrarPantalla('login');
+                document.getElementById('topbar').classList.add('hidden');
+                appReady();
             }
-        } else {
+            _appLista = true;
+            return;
+        }
+        if (session) {
+            if (event === 'SIGNED_IN') {
+                activarApp(session.user);
+                if (session.provider_refresh_token) {
+                    guardarTokenGoogle(session.user.id, session.provider_refresh_token);
+                }
+            }
+        } else if (event === 'SIGNED_OUT') {
             mostrarPantalla('login');
             document.getElementById('topbar').classList.add('hidden');
             appReady();
@@ -123,14 +137,14 @@
         const params = new URLSearchParams(window.location.search);
         const invite = params.get('invite') || params.get('invite_gasto') || params.get('invite_tarea');
         if (invite) {
-            window.location.href = `circulo.html?abrir=${invite}`;
+            window.location.href = `./circulo.html?abrir=${invite}`;
             return;
         }
 
         mostrarPantalla('dashboard');
         appReady();
-        await syncInvitados();
-        await cargarGrupos();
+        syncInvitados().catch(() => {});
+        cargarGrupos();
     }
 
     function mostrarPantalla(nombre) {
@@ -192,6 +206,7 @@
     }
 
     db.auth.getSession().then(({ data: { session } }) => {
+        if (_appLista) return;
         if (session) activarApp(session.user);
         else {
             mostrarPantalla('login');

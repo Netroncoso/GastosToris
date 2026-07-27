@@ -157,7 +157,7 @@ requireAuth(async () => {
     const params = new URLSearchParams(window.location.search);
     const abrirId = params.get('abrir');
     if (!abrirId) {
-        window.location.href = 'index.html';
+        window.location.href = './index.html';
         return;
     }
 
@@ -166,7 +166,7 @@ requireAuth(async () => {
     const { data, error } = await db.from('circulos').select('*').eq('id', abrirId).single();
     if (error || !data) {
         alert('No se encontró ese círculo (o no tenés acceso todavía).');
-        window.location.href = 'index.html';
+        window.location.href = './index.html';
         return;
     }
     await abrirGrupo(data, { filtro: params.get('filtro') });
