@@ -208,40 +208,12 @@ function getQueryParam(key) {
     return new URLSearchParams(window.location.search).get(key);
 }
 
-// =============================================
-// ÚLTIMA RUTA (guardada por si la usamos más adelante; sin auto-restore)
-// =============================================
-const LAST_ROUTE_KEY = 'toris-last-route';
-
-function currentRoutePath() {
-    const file = window.location.pathname.split('/').pop() || 'index.html';
-    return file + window.location.search;
-}
-
-function saveLastRoute() {
-    try {
-        const file = window.location.pathname.split('/').pop() || 'index.html';
-        if (file === 'index.html') {
-            const dash = document.getElementById('screen-dashboard');
-            if (dash && !dash.classList.contains('active')) return;
-        }
-        localStorage.setItem(LAST_ROUTE_KEY, currentRoutePath());
-    } catch (_) {}
-}
-
-function clearLastRoute() {
-    try { localStorage.removeItem(LAST_ROUTE_KEY); } catch (_) {}
-}
-
-window.addEventListener('pagehide', saveLastRoute);
-
 // Actualiza query params sin recargar (permite F5 sin perder el lugar)
 function setQueryParam(key, value) {
     const url = new URL(window.location.href);
     if (value == null || value === '') url.searchParams.delete(key);
     else url.searchParams.set(key, String(value));
     history.replaceState(null, '', url);
-    saveLastRoute();
 }
 
 /** Setea varios query params de una vez (más estable que varios replaceState seguidos). */
@@ -252,7 +224,6 @@ function setQueryParams(map) {
         else url.searchParams.set(key, String(value));
     });
     history.replaceState(null, '', url);
-    saveLastRoute();
 }
 
 function clearDetailQueryParams() {
@@ -265,13 +236,12 @@ function clearDetailQueryParams() {
 function irAlCirculo(id, seccion = null) {
     const q = new URLSearchParams({ abrir: String(id) });
     if (seccion) q.set('seccion', seccion);
-    window.location.href = `circulo.html?${q.toString()}`;
+    window.location.href = `./circulo.html?${q.toString()}`;
 }
 
 /** Quita el splash de boot (llamar cuando la pantalla correcta ya está activa). */
 function appReady() {
     document.body.classList.remove('app-booting');
-    saveLastRoute();
 }
 
 /** Activa una pantalla sin animaciones intermedias (para restaurar F5). */
