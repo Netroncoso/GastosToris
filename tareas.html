@@ -180,10 +180,11 @@ const FILTROS_TAREAS = ['pendientes', 'todas', 'hechas'];
 
 async function abrirGrupo(grupo, opts = {}) {
     grupoActual = grupo;
-    setQueryParam('abrir', grupo.id);
+    const filtro = FILTROS_TAREAS.includes(opts.filtro) ? opts.filtro : 'pendientes';
+    setQueryParams({ abrir: grupo.id, filtro });
     document.getElementById('topbar-title').textContent = grupo.nombre;
     await Promise.all([cargarPersonasTareas(), cargarTareas(), cargarListasDisponibles()]);
-    setFiltro(FILTROS_TAREAS.includes(opts.filtro) ? opts.filtro : 'pendientes');
+    setFiltro(filtro);
 }
 
 function volverAlCirculo() {
@@ -296,7 +297,7 @@ function setFiltro(f) {
     document.querySelectorAll('.filter-tab').forEach((t, i) => {
         t.classList.toggle('active', ['pendientes','todas','hechas'][i] === f);
     });
-    if (grupoActual) setQueryParam('filtro', f);
+    if (grupoActual) setQueryParams({ abrir: grupoActual.id, filtro: f });
     renderTareas();
 }
 

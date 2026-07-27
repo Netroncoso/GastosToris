@@ -162,15 +162,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function mostrarMenu() {
     seccionActual = 'menu';
-    setQueryParam('seccion', null);
-    setQueryParam('tab', null);
+    setQueryParams({ abrir: circuloActual.id, seccion: null, tab: null });
     document.getElementById('topbar-title').textContent = circuloActual.nombre;
     mostrarPantalla('menu');
 }
 
 function abrirSeccion(nombre) {
     seccionActual = nombre;
-    setQueryParam('seccion', nombre);
+    setQueryParams({ abrir: circuloActual.id, seccion: nombre });
     if (nombre === 'gastos') {
         document.getElementById('topbar-title').textContent = 'Gastos';
         mostrarPantalla('gastos');

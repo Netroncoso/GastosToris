@@ -5,7 +5,25 @@
 // =============================================
 
 async function requireAuth(onReady) {
-    const { data: { session } } = await db.auth.getSession();
+    // getSession puede devolver null un instante en F5; esperamos INITIAL_SESSION si hace falta.
+    let session = (await db.auth.getSession()).data.session;
+    if (!session) {
+        session = await new Promise(resolve => {
+            let sub = null;
+            const timeout = setTimeout(() => {
+                if (sub) sub.unsubscribe();
+                resolve(null);
+            }, 1500);
+            const { data: { subscription } } = db.auth.onAuthStateChange((event, s) => {
+                if (s || event === 'INITIAL_SESSION') {
+                    clearTimeout(timeout);
+                    subscription.unsubscribe();
+                    resolve(s || null);
+                }
+            });
+            sub = subscription;
+        });
+    }
     if (!session) {
         window.location.href = 'index.html';
         return;

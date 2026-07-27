@@ -101,7 +101,7 @@ function getQueryParam(key) {
     return new URLSearchParams(window.location.search).get(key);
 }
 
-// Actualiza query params sin recargar (permite refrescar dentro de un grupo/lista)
+// Actualiza query params sin recargar (permite F5 sin perder el lugar)
 function setQueryParam(key, value) {
     const url = new URL(window.location.href);
     if (value == null || value === '') url.searchParams.delete(key);
@@ -109,8 +109,21 @@ function setQueryParam(key, value) {
     history.replaceState(null, '', url);
 }
 
+/** Setea varios query params de una vez (más estable que varios replaceState seguidos). */
+function setQueryParams(map) {
+    const url = new URL(window.location.href);
+    Object.entries(map).forEach(([key, value]) => {
+        if (value == null || value === '') url.searchParams.delete(key);
+        else url.searchParams.set(key, String(value));
+    });
+    history.replaceState(null, '', url);
+}
+
 function clearDetailQueryParams() {
-    ['abrir', 'tab', 'filtro', 'circulo', 'periodo', 'seccion'].forEach(k => setQueryParam(k, null));
+    setQueryParams({
+        abrir: null, tab: null, filtro: null,
+        circulo: null, periodo: null, seccion: null
+    });
 }
 
 function irAlCirculo(id, seccion = null) {
@@ -119,8 +132,8 @@ function irAlCirculo(id, seccion = null) {
     window.location.href = `circulo.html?${q.toString()}`;
 }
 
-// cambiarTab: busca el contenedor de contenido `tab-<nombre>` y activa la pestaña
-// También invoca una función global opcional `onTab_<nombre>` si existe.
+// cambiarTab: busca el contenedor `tab-<nombre>` y activa la pestaña.
+// Persiste `tab` en la URL siempre que exista el contenido (para que F5 restaure).
 function cambiarTab(nombre) {
     document.querySelectorAll('.tab').forEach(t => {
         const tabName = t.getAttribute('data-tab') || (t.getAttribute('onclick') || '').match(/cambiarTab\('([^']+)'\)/)?.[1];
@@ -128,12 +141,12 @@ function cambiarTab(nombre) {
     });
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     const el = document.getElementById('tab-' + nombre);
-    if (el) el.classList.add('active');
-    const cb = window['onTab_' + nombre];
-    if (typeof cb === 'function') cb();
-    if (el && document.querySelector('#screen-grupo.active, #screen-detalle.active, #screen-periodo.active, #screen-circulo.active')) {
+    if (el) {
+        el.classList.add('active');
         setQueryParam('tab', nombre);
     }
+    const cb = window['onTab_' + nombre];
+    if (typeof cb === 'function') cb();
 }
 
 // Sincroniza invitados (participantes.email) → membresía en circulos_miembros. 1 vez por sesión.
