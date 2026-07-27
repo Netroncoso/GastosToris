@@ -209,7 +209,7 @@ function getQueryParam(key) {
 }
 
 // =============================================
-// ÚLTIMA RUTA (reabrir donde quedaste al volver a la app)
+// ÚLTIMA RUTA (guardada por si la usamos más adelante; sin auto-restore)
 // =============================================
 const LAST_ROUTE_KEY = 'toris-last-route';
 
@@ -229,45 +229,8 @@ function saveLastRoute() {
     } catch (_) {}
 }
 
-function getLastRoute() {
-    try { return localStorage.getItem(LAST_ROUTE_KEY); } catch (_) { return null; }
-}
-
 function clearLastRoute() {
     try { localStorage.removeItem(LAST_ROUTE_KEY); } catch (_) {}
-}
-
-function isValidLastRoute(route) {
-    if (!route || route === 'index.html') return false;
-    const q = route.indexOf('?');
-    const file = q >= 0 ? route.slice(0, q) : route;
-    const params = new URLSearchParams(q >= 0 ? route.slice(q + 1) : '');
-    if (file === 'circulo.html') return params.has('abrir');
-    if (file === 'gastos.html') return params.has('circulo') && params.has('periodo');
-    if (file === 'listas.html') return params.has('circulo');
-    if (file === 'tareas.html') return params.has('abrir');
-    return false;
-}
-
-/** Ruta guardada para restaurar al abrir (null si no corresponde). */
-function getRestoreTarget() {
-    if (sessionStorage.getItem('toris-restore-attempted')) return null;
-    const last = getLastRoute();
-    if (!last || last === currentRoutePath() || !isValidLastRoute(last)) {
-        if (last && !isValidLastRoute(last)) clearLastRoute();
-        return null;
-    }
-    const file = window.location.pathname.split('/').pop() || 'index.html';
-    if (file !== 'index.html') return null;
-    return last;
-}
-
-function markRestoreAttempted() {
-    try { sessionStorage.setItem('toris-restore-attempted', '1'); } catch (_) {}
-}
-
-function clearRouteRestoreFlag() {
-    try { sessionStorage.removeItem('toris-restore-attempted'); } catch (_) {}
 }
 
 window.addEventListener('pagehide', saveLastRoute);
@@ -309,8 +272,6 @@ function irAlCirculo(id, seccion = null) {
 function appReady() {
     document.body.classList.remove('app-booting');
     saveLastRoute();
-    const file = window.location.pathname.split('/').pop() || 'index.html';
-    if (file !== 'index.html') clearRouteRestoreFlag();
 }
 
 /** Activa una pantalla sin animaciones intermedias (para restaurar F5). */

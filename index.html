@@ -120,29 +120,17 @@
         const nombre = (user.user_metadata?.full_name || user.email || '').split(' ')[0];
         document.getElementById('topbar-user').textContent = nombre;
 
-        try {
-            const params = new URLSearchParams(window.location.search);
-            const invite = params.get('invite') || params.get('invite_gasto') || params.get('invite_tarea');
-            if (invite) {
-                window.location.href = `circulo.html?abrir=${invite}`;
-                return;
-            }
-
-            const restoreTarget = getRestoreTarget();
-            clearRouteRestoreFlag();
-            mostrarPantalla('dashboard');
-            await syncInvitados();
-            await cargarGrupos();
-
-            if (restoreTarget) {
-                markRestoreAttempted();
-                window.location.href = './' + restoreTarget;
-                return;
-            }
-        } finally {
-            document.body.classList.remove('app-booting');
-            saveLastRoute();
+        const params = new URLSearchParams(window.location.search);
+        const invite = params.get('invite') || params.get('invite_gasto') || params.get('invite_tarea');
+        if (invite) {
+            window.location.href = `circulo.html?abrir=${invite}`;
+            return;
         }
+
+        mostrarPantalla('dashboard');
+        appReady();
+        await syncInvitados();
+        await cargarGrupos();
     }
 
     function mostrarPantalla(nombre) {
@@ -207,18 +195,8 @@
         if (session) activarApp(session.user);
         else {
             mostrarPantalla('login');
+            document.getElementById('topbar').classList.add('hidden');
             appReady();
-        }
-    });
-
-    // Al volver atrás desde otra pantalla, recargar círculos si hace falta
-    window.addEventListener('pageshow', (e) => {
-        if (!e.persisted) return;
-        document.body.classList.remove('app-booting');
-        if (document.getElementById('screen-dashboard')?.classList.contains('active')) {
-            db.auth.getSession().then(({ data: { session } }) => {
-                if (session) cargarGrupos();
-            });
         }
     });
 </script>
