@@ -12,7 +12,7 @@ async function requireAuth(onReady) {
             const timeout = setTimeout(() => {
                 if (sub) sub.unsubscribe();
                 resolve(null);
-            }, 400);
+            }, 3000);
             const { data: { subscription } } = db.auth.onAuthStateChange((event, s) => {
                 if (s || event === 'INITIAL_SESSION') {
                     clearTimeout(timeout);
