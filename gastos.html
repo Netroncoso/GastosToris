@@ -25,9 +25,9 @@
 <!-- SCREEN: PERIODO -->
 <div id="screen-periodo" class="screen active">
     <div class="tabs">
-        <div class="tab active" onclick="cambiarTab('gastos')"><i data-icon="currency-dollar" data-size="18"></i> Gastos</div>
-        <div class="tab" onclick="cambiarTab('balance')"><i data-icon="scale" data-size="18"></i> Balance</div>
-        <div class="tab" onclick="cambiarTab('resumen')"><i data-icon="chart-bar" data-size="18"></i> Resumen</div>
+        <div class="tab active" data-tab="gastos" onclick="cambiarTab('gastos')"><i data-icon="currency-dollar" data-size="18"></i> Gastos</div>
+        <div class="tab" data-tab="balance" onclick="cambiarTab('balance')"><i data-icon="scale" data-size="18"></i> Balance</div>
+        <div class="tab" data-tab="resumen" onclick="cambiarTab('resumen')"><i data-icon="chart-bar" data-size="18"></i> Resumen</div>
     </div>
     <div class="container">
         <div id="tab-gastos" class="tab-content active">
@@ -319,12 +319,12 @@ requireAuth(async () => {
     periodoActual = periodo;
     initCategorias();
     document.getElementById('topbar-title').textContent = periodo.nombre;
-    setQueryParam('circulo', circuloId);
-    setQueryParam('periodo', periodoId);
+
+    const tab = TABS_GASTOS.includes(params.get('tab')) ? params.get('tab') : 'gastos';
+    setQueryParams({ circulo: circuloId, periodo: periodoId, tab });
 
     await cargarParticipantes();
     await cargarGastos();
-    const tab = TABS_GASTOS.includes(params.get('tab')) ? params.get('tab') : 'gastos';
     cambiarTab(tab);
 });
 

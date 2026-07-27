@@ -125,11 +125,13 @@ requireAuth(async () => {
         return;
     }
     circuloActual = circulo;
+    setQueryParams({ circulo: circuloId });
     actualizarTopbarListas();
 
     if (abrirId) {
         await abrirListaPorId(parseInt(abrirId, 10), { filtro: params.get('filtro') });
     } else {
+        setQueryParams({ circulo: circuloId, abrir: null, filtro: null });
         await cargarListas();
     }
 });
@@ -156,7 +158,7 @@ async function abrirListaPorId(id, opts = {}) {
 }
 
 function clearListaDetailParams() {
-    ['abrir', 'filtro'].forEach(k => setQueryParam(k, null));
+    setQueryParams({ abrir: null, filtro: null, circulo: circuloId });
 }
 
 function actualizarTopbarListas() {
@@ -241,11 +243,12 @@ async function eliminarLista(id, nombre) {
 
 async function abrirLista(lista, opts = {}) {
     listaActual = lista;
-    setQueryParam('abrir', lista.id);
+    const filtro = FILTROS_LISTA.includes(opts.filtro) ? opts.filtro : 'pendientes';
+    setQueryParams({ circulo: circuloId, abrir: lista.id, filtro });
     document.getElementById('topbar-title').textContent = lista.nombre;
     mostrarPantalla('detalle');
     await cargarItems();
-    setFiltro(FILTROS_LISTA.includes(opts.filtro) ? opts.filtro : 'pendientes');
+    setFiltro(filtro);
 }
 
 // =============================================
@@ -256,7 +259,7 @@ function setFiltro(f) {
     document.querySelectorAll('.filter-tab').forEach((t, i) => {
         t.classList.toggle('active', ['pendientes','todos','comprados'][i] === f);
     });
-    if (listaActual) setQueryParam('filtro', f);
+    if (listaActual) setQueryParams({ circulo: circuloId, abrir: listaActual.id, filtro: f });
     renderItems();
 }
 
