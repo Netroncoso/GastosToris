@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#4f46e5">
-    <script>(function(){try{var t=localStorage.getItem('toris-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+    <script>(function(){try{var t=localStorage.getItem('toris-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',d?'#818cf8':'#4f46e5');}catch(e){}})();</script>
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -766,41 +766,44 @@ function simplificarDeudas(balance) {
 }
 
 // =============================================
-// RESUMEN POR TIPO DE GASTO
+// RESUMEN POR TIPO DE GASTO (+ comparación entre periodos)
 // =============================================
-async function calcularYMostrarResumen() {
-    const cont = document.getElementById('contenido-resumen');
-    cont.innerHTML = '<div class="loader">Calculando resumen...</div>';
+let resumenCache = null;
+let periodoCompararId = null;
 
-    const { data: gastos, error } = await db.from('gastos')
-        .select('monto, tipo_gasto')
-        .eq('id_periodo', periodoActual.id)
-        .neq('tipo_gasto', 'Reembolso');
-
-    if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
-
-    if (!gastos?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="chart-bar" data-size="40"></i></span>Sin gastos para resumir todavía.</div>`;
-        return;
-    }
-
-    const total = gastos.reduce((acc, g) => acc + Number(g.monto), 0);
-
-    const porTipo = {};
-    gastos.forEach(g => {
+function agregarGastosPorPeriodo(gastos) {
+    const map = {};
+    (gastos || []).forEach(g => {
+        const pid = Number(g.id_periodo);
+        if (!map[pid]) map[pid] = { total: 0, porTipo: {} };
+        const monto = Number(g.monto) || 0;
+        map[pid].total += monto;
         const tipo = g.tipo_gasto || 'Otro';
-        porTipo[tipo] = (porTipo[tipo] || 0) + Number(g.monto);
+        map[pid].porTipo[tipo] = (map[pid].porTipo[tipo] || 0) + monto;
     });
+    return map;
+}
 
-    const filas = Object.entries(porTipo)
+function statsVacios() {
+    return { total: 0, porTipo: {} };
+}
+
+function defaultPeriodoComparar(periodos, actualId) {
+    const otros = (periodos || []).filter(p => Number(p.id) !== Number(actualId));
+    if (!otros.length) return null;
+    // created_at desc: el primero distinto = el más reciente anterior / hermano
+    return Number(otros[0].id);
+}
+
+function renderFilasCategoria(stats) {
+    const total = stats.total;
+    const filas = Object.entries(stats.porTipo)
         .map(([tipo, monto]) => ({ tipo, monto, pct: total > 0 ? (monto / total) * 100 : 0 }))
         .sort((a, b) => b.monto - a.monto);
-
-    cont.innerHTML = `
-        <div class="total-card">
-            <div class="total-label">Total gastado (sin reembolsos)</div>
-            <div class="total-monto">$${fmt(total)}</div>
-        </div>
+    if (!filas.length) {
+        return `<div class="empty" style="padding:20px"><span class="empty-icon"><i data-icon="chart-bar" data-size="32"></i></span>Sin gastos en este periodo.</div>`;
+    }
+    return `
         <div class="card" style="padding:16px">
             ${filas.map(f => `
                 <div class="progress-row">
@@ -809,12 +812,152 @@ async function calcularYMostrarResumen() {
                         <span class="text-muted">$${fmt(f.monto)} · ${f.pct.toFixed(0)}%</span>
                     </div>
                     <div class="progress-track">
-                        <div class="progress-fill" style="width:${f.pct.toFixed(1)}%"></div>
+                        <div class="progress-fill" style="width:${Math.min(100, f.pct).toFixed(1)}%"></div>
                     </div>
                 </div>
             `).join('')}
+        </div>`;
+}
+
+function renderComparacionPeriodos() {
+    if (!resumenCache) return '';
+    const { periodos, porPeriodo } = resumenCache;
+    const actualId = Number(periodoActual.id);
+    const otros = periodos.filter(p => Number(p.id) !== actualId);
+    if (!otros.length) {
+        return `
+            <div class="section-label">Comparar periodos</div>
+            <div class="card" style="padding:16px">
+                <div class="text-muted" style="font-size:14px;line-height:1.5">
+                    Creá otro periodo en este círculo para poder comparar totales y categorías.
+                </div>
+            </div>`;
+    }
+
+    if (!periodoCompararId || !otros.some(p => Number(p.id) === Number(periodoCompararId))) {
+        periodoCompararId = defaultPeriodoComparar(periodos, actualId);
+    }
+
+    const actual = periodos.find(p => Number(p.id) === actualId);
+    const otro = periodos.find(p => Number(p.id) === Number(periodoCompararId));
+    const statsA = porPeriodo[actualId] || statsVacios();
+    const statsB = porPeriodo[Number(periodoCompararId)] || statsVacios();
+    const diff = statsA.total - statsB.total;
+    const diffAbs = Math.abs(diff);
+    const basePct = statsB.total > 0 ? (diff / statsB.total) * 100 : null;
+    let diffTxt;
+    if (diff === 0) diffTxt = 'Mismo total en ambos periodos';
+    else if (diff > 0) {
+        diffTxt = `$${fmt(diffAbs)} más que ${escapeHtml(otro?.nombre || 'el otro')}`;
+        if (basePct != null) diffTxt += ` (+${Math.abs(basePct).toFixed(0)}%)`;
+    } else {
+        diffTxt = `$${fmt(diffAbs)} menos que ${escapeHtml(otro?.nombre || 'el otro')}`;
+        if (basePct != null) diffTxt += ` (−${Math.abs(basePct).toFixed(0)}%)`;
+    }
+    const diffClass = diff > 0 ? 'text-negative' : (diff < 0 ? 'text-positive' : 'text-muted');
+
+    const tipos = [...new Set([
+        ...Object.keys(statsA.porTipo),
+        ...Object.keys(statsB.porTipo)
+    ])].sort((a, b) => {
+        const ma = (statsA.porTipo[a] || 0) + (statsB.porTipo[a] || 0);
+        const mb = (statsA.porTipo[b] || 0) + (statsB.porTipo[b] || 0);
+        return mb - ma;
+    });
+
+    const filasCat = tipos.length ? tipos.map(tipo => {
+        const a = statsA.porTipo[tipo] || 0;
+        const b = statsB.porTipo[tipo] || 0;
+        const d = a - b;
+        const cls = d > 0 ? 'up' : (d < 0 ? 'down' : '');
+        return `
+            <div class="compare-cat-row">
+                <div class="compare-cat-name">${getIconoTipo(tipo)}<span>${escapeHtml(tipo)}</span></div>
+                <div class="compare-cat-val">$${fmt(a)}</div>
+                <div class="compare-cat-val ${cls}">$${fmt(b)}${d !== 0 ? ` <span class="text-muted" style="font-size:11px">(${d > 0 ? '+' : ''}${fmt(d)})</span>` : ''}</div>
+            </div>`;
+    }).join('') : `<div class="text-muted" style="padding:8px 0;font-size:13px">Sin gastos en ninguno de los dos.</div>`;
+
+    return `
+        <div class="section-label">Comparar periodos</div>
+        <div class="card" style="padding:16px">
+            <div class="compare-head">
+                <label for="select-periodo-comparar" style="margin:0">Comparar con</label>
+                <select id="select-periodo-comparar" onchange="cambiarPeriodoComparar(this.value)">
+                    ${otros.map(p => `<option value="${p.id}" ${Number(p.id) === Number(periodoCompararId) ? 'selected' : ''}>${escapeHtml(p.nombre)}</option>`).join('')}
+                </select>
+            </div>
+            <div class="compare-grid">
+                <div class="compare-side">
+                    <div class="compare-side-label">Este periodo</div>
+                    <div class="compare-side-name">${escapeHtml(actual?.nombre || periodoActual.nombre)}</div>
+                    <div class="compare-side-monto">$${fmt(statsA.total)}</div>
+                </div>
+                <div class="compare-vs">vs</div>
+                <div class="compare-side">
+                    <div class="compare-side-label">Otro</div>
+                    <div class="compare-side-name">${escapeHtml(otro?.nombre || '')}</div>
+                    <div class="compare-side-monto">$${fmt(statsB.total)}</div>
+                </div>
+            </div>
+            <div class="compare-diff ${diffClass}">${diffTxt}</div>
+            <div class="section-label" style="margin-top:18px">Por categoría</div>
+            <div class="compare-cat-row" style="padding-top:0;border:none;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px">
+                <div></div>
+                <div class="compare-cat-val">Este</div>
+                <div class="compare-cat-val">Otro</div>
+            </div>
+            ${filasCat}
+        </div>`;
+}
+
+function pintarResumen() {
+    const cont = document.getElementById('contenido-resumen');
+    if (!cont || !resumenCache || !periodoActual) return;
+    const stats = resumenCache.porPeriodo[Number(periodoActual.id)] || statsVacios();
+    cont.innerHTML = `
+        <div class="total-card">
+            <div class="total-label">Total gastado (sin reembolsos)</div>
+            <div class="total-monto">$${fmt(stats.total)}</div>
         </div>
+        ${renderFilasCategoria(stats)}
+        ${renderComparacionPeriodos()}
     `;
+}
+
+function cambiarPeriodoComparar(id) {
+    periodoCompararId = Number(id);
+    pintarResumen();
+}
+
+async function calcularYMostrarResumen() {
+    const cont = document.getElementById('contenido-resumen');
+    cont.innerHTML = '<div class="loader">Calculando resumen...</div>';
+
+    const [{ data: periodos, error: ep }, { data: gastos, error: eg }] = await Promise.all([
+        db.from('periodos')
+            .select('id, nombre, created_at')
+            .eq('id_circulo', circuloActual.id)
+            .order('created_at', { ascending: false }),
+        db.from('gastos')
+            .select('id_periodo, monto, tipo_gasto')
+            .eq('id_circulo', circuloActual.id)
+            .neq('tipo_gasto', 'Reembolso')
+    ]);
+
+    if (ep || eg) {
+        cont.innerHTML = `<div class="alert alert-error">${(ep || eg).message}</div>`;
+        return;
+    }
+
+    resumenCache = {
+        periodos: periodos || [],
+        porPeriodo: agregarGastosPorPeriodo(gastos)
+    };
+    if (!periodoCompararId) {
+        periodoCompararId = defaultPeriodoComparar(resumenCache.periodos, periodoActual.id);
+    }
+    pintarResumen();
 }
 </script>
 </body>

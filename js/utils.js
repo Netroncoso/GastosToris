@@ -21,8 +21,9 @@ function applyTheme(theme) {
     const next = theme === 'dark' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', next);
     try { localStorage.setItem('toris-theme', next); } catch (_) {}
+    // Misma tinta que el topbar (arriba del notch / chrome del celu)
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', next === 'dark' ? '#0f172a' : '#4f46e5');
+    if (meta) meta.setAttribute('content', next === 'dark' ? '#818cf8' : '#4f46e5');
     document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
         const icon = next === 'dark' ? 'sun' : 'moon';
         btn.setAttribute('title', next === 'dark' ? 'Modo claro' : 'Modo oscuro');
