@@ -339,22 +339,28 @@ body.modal-open { overflow: hidden; }
     margin-top: 12px; text-align: center; font-size: 14px; font-weight: 600;
     padding: 10px; border-radius: 8px; background: var(--bg);
 }
-.compare-cat-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
-    gap: 8px;
-    align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 13px;
-}
-.compare-cat-row:last-child { border-bottom: none; }
-.compare-cat-name { display: flex; align-items: center; gap: 6px; font-weight: 500; min-width: 0; }
-.compare-cat-name span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.compare-cat-val { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
-.compare-cat-val.up { color: var(--danger); }
-.compare-cat-val.down { color: var(--success); }
 
+/* RESUMEN POR TIPO DE GASTO */
+.progress-row { margin-bottom: 16px; }
+.progress-row:last-child { margin-bottom: 0; }
+.progress-label-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+.progress-label-row > span:first-child { display: flex; align-items: center; gap: 6px; }
+.progress-track { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; }
+.progress-fill { height: 8px; border-radius: 4px; background: var(--primary); }
+.progress-fill.alt { background: var(--muted); opacity: 0.85; }
+.compare-cat-block { margin-bottom: 16px; }
+.compare-cat-block:last-child { margin-bottom: 0; }
+.compare-cat-title {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 14px; font-weight: 600; margin-bottom: 8px;
+}
+.compare-bar-row { margin-bottom: 6px; }
+.compare-bar-row:last-child { margin-bottom: 0; }
+.compare-bar-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; color: var(--muted); margin-bottom: 4px; gap: 8px;
+}
+.compare-bar-meta strong { color: var(--text); font-weight: 600; }
 
 /* TAREAS: fila principal + fila de badges abajo (evita que el título se aplaste) */
 .tarea-item { padding: 12px 16px; border-bottom: 1px solid var(--border); }
