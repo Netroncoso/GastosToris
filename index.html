@@ -120,7 +120,6 @@
         const nombre = (user.user_metadata?.full_name || user.email || '').split(' ')[0];
         document.getElementById('topbar-user').textContent = nombre;
 
-        let redirecting = false;
         try {
             const params = new URLSearchParams(window.location.search);
             const invite = params.get('invite') || params.get('invite_gasto') || params.get('invite_tarea');
@@ -129,18 +128,20 @@
                 return;
             }
 
-            if (redirectToLastRouteIfAny()) {
-                redirecting = true;
-                return;
-            }
-
+            const restoreTarget = getRestoreTarget();
             clearRouteRestoreFlag();
             mostrarPantalla('dashboard');
             await syncInvitados();
             await cargarGrupos();
+
+            if (restoreTarget) {
+                markRestoreAttempted();
+                window.location.href = './' + restoreTarget;
+                return;
+            }
         } finally {
             document.body.classList.remove('app-booting');
-            if (!redirecting) saveLastRoute();
+            saveLastRoute();
         }
     }
 
@@ -207,6 +208,17 @@
         else {
             mostrarPantalla('login');
             appReady();
+        }
+    });
+
+    // Al volver atrás desde otra pantalla, recargar círculos si hace falta
+    window.addEventListener('pageshow', (e) => {
+        if (!e.persisted) return;
+        document.body.classList.remove('app-booting');
+        if (document.getElementById('screen-dashboard')?.classList.contains('active')) {
+            db.auth.getSession().then(({ data: { session } }) => {
+                if (session) cargarGrupos();
+            });
         }
     });
 </script>
