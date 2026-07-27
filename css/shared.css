@@ -99,15 +99,49 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 
-/* MODALS */
-.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; justify-content: center; align-items: flex-end; }
+/* MODALS — anclados al visualViewport (--vv-*) para no quedar bajo el teclado móvil */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: var(--vv-top, 0px);
+    left: var(--vv-left, 0px);
+    width: var(--vv-width, 100%);
+    height: var(--vv-height, 100dvh);
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    justify-content: center;
+    align-items: flex-end;
+    overscroll-behavior: contain;
+    box-sizing: border-box;
+}
 .modal-overlay.open { display: flex; }
-.modal { background: white; border-radius: 20px 20px 0 0; padding: 20px 20px 36px; width: 100%;
-    max-width: 480px; max-height: 92vh; overflow-y: auto; }
-.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal {
+    background: white;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px max(16px, env(safe-area-inset-bottom, 0px));
+    width: 100%;
+    max-width: 480px;
+    max-height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    box-sizing: border-box;
+}
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 1;
+    padding-bottom: 2px;
+}
 .modal-header h3 { font-size: 18px; font-weight: 700; }
 .modal-close { background: var(--border); border: none; border-radius: 50%; width: 28px; height: 28px;
     cursor: pointer; font-size: 14px; color: var(--muted); display: flex; align-items: center; justify-content: center; }
+body.modal-open { overflow: hidden; }
 
 /* BADGE */
 .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 12px; font-weight: 700; }
