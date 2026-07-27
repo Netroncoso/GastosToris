@@ -237,14 +237,35 @@ function clearLastRoute() {
     try { localStorage.removeItem(LAST_ROUTE_KEY); } catch (_) {}
 }
 
-/** Desde index.html: vuelve a la última pantalla si existe. */
+function isValidLastRoute(route) {
+    if (!route || route === 'index.html') return false;
+    const q = route.indexOf('?');
+    const file = q >= 0 ? route.slice(0, q) : route;
+    const params = new URLSearchParams(q >= 0 ? route.slice(q + 1) : '');
+    if (file === 'circulo.html') return params.has('abrir');
+    if (file === 'gastos.html') return params.has('circulo') && params.has('periodo');
+    if (file === 'listas.html') return params.has('circulo');
+    if (file === 'tareas.html') return params.has('abrir');
+    return false;
+}
+
+/** Desde index.html: vuelve a la última pantalla si existe (una sola vez por arranque). */
 function redirectToLastRouteIfAny() {
+    if (sessionStorage.getItem('toris-restore-attempted')) return false;
     const last = getLastRoute();
-    if (!last || last === currentRoutePath() || last === 'index.html') return false;
+    if (!last || last === currentRoutePath() || !isValidLastRoute(last)) {
+        if (last && !isValidLastRoute(last)) clearLastRoute();
+        return false;
+    }
     const file = window.location.pathname.split('/').pop() || 'index.html';
     if (file !== 'index.html') return false;
-    window.location.replace(last);
+    sessionStorage.setItem('toris-restore-attempted', '1');
+    window.location.replace('./' + last);
     return true;
+}
+
+function clearRouteRestoreFlag() {
+    try { sessionStorage.removeItem('toris-restore-attempted'); } catch (_) {}
 }
 
 window.addEventListener('pagehide', saveLastRoute);
@@ -286,6 +307,8 @@ function irAlCirculo(id, seccion = null) {
 function appReady() {
     document.body.classList.remove('app-booting');
     saveLastRoute();
+    const file = window.location.pathname.split('/').pop() || 'index.html';
+    if (file !== 'index.html') clearRouteRestoreFlag();
 }
 
 /** Activa una pantalla sin animaciones intermedias (para restaurar F5). */

@@ -120,19 +120,28 @@
         const nombre = (user.user_metadata?.full_name || user.email || '').split(' ')[0];
         document.getElementById('topbar-user').textContent = nombre;
 
-        const params = new URLSearchParams(window.location.search);
-        const invite = params.get('invite') || params.get('invite_gasto') || params.get('invite_tarea');
-        if (invite) {
-            window.location.href = `circulo.html?abrir=${invite}`;
-            return;
+        let redirecting = false;
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const invite = params.get('invite') || params.get('invite_gasto') || params.get('invite_tarea');
+            if (invite) {
+                window.location.href = `circulo.html?abrir=${invite}`;
+                return;
+            }
+
+            if (redirectToLastRouteIfAny()) {
+                redirecting = true;
+                return;
+            }
+
+            clearRouteRestoreFlag();
+            mostrarPantalla('dashboard');
+            await syncInvitados();
+            await cargarGrupos();
+        } finally {
+            document.body.classList.remove('app-booting');
+            if (!redirecting) saveLastRoute();
         }
-
-        if (redirectToLastRouteIfAny()) return;
-
-        mostrarPantalla('dashboard');
-        await syncInvitados();
-        await cargarGrupos();
-        appReady();
     }
 
     function mostrarPantalla(nombre) {
