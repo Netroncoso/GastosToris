@@ -97,6 +97,28 @@ function mostrarPantalla(nombre) {
 function abrirModal(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
 function cerrarModal(id) { const el = document.getElementById(id); if (el) el.classList.remove('open'); }
 
+/** Evita doble submit: deshabilita el botón mientras corre la acción. */
+async function withBusyButton(btnOrSelector, fn) {
+    const btn = typeof btnOrSelector === 'string'
+        ? document.querySelector(btnOrSelector)
+        : btnOrSelector;
+    if (btn?.dataset.busy === '1') return;
+    const prevText = btn?.textContent;
+    if (btn) {
+        btn.dataset.busy = '1';
+        btn.disabled = true;
+    }
+    try {
+        return await fn(btn, prevText);
+    } finally {
+        if (btn) {
+            btn.dataset.busy = '';
+            btn.disabled = false;
+            if (prevText != null) btn.textContent = prevText;
+        }
+    }
+}
+
 function getQueryParam(key) {
     return new URLSearchParams(window.location.search).get(key);
 }
@@ -130,6 +152,29 @@ function irAlCirculo(id, seccion = null) {
     const q = new URLSearchParams({ abrir: String(id) });
     if (seccion) q.set('seccion', seccion);
     window.location.href = `circulo.html?${q.toString()}`;
+}
+
+/** Quita el splash de boot (llamar cuando la pantalla correcta ya está activa). */
+function appReady() {
+    document.body.classList.remove('app-booting');
+}
+
+/** Activa una pantalla sin animaciones intermedias (para restaurar F5). */
+function bootScreen(nombre) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const el = document.getElementById('screen-' + nombre);
+    if (el) el.classList.add('active');
+}
+
+/** Activa pestaña de contenido sin disparar side-effects (onTab_*). */
+function bootTab(nombre) {
+    document.querySelectorAll('.tab').forEach(t => {
+        const tabName = t.getAttribute('data-tab') || (t.getAttribute('onclick') || '').match(/cambiarTab\('([^']+)'\)/)?.[1];
+        t.classList.toggle('active', tabName === nombre);
+    });
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    const el = document.getElementById('tab-' + nombre);
+    if (el) el.classList.add('active');
 }
 
 // cambiarTab: busca el contenedor `tab-<nombre>` y activa la pestaña.
@@ -208,7 +253,11 @@ function crearGestorDeGrupos({ table, nameField = 'nombre', rpcCreate }) {
             const headerEl = document.querySelector('#' + modalId + ' .modal-header h3');
             if (headerEl) headerEl.textContent = hdr;
             const btn = document.querySelector('#' + modalId + ' .btn-primary');
-            if (btn) btn.textContent = btnText;
+            if (btn) {
+                btn.textContent = btnText;
+                btn.disabled = false;
+                btn.dataset.busy = '';
+            }
             const inp = document.getElementById(inputId);
             if (inp) inp.value = val;
             abrirModal(modalId);
@@ -216,33 +265,42 @@ function crearGestorDeGrupos({ table, nameField = 'nombre', rpcCreate }) {
         },
 
         crearGrupo: async function(modalId = 'modal-grupo', inputId = 'input-nombre-grupo') {
-            const nombre = document.getElementById(inputId).value.trim();
-            if (!nombre) { alert('Ingresá un nombre.'); return; }
-            const userId = await getCurrentUserId();
-            if (!userId) { alert('No se encontró el usuario actual. Volvé a iniciar sesión.'); return; }
+            return withBusyButton('#' + modalId + ' .btn-primary', async () => {
+                const nombre = document.getElementById(inputId).value.trim();
+                if (!nombre) { alert('Ingresá un nombre.'); return; }
+                const userId = await getCurrentUserId();
+                if (!userId) { alert('No se encontró el usuario actual. Volvé a iniciar sesión.'); return; }
 
-            if (window.grupoEditando) {
-                const { error } = await db.from(table).update({ [nameField]: nombre }).eq('id', window.grupoEditando.id);
-                if (error) { alert('Error al actualizar: ' + error.message); return; }
-                window.grupoEditando = null;
+                if (window.grupoEditando) {
+                    const { error } = await db.from(table).update({ [nameField]: nombre }).eq('id', window.grupoEditando.id);
+                    if (error) { alert('Error al actualizar: ' + error.message); return; }
+                    window.grupoEditando = null;
+                    cerrarModal(modalId);
+                    if (typeof window.cargarGrupos === 'function') window.cargarGrupos();
+                    return;
+                }
+
+                const { data: grupo, error } = await db.rpc(rpcCreate || 'crear_circulo', { p_nombre: nombre });
+                if (error) { alert('Error al crear círculo: ' + error.message); return; }
+
+                // Cerrar ya: el resto no debe dejar el modal colgado
+                document.getElementById(inputId).value = '';
                 cerrarModal(modalId);
+
+                const user = await getCurrentUser();
+                if (user?.email) {
+                    try {
+                        await db.from('participantes').insert({
+                            id_circulo: grupo.id,
+                            nombre: getDisplayNameFromUser(user),
+                            email: user.email.toLowerCase()
+                        });
+                    } catch (e) { console.warn('No se pudo agregar al creador como persona:', e.message); }
+                }
+
                 if (typeof window.cargarGrupos === 'function') window.cargarGrupos();
-                return;
-            }
-
-            const { data: grupo, error } = await db.rpc(rpcCreate || 'crear_circulo', { p_nombre: nombre });
-            if (error) { alert('Error al crear círculo: ' + error.message); return; }
-
-            const user = await getCurrentUser();
-            if (user?.email) {
-                try {
-                    await db.from('participantes').insert({ id_circulo: grupo.id, nombre: getDisplayNameFromUser(user), email: user.email.toLowerCase() });
-                } catch (e) { console.warn('No se pudo agregar al creador como persona:', e.message); }
-            }
-
-            cerrarModal(modalId);
-            if (typeof window.cargarGrupos === 'function') window.cargarGrupos();
-            return grupo;
+                return grupo;
+            });
         }
     };
 }
@@ -250,60 +308,66 @@ function crearGestorDeGrupos({ table, nameField = 'nombre', rpcCreate }) {
 // =============================================
 // FACTORY: GESTOR DE PERSONAS (añadir e invitar)
 // =============================================
-function crearGestorDePersonas({ table, nameField = 'nombre', groupField, inputNameId, inputEmailId, inviteInfoId, addButtonSelector, currentListVar, redirectParam = 'invite' }) {
+function crearGestorDePersonas({ table, nameField = 'nombre', groupField, inputNameId, inputEmailId, inviteInfoId, addButtonSelector, currentListVar, redirectParam = 'invite', modalId = 'modal-participante' }) {
     return {
         agregarPersona: async function(groupId) {
-            const nombre = document.getElementById(inputNameId).value.trim();
-            const email  = document.getElementById(inputEmailId).value.trim().toLowerCase();
-            if (!nombre) { alert('Ingresá un nombre.'); return; }
+            return withBusyButton(addButtonSelector || '#' + modalId + ' .btn-primary', async (btn) => {
+                const nombre = document.getElementById(inputNameId).value.trim();
+                const email  = document.getElementById(inputEmailId).value.trim().toLowerCase();
+                if (!nombre) { alert('Ingresá un nombre.'); return false; }
 
-            const currentList = window[currentListVar] || [];
-            const nombreDup = currentList.find(p => (p[nameField] || '').toLowerCase() === nombre.toLowerCase());
-            if (nombreDup) { alert(`Ya existe "${nombre}" en este grupo.`); return; }
-            if (email) {
-                const emailDup = currentList.find(p => p.email?.toLowerCase() === email);
-                if (emailDup) { alert(`El email ${email} ya está registrado en este grupo (${emailDup[nameField]}).`); return; }
-            }
-
-            const payload = { [groupField]: groupId, [nameField]: nombre };
-            if (email) payload.email = email;
-
-            const { error } = await db.from(table).insert(payload);
-            if (error) { alert('Error: ' + error.message); return; }
-
-            if (email) {
-                const user = await getCurrentUser();
-                if (user?.email?.toLowerCase() === email) {
-                    alert(`${nombre} fue agregado, pero no se envió invitación: ese es tu propio email.`);
-                    if (inviteInfoId) document.getElementById(inviteInfoId).style.display = 'none';
-                    if (addButtonSelector) document.querySelector(addButtonSelector).textContent = addButtonSelector.includes('modal') ? 'Agregar' : 'Agregar Persona';
-                    if (typeof window.cargarParticipantes === 'function') window.cargarParticipantes();
-                    if (typeof window.cargarPersonasTareas === 'function') window.cargarPersonasTareas();
-                    return;
+                const currentList = window[currentListVar] || [];
+                const nombreDup = currentList.find(p => (p[nameField] || '').toLowerCase() === nombre.toLowerCase());
+                if (nombreDup) { alert(`Ya existe "${nombre}" en este círculo.`); return false; }
+                if (email) {
+                    const emailDup = currentList.find(p => p.email?.toLowerCase() === email);
+                    if (emailDup) { alert(`El email ${email} ya está registrado en este círculo (${emailDup[nameField]}).`); return false; }
                 }
 
-                const { error: inviteError } = await db.auth.signInWithOtp({
-                    email,
-                    options: { emailRedirectTo: `${APP_BASE_URL}?${redirectParam}=${groupId}`, shouldCreateUser: true }
-                });
-                if (inviteError) {
-                    alert(`${nombre} fue agregado, pero hubo un error al enviar la invitación: ${inviteError.message}`);
-                } else {
-                    alert(`${nombre} fue agregado y se le envió una invitación a ${email}.`);
+                const payload = { [groupField]: groupId, [nameField]: nombre };
+                if (email) payload.email = email;
+
+                const { data: inserted, error } = await db.from(table).insert(payload).select().single();
+                if (error) {
+                    if (error.code === '23505') alert('Esa persona o email ya existe en este círculo.');
+                    else alert('Error: ' + error.message);
+                    return false;
                 }
-            }
 
-            // Reset form and reload
-            if (inputNameId) document.getElementById(inputNameId).value = '';
-            if (inputEmailId) document.getElementById(inputEmailId).value = '';
-            if (inviteInfoId) document.getElementById(inviteInfoId).style.display = 'none';
-            if (addButtonSelector) {
-                const btn = document.querySelector(addButtonSelector);
-                if (btn) btn.textContent = addButtonSelector.includes('modal') ? 'Agregar' : 'Agregar Persona';
-            }
+                // Actualizar lista local ya (evita un segundo click antes del reload)
+                if (inserted && Array.isArray(window[currentListVar])) {
+                    window[currentListVar] = [...window[currentListVar], inserted];
+                }
 
-            if (typeof window.cargarParticipantes === 'function') window.cargarParticipantes();
-            if (typeof window.cargarPersonasTareas === 'function') window.cargarPersonasTareas();
+                // Cerrar modal YA — no esperar el OTP (eso es lo que dejaba todo tildado)
+                if (inputNameId) document.getElementById(inputNameId).value = '';
+                if (inputEmailId) document.getElementById(inputEmailId).value = '';
+                if (inviteInfoId) document.getElementById(inviteInfoId).style.display = 'none';
+                if (btn) btn.textContent = 'Agregar';
+                cerrarModal(modalId);
+
+                if (typeof window.cargarParticipantes === 'function') window.cargarParticipantes();
+                if (typeof window.cargarPersonasTareas === 'function') window.cargarPersonasTareas();
+
+                // Invitación en segundo plano
+                if (email) {
+                    const user = await getCurrentUser();
+                    if (user?.email?.toLowerCase() === email) {
+                        alert(`${nombre} fue agregado, pero no se envió invitación: ese es tu propio email.`);
+                        return true;
+                    }
+                    const { error: inviteError } = await db.auth.signInWithOtp({
+                        email,
+                        options: { emailRedirectTo: `${APP_BASE_URL}?${redirectParam}=${groupId}`, shouldCreateUser: true }
+                    });
+                    if (inviteError) {
+                        alert(`${nombre} fue agregado, pero hubo un error al enviar la invitación: ${inviteError.message}`);
+                    } else {
+                        alert(`${nombre} fue agregado y se le envió una invitación a ${email}.`);
+                    }
+                }
+                return true;
+            });
         }
     };
 }

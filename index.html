@@ -8,7 +8,8 @@
     <link rel="stylesheet" href="css/shared.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body>
+<body class="app-booting">
+<div id="boot-splash">Cargando...</div>
 
 <!-- SCREEN: LOGIN -->
 <div id="screen-login" class="screen">
@@ -90,6 +91,7 @@
         } else {
             mostrarPantalla('login');
             document.getElementById('topbar').classList.add('hidden');
+            appReady();
         }
     });
 
@@ -117,6 +119,7 @@
         mostrarPantalla('dashboard');
         await syncInvitados();
         await cargarGrupos();
+        appReady();
     }
 
     function mostrarPantalla(nombre) {
@@ -158,13 +161,13 @@
             return;
         }
         cont.innerHTML = data.map(g => `
-            <div class="card" style="overflow:visible">
+            <div class="card card-click" onclick="irAlCirculo(${g.id})">
                 <div class="card-body flex-between" style="gap:10px">
-                    <div class="card-click" style="flex:1;min-width:0" onclick="irAlCirculo(${g.id})">
+                    <div style="flex:1;min-width:0">
                         <div style="font-weight:700;font-size:16px">${escapeHtml(g.nombre)}</div>
                         <div class="text-muted">${new Date(g.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })}</div>
                     </div>
-                    <div style="display:flex;gap:8px;align-items:center">
+                    <div class="card-actions" onclick="event.stopPropagation()">
                         <button class="btn btn-ghost btn-sm" onclick="editarGrupo(${g.id})" title="Editar">${icon('pencil-square',16)}</button>
                         <button class="btn btn-danger btn-sm" onclick="eliminarGrupo(${g.id}, '${escapeJsString(g.nombre)}')" title="Eliminar">${icon('trash',16)}</button>
                     </div>
@@ -179,7 +182,10 @@
 
     db.auth.getSession().then(({ data: { session } }) => {
         if (session) activarApp(session.user);
-        else mostrarPantalla('login');
+        else {
+            mostrarPantalla('login');
+            appReady();
+        }
     });
 </script>
 </body>

@@ -5,7 +5,6 @@
 // =============================================
 
 async function requireAuth(onReady) {
-    // getSession puede devolver null un instante en F5; esperamos INITIAL_SESSION si hace falta.
     let session = (await db.auth.getSession()).data.session;
     if (!session) {
         session = await new Promise(resolve => {
@@ -13,7 +12,7 @@ async function requireAuth(onReady) {
             const timeout = setTimeout(() => {
                 if (sub) sub.unsubscribe();
                 resolve(null);
-            }, 1500);
+            }, 400);
             const { data: { subscription } } = db.auth.onAuthStateChange((event, s) => {
                 if (s || event === 'INITIAL_SESSION') {
                     clearTimeout(timeout);
