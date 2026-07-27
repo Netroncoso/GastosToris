@@ -94,8 +94,57 @@ function mostrarPantalla(nombre) {
     if (el) el.classList.add('active');
 }
 
-function abrirModal(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
-function cerrarModal(id) { const el = document.getElementById(id); if (el) el.classList.remove('open'); }
+/** Sincroniza el overlay de modales con el viewport visible (sube con el teclado). */
+function syncVisualViewport() {
+    const root = document.documentElement;
+    const vv = window.visualViewport;
+    if (!vv) {
+        root.style.setProperty('--vv-top', '0px');
+        root.style.setProperty('--vv-left', '0px');
+        root.style.setProperty('--vv-width', '100%');
+        root.style.setProperty('--vv-height', '100dvh');
+        return;
+    }
+    root.style.setProperty('--vv-top', `${Math.round(vv.offsetTop)}px`);
+    root.style.setProperty('--vv-left', `${Math.round(vv.offsetLeft)}px`);
+    root.style.setProperty('--vv-width', `${Math.round(vv.width)}px`);
+    root.style.setProperty('--vv-height', `${Math.round(vv.height)}px`);
+}
+
+function abrirModal(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    syncVisualViewport();
+    el.classList.add('open');
+    document.body.classList.add('modal-open');
+}
+
+function cerrarModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('open');
+    if (!document.querySelector('.modal-overlay.open')) {
+        document.body.classList.remove('modal-open');
+    }
+}
+
+syncVisualViewport();
+window.addEventListener('resize', syncVisualViewport);
+if (window.visualViewport) {
+    visualViewport.addEventListener('resize', syncVisualViewport);
+    visualViewport.addEventListener('scroll', syncVisualViewport);
+}
+
+// Al enfocar un campo, reacomodar y traer el input a la zona visible sobre el teclado
+document.addEventListener('focusin', (e) => {
+    const field = e.target;
+    if (!field?.closest?.('.modal-overlay.open')) return;
+    const bringIntoView = () => {
+        syncVisualViewport();
+        field.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+    };
+    bringIntoView();
+    setTimeout(bringIntoView, 280);
+});
 
 /** Evita doble submit: deshabilita el botón mientras corre la acción. */
 async function withBusyButton(btnOrSelector, fn) {
