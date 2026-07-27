@@ -305,7 +305,7 @@ body.modal-open { overflow: hidden; }
 .input-sm { padding: 8px 10px; font-size: 14px; }
 .stats-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
 
-/* ├ìCONOS (Heroicons v├¡a mask-image, coloreables con currentColor) */
+/* ICONOS (Heroicons via mask-image, coloreables con currentColor) */
 .hicon {
     display: inline-block;
     vertical-align: middle;
@@ -374,7 +374,7 @@ body.modal-open { overflow: hidden; }
 }
 .compare-bar-meta strong { color: var(--text); font-weight: 600; }
 
-/* TAREAS: fila principal + fila de badges abajo (evita que el t├¡tulo se aplaste) */
+/* TAREAS: fila principal + fila de badges abajo (evita que el titulo se aplaste) */
 .tarea-item { padding: 12px 16px; border-bottom: 1px solid var(--border); }
 .tarea-item:last-child { border-bottom: none; }
 .tarea-item.comprado { opacity: 0.45; }
