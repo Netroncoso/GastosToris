@@ -3,40 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1b4079">
+    <script>(function(){try{var t=localStorage.getItem('toris-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content','#1b4079');}catch(e){}})();</script>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="TorisApp">
     <title>TorisApp • Gastos</title>
-    <link rel="icon" href="https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline/cube-transparent.svg">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
     <link rel="stylesheet" href="css/shared.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body>
+<body class="app-booting">
+<div id="boot-splash">Cargando...</div>
 
 <!-- TOPBAR -->
 <div class="topbar">
     <div class="topbar-left">
-        <button id="btn-back" class="btn-icon" onclick="volverAGrupos()"><i data-icon="arrow-left" data-size="18"></i></button>
+        <button id="btn-back" class="btn-icon" onclick="volverAlCirculo()"><i data-icon="arrow-left" data-size="18"></i></button>
         <h1 id="topbar-title"><i data-icon="currency-dollar" data-size="20"></i> Gastos</h1>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
         <span id="topbar-user" class="topbar-user"></span>
+        <button class="btn-icon" data-theme-toggle onclick="toggleTheme()" title="Modo oscuro"><i data-icon="moon" data-size="18"></i></button>
         <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión"><i data-icon="arrow-right-on-rectangle" data-size="18"></i></button>
     </div>
 </div>
 
-<!-- SCREEN: GRUPOS -->
-<div id="screen-grupos" class="screen active">
-    <div class="container">
-        <div id="lista-grupos"><div class="loader">Cargando grupos...</div></div>
-        <button class="btn btn-primary btn-full mt-16" onclick="abrirModalGrupo()"><i data-icon="plus" data-size="16"></i> Nuevo Grupo</button>
-    </div>
-</div>
-
-<!-- SCREEN: GRUPO DETAIL -->
-<div id="screen-grupo" class="screen">
+<!-- SCREEN: PERIODO -->
+<div id="screen-periodo" class="screen active">
     <div class="tabs">
-        <div class="tab active" onclick="cambiarTab('gastos')"><i data-icon="currency-dollar" data-size="18"></i> Gastos</div>
-        <div class="tab" onclick="cambiarTab('participantes')"><i data-icon="users" data-size="18"></i> Personas</div>
-        <div class="tab" onclick="cambiarTab('balance')"><i data-icon="scale" data-size="18"></i> Balance</div>
-        <div class="tab" onclick="cambiarTab('resumen')"><i data-icon="chart-bar" data-size="18"></i> Resumen</div>
+        <div class="tab active" data-tab="gastos" onclick="cambiarTab('gastos')"><i data-icon="currency-dollar" data-size="18"></i> Gastos</div>
+        <div class="tab" data-tab="balance" onclick="cambiarTab('balance')"><i data-icon="scale" data-size="18"></i> Balance</div>
+        <div class="tab" data-tab="resumen" onclick="cambiarTab('resumen')"><i data-icon="chart-bar" data-size="18"></i> Resumen</div>
     </div>
     <div class="container">
         <div id="tab-gastos" class="tab-content active">
@@ -46,53 +47,12 @@
                 <button class="btn btn-ghost btn-full" onclick="abrirModalReembolso()"><i data-icon="arrow-path" data-size="16"></i> Reembolso</button>
             </div>
         </div>
-        <div id="tab-participantes" class="tab-content">
-            <div id="lista-participantes"><div class="loader">Cargando...</div></div>
-            <button class="btn btn-ghost btn-full mt-16" onclick="abrirModalParticipante()"><i data-icon="plus" data-size="16"></i> Agregar Persona</button>
-        </div>
         <div id="tab-balance" class="tab-content">
             <div id="contenido-balance"><div class="loader">Calculando...</div></div>
         </div>
         <div id="tab-resumen" class="tab-content">
             <div id="contenido-resumen"><div class="loader">Calculando...</div></div>
         </div>
-    </div>
-</div>
-
-<!-- MODAL: NUEVO GRUPO -->
-<div id="modal-grupo" class="modal-overlay">
-    <div class="modal">
-        <div class="modal-header">
-            <h3>Nuevo Grupo</h3>
-            <button class="modal-close" onclick="cerrarModal('modal-grupo')"><i data-icon="x-mark" data-size="14"></i></button>
-        </div>
-        <div class="form-group">
-            <label>Nombre del grupo</label>
-            <input type="text" id="input-nombre-grupo" placeholder="Ej: Viaje a Bariloche" />
-        </div>
-        <button class="btn btn-primary btn-full" onclick="crearGrupo()">Crear Grupo</button>
-    </div>
-</div>
-
-<!-- MODAL: NUEVA PERSONA -->
-<div id="modal-participante" class="modal-overlay">
-    <div class="modal">
-        <div class="modal-header">
-            <h3>Agregar Persona</h3>
-            <button class="modal-close" onclick="cerrarModal('modal-participante')"><i data-icon="x-mark" data-size="14"></i></button>
-        </div>
-        <div class="form-group">
-            <label>Nombre</label>
-            <input type="text" id="input-nombre-participante" placeholder="Ej: Martín" />
-        </div>
-        <div class="form-group">
-            <label>Email (opcional — para invitarla)</label>
-            <input type="email" id="input-email-participante" placeholder="martin@email.com" />
-        </div>
-        <div id="invite-info" class="alert alert-info" style="display:none">
-            <i data-icon="envelope" data-size="16"></i> Se enviará una invitación por correo para unirse a este grupo. Al aceptarla, la persona podrá acceder automáticamente a los gastos compartidos.
-        </div>
-        <button class="btn btn-primary btn-full" onclick="agregarParticipante()">Agregar y Enviar Invitación</button>
     </div>
 </div>
 
@@ -143,18 +103,14 @@
         </div>
         <div class="form-group">
             <label>Monto total ($)</label>
-            <input type="number" id="input-monto" placeholder="0.00" step="0.01" min="0" oninput="actualizarTotalSplit()" />
+            <input type="number" id="input-monto" placeholder="0.00" step="0.01" min="0" oninput="onMontoInput()" />
         </div>
         <div class="form-group">
-            <label>Tipo</label>
-            <select id="input-tipo">
-                <option value="Comida">🍽️ Comida</option>
-                <option value="Transporte">🚗 Transporte</option>
-                <option value="Alojamiento">🏠 Alojamiento</option>
-                <option value="Entretenimiento">🎉 Entretenimiento</option>
-                <option value="Compras">🛒 Compras</option>
-                <option value="Otro">📦 Otro</option>
-            </select>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <label style="margin-bottom:0">Tipo</label>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="abrirModalCategorias()" style="padding:2px 8px;font-size:12px">Gestionar</button>
+            </div>
+            <select id="input-tipo"></select>
         </div>
         <div class="form-group">
             <label>¿Quién pagó?</label>
@@ -173,6 +129,30 @@
     </div>
 </div>
 
+<!-- MODAL: GESTIONAR CATEGORÍAS -->
+<div id="modal-categorias" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3><i data-icon="tag" data-size="18"></i> Categorías de Gastos</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-categorias')"><i data-icon="x-mark" data-size="14"></i></button>
+        </div>
+        <div id="lista-categorias" class="card" style="margin-bottom:16px;max-height:240px;overflow-y:auto"></div>
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Nueva categoría</div>
+        <div class="add-item-row" style="margin-bottom:12px">
+            <div class="form-group" style="flex:1;margin-bottom:0">
+                <label>Nombre</label>
+                <input type="text" id="input-nueva-categoria" placeholder="Ej: Regalos"
+                    onkeydown="if(event.key==='Enter') agregarCategoria()" />
+            </div>
+            <div class="form-group" style="flex:1;margin-bottom:0">
+                <label>Ícono</label>
+                <select id="input-icono-categoria"></select>
+            </div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="agregarCategoria()"><i data-icon="plus" data-size="16"></i> Agregar Categoría</button>
+    </div>
+</div>
+
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/utils.js"></script>
@@ -180,105 +160,223 @@
 // =============================================
 // ESTADO GLOBAL
 // =============================================
-let grupoActual = null;
+let circuloActual = null;
+let periodoActual = null;
 let participantesActuales = [];
 let currentGastos = [];
 let gastoEditando = null;
-let grupoEditando = null;
+let categoriasActuales = [];
 
-const TIPO_ICONO = { Comida: icon('cake',16), Transporte: icon('truck',16), Alojamiento: icon('home',16), Entretenimiento: icon('film',16), Compras: icon('shopping-cart',16), Otro: icon('archive-box',16), Reembolso: icon('arrow-path',16) };
+const CATEGORIAS_DEFECTO = [
+    { nombre: 'Super', icono: 'shopping-cart' },
+    { nombre: 'Carnicería', icono: 'cake' },
+    { nombre: 'Verdulería', icono: 'shopping-bag' },
+    { nombre: 'Gatos', icono: 'heart' },
+    { nombre: 'Casa alquiler', icono: 'home' },
+    { nombre: 'Casa impuestos', icono: 'bolt' },
+    { nombre: 'Tarjetas', icono: 'credit-card' },
+    { nombre: 'Auto', icono: 'truck' },
+    { nombre: 'Viajes', icono: 'paper-airplane' },
+    { nombre: 'Salidas', icono: 'film' },
+    { nombre: 'Otros', icono: 'archive-box' },
+];
+
+const ICONOS_DISPONIBLES = [
+    'shopping-cart', 'cake', 'shopping-bag', 'heart', 'home', 'bolt',
+    'credit-card', 'truck', 'globe', 'film', 'archive-box', 'gift',
+    'beaker', 'building-storefront', 'sparkles', 'tag', 'currency-dollar',
+    'device-phone-mobile', 'musical-note', 'ticket', 'paper-airplane'
+];
+
+const TABS_GASTOS = ['gastos', 'balance', 'resumen'];
+
+function normalizarCategoria(c) {
+    return { nombre: c.nombre, icono: c.icono || 'archive-box' };
+}
+
+function initCategorias() {
+    if (circuloActual?.categorias && Array.isArray(circuloActual.categorias) && circuloActual.categorias.length > 0) {
+        categoriasActuales = circuloActual.categorias.map(normalizarCategoria);
+    } else {
+        categoriasActuales = CATEGORIAS_DEFECTO.map(c => ({ ...c }));
+    }
+}
+
+function iconoCategoria(cat) {
+    return icon(cat?.icono || 'archive-box', 16);
+}
+
+function getIconoTipo(nombre) {
+    const cat = categoriasActuales.find(c => c.nombre === nombre);
+    if (cat) return iconoCategoria(cat);
+    if (nombre === 'Reembolso') return icon('arrow-path', 16);
+    return icon('archive-box', 16);
+}
+
+function renderSelectTipo(valorActual = null) {
+    const sel = document.getElementById('input-tipo');
+    if (!sel) return;
+    sel.innerHTML = categoriasActuales.map(c =>
+        `<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)}</option>`
+    ).join('');
+    if (valorActual && categoriasActuales.some(c => c.nombre === valorActual)) {
+        sel.value = valorActual;
+    } else if (categoriasActuales.length) {
+        sel.value = categoriasActuales[0].nombre;
+    }
+}
+
+function renderSelectIconos() {
+    const sel = document.getElementById('input-icono-categoria');
+    if (!sel) return;
+    sel.innerHTML = ICONOS_DISPONIBLES.map(i =>
+        `<option value="${i}">${i.replace(/-/g, ' ')}</option>`
+    ).join('');
+}
+
+function renderListaCategorias() {
+    const cont = document.getElementById('lista-categorias');
+    if (!cont) return;
+    cont.innerHTML = categoriasActuales.map((c, i) => `
+        <div class="part-item">
+            ${iconoCategoria(c)}
+            <div style="flex:1;min-width:0">
+                <div class="part-name">${escapeHtml(c.nombre)}</div>
+            </div>
+            <button onclick="eliminarCategoria(${i})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px" title="Eliminar categoría"><i data-icon="x-mark" data-size="14"></i></button>
+        </div>
+    `).join('');
+}
+
+function abrirModalCategorias() {
+    renderListaCategorias();
+    renderSelectIconos();
+    document.getElementById('input-nueva-categoria').value = '';
+    abrirModal('modal-categorias');
+    setTimeout(() => document.getElementById('input-nueva-categoria').focus(), 100);
+}
+
+async function guardarCategoriasEnDB() {
+    const { error } = await db.from('circulos')
+        .update({ categorias: categoriasActuales })
+        .eq('id', circuloActual.id);
+    if (error) { alert('Error al guardar categorías: ' + error.message); return false; }
+    circuloActual.categorias = categoriasActuales.map(c => ({ ...c }));
+    return true;
+}
+
+async function agregarCategoria() {
+    await withBusyButton('#modal-categorias .btn-primary', async () => {
+        const nombre = document.getElementById('input-nueva-categoria').value.trim();
+        const icono = document.getElementById('input-icono-categoria').value;
+        if (!nombre) { document.getElementById('input-nueva-categoria').focus(); return; }
+        if (categoriasActuales.some(c => c.nombre.toLowerCase() === nombre.toLowerCase())) {
+            alert('Ya existe una categoría con ese nombre.');
+            return;
+        }
+        categoriasActuales.push({ nombre, icono });
+        if (!await guardarCategoriasEnDB()) {
+            categoriasActuales.pop();
+            return;
+        }
+        document.getElementById('input-nueva-categoria').value = '';
+        renderListaCategorias();
+        renderSelectTipo(document.getElementById('input-tipo').value);
+        cargarGastos();
+    });
+}
+
+async function eliminarCategoria(index) {
+    if (categoriasActuales.length <= 1) {
+        alert('Debe haber al menos una categoría.');
+        return;
+    }
+    const cat = categoriasActuales[index];
+    if (!confirm(`¿Eliminar la categoría "${cat.nombre}"?`)) return;
+    categoriasActuales.splice(index, 1);
+    if (!await guardarCategoriasEnDB()) return;
+    renderListaCategorias();
+    renderSelectTipo();
+    cargarGastos();
+}
 
 requireAuth(async () => {
-    const sync = syncInvitados({ personsTable: 'participantes', personGroupField: 'id_grupo', membershipTable: 'grupos_miembros', membershipGroupField: 'id_grupo', tipo: 'gastos' });
+    await syncInvitados({ personsTable: 'participantes', personGroupField: 'id_circulo', membershipTable: 'circulos_miembros', membershipGroupField: 'id_circulo' });
     const params = new URLSearchParams(window.location.search);
-    const abrirId = params.get('abrir');
-    if (abrirId) {
-        await sync;
-        const { data, error } = await db.from('grupos').select('*').eq('id', abrirId).eq('tipo', 'gastos').single();
-        if (error || !data) {
-            alert('No se encontró ese grupo (o no tenés acceso todavía).');
-            clearDetailQueryParams();
-            await cargarGrupos();
-        } else {
-            await abrirGrupo(data, { tab: params.get('tab') });
-        }
+    const circuloId = params.get('circulo');
+    const periodoId = params.get('periodo');
+
+    if (!circuloId && !periodoId) {
+        irAlInicio();
+        return;
+    }
+    if (!periodoId) {
+        window.location.href = `circulo.html?abrir=${circuloId}&seccion=gastos`;
+        return;
+    }
+    if (!circuloId) {
+        irAlInicio();
+        return;
+    }
+
+    const [{ data: periodo, error: ep }, { data: circulo, error: ec }] = await Promise.all([
+        db.from('periodos').select('*').eq('id', periodoId).single(),
+        db.from('circulos').select('*').eq('id', circuloId).single()
+    ]);
+
+    if (ep || !periodo || ec || !circulo || Number(periodo.id_circulo) !== Number(circuloId)) {
+        alert('No se encontró ese periodo (o no tenés acceso todavía).');
+        window.location.href = `circulo.html?abrir=${circuloId}&seccion=gastos`;
+        return;
+    }
+
+    circuloActual = circulo;
+    periodoActual = periodo;
+    initCategorias();
+    document.getElementById('topbar-title').textContent = periodo.nombre;
+
+    const tab = TABS_GASTOS.includes(params.get('tab')) ? params.get('tab') : 'gastos';
+    setQueryParams({ circulo: circuloId, periodo: periodoId, tab });
+    bootTab(tab);
+    appReady();
+
+    await cargarParticipantes();
+    if (tab === 'gastos') {
+        await cargarGastos();
     } else {
-        await Promise.all([sync, cargarGrupos()]);
+        // Balance/Resumen cargan sus datos al activar la pestaña
+        cambiarTab(tab);
     }
 });
-
-// (Sincronización de invitados movida a `js/utils.js` - use `syncInvitados(...)`)
 
 // =============================================
 // NAVEGACIÓN
 // =============================================
-// cambiarTab (utils.js) invoca `onTab_<nombre>` al cambiar de pestaña
 window.onTab_balance = () => calcularYMostrarBalance();
 window.onTab_resumen = () => calcularYMostrarResumen();
-window.onTab_participantes = () => cargarParticipantes();
 
-const TABS_GASTOS = ['gastos', 'participantes', 'balance', 'resumen'];
-
-async function abrirGrupo(grupo, opts = {}) {
-    grupoActual = grupo;
-    setQueryParam('abrir', grupo.id);
-    document.getElementById('topbar-title').textContent = grupo.nombre;
-    mostrarPantalla('grupo');
-    await cargarParticipantes();
-    await cargarGastos();
-    const tab = TABS_GASTOS.includes(opts.tab) ? opts.tab : 'gastos';
-    cambiarTab(tab);
+function volverAlCirculo() {
+    if (!circuloActual) { irAlInicio(); return; }
+    window.location.href = `circulo.html?abrir=${circuloActual.id}&seccion=gastos`;
 }
 
-function volverAGrupos() {
-    if (!grupoActual) { irAlInicio(); return; }
-    grupoActual = null;
-    participantesActuales = [];
-    clearDetailQueryParams();
-    document.getElementById('topbar-title').innerHTML = '<i data-icon="currency-dollar" data-size="20"></i> Gastos';
-    mostrarPantalla('grupos');
-    cargarGrupos();
+// =============================================
+// PARTICIPANTES (solo datos, sin UI)
+// =============================================
+async function cargarParticipantes() {
+    const { data, error } = await db.from('participantes')
+        .select('*').eq('id_circulo', circuloActual.id).order('id');
+    if (error) { alert('Error al cargar personas: ' + error.message); return; }
+    participantesActuales = data || [];
 }
 
 // =============================================
 // MODALES
 // =============================================
-// abrirModal / cerrarModal: ahora vienen de `js/utils.js`
-
-function abrirModalGrupo(grupo = null) {
-    // delegate to shared group manager
-    if (!window._gm_gastos) window._gm_gastos = crearGestorDeGrupos({ table: 'grupos', nameField: 'nombre', rpcCreate: 'crear_grupo_gastos' });
-    window._gm_gastos.abrirModalGrupo(grupo);
-}
-
-async function editarGrupo(id) {
-    if (!window._gm_gastos) window._gm_gastos = crearGestorDeGrupos({ table: 'grupos', nameField: 'nombre', rpcCreate: 'crear_grupo_gastos' });
-    const { data, error } = await db.from('grupos').select('*').eq('id', id).single();
-    if (error) { alert('Error: ' + error.message); return; }
-    window._gm_gastos.abrirModalGrupo(data);
-}
-
-function abrirModalParticipante() {
-    document.getElementById('input-nombre-participante').value = '';
-    document.getElementById('input-email-participante').value = '';
-    document.getElementById('invite-info').style.display = 'none';
-    document.querySelector('#modal-participante .btn-primary').textContent = 'Agregar';
-    abrirModal('modal-participante');
-    setTimeout(() => document.getElementById('input-nombre-participante').focus(), 100);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('input-email-participante').addEventListener('input', function() {
-        const tieneEmail = this.value.trim().length > 0;
-        document.getElementById('invite-info').style.display = tieneEmail ? 'block' : 'none';
-        document.querySelector('#modal-participante .btn-primary').textContent =
-            tieneEmail ? 'Agregar y Enviar Invitación' : 'Agregar';
-    });
-});
 
 function abrirModalGasto() {
     if (participantesActuales.length === 0) {
-        alert('Primero agregá personas al grupo desde la pestaña "Personas".');
+        alert('Primero agregá personas al círculo.');
         return;
     }
     gastoEditando = null;
@@ -286,7 +384,7 @@ function abrirModalGasto() {
     document.getElementById('input-concepto').value = '';
     document.getElementById('input-fecha-gasto').value = hoyISO();
     document.getElementById('input-monto').value = '';
-    document.getElementById('input-tipo').value = 'Comida';
+    renderSelectTipo();
 
     const sel = document.getElementById('input-pagador');
     sel.innerHTML = participantesActuales.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
@@ -298,13 +396,18 @@ function abrirModalGasto() {
     setTimeout(() => document.getElementById('input-concepto').focus(), 100);
 }
 
+function onMontoInput() {
+    if (!gastoEditando) repartirIgual();
+    else actualizarTotalSplit();
+}
+
 function escapeJsString(value) {
     return String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
 }
 
 async function editarGasto(id) {
     if (participantesActuales.length === 0) {
-        alert('Primero agregá personas al grupo desde la pestaña "Personas".');
+        alert('Primero agregá personas al círculo.');
         return;
     }
     const gasto = currentGastos.find(g => g.id === id);
@@ -315,7 +418,7 @@ async function editarGasto(id) {
     document.getElementById('input-concepto').value = gasto.concepto || '';
     document.getElementById('input-fecha-gasto').value = gasto.fecha_gasto || hoyISO();
     document.getElementById('input-monto').value = gasto.monto || '';
-    document.getElementById('input-tipo').value = gasto.tipo_gasto || 'Comida';
+    renderSelectTipo(gasto.tipo_gasto || categoriasActuales[0]?.nombre);
 
     const sel = document.getElementById('input-pagador');
     sel.innerHTML = participantesActuales.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
@@ -364,7 +467,6 @@ function repartirIgual() {
     const monto = parseFloat(document.getElementById('input-monto').value) || 0;
     const n = participantesActuales.length;
     if (!monto || n === 0) return;
-    // Repartir y ajustar el centavo sobrante al primero
     const base = Math.floor((monto / n) * 100) / 100;
     const resto = Math.round((monto - base * n) * 100) / 100;
     participantesActuales.forEach((p, i) => {
@@ -399,104 +501,16 @@ function actualizarTotalSplit() {
 }
 
 // =============================================
-// GRUPOS
-// =============================================
-async function cargarGrupos() {
-    const cont = document.getElementById('lista-grupos');
-    cont.innerHTML = '<div class="loader">Cargando grupos...</div>';
-    const { data, error } = await db.from('grupos').select('*').eq('tipo', 'gastos').order('created_at', { ascending: false });
-    if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}</div>`; return; }
-    if (!data?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="home" data-size="40"></i></span>Sin grupos todavía.<br>Creá uno para empezar.</div>`;
-        return;
-    }
-    cont.innerHTML = data.map(g => `
-        <div class="card" style="overflow:visible">
-            <div class="card-body flex-between" style="gap:10px">
-                <div class="card-click" style="flex:1;min-width:0" onclick='abrirGrupo(${JSON.stringify(g)})'>
-                    <div style="font-weight:700;font-size:16px">${escapeHtml(g.nombre)}</div>
-                    <div class="text-muted">${new Date(g.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })}</div>
-                </div>
-                <div style="display:flex;gap:8px;align-items:center">
-                    <button class="btn btn-ghost btn-sm" onclick="editarGrupo(${g.id})" title="Editar grupo">${icon('pencil-square',16)}</button>
-                    <button class="btn btn-danger btn-sm" onclick="eliminarGrupo(${g.id}, '${g.nombre.replace(/'/g,"\\'")}')" title="Eliminar grupo">${icon('trash',16)}</button>
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-async function crearGrupo() {
-    if (!window._gm_gastos) window._gm_gastos = crearGestorDeGrupos({ table: 'grupos', nameField: 'nombre', rpcCreate: 'crear_grupo_gastos' });
-    await window._gm_gastos.crearGrupo();
-}
-
-async function eliminarGrupo(id, nombre) {
-    if (!confirm(`¿Eliminar el grupo "${nombre}"?\nSe borrarán todos los gastos y participantes.`)) return;
-
-    // Borrar en orden: splits → gastos → participantes → grupo
-    const { data: gastos, error: eg } = await db.from('gastos').select('id').eq('id_grupo', id);
-    if (eg) { alert('Error al leer gastos: ' + eg.message); return; }
-
-    if (gastos?.length) {
-        const { error: es } = await db.from('gastos_participantes').delete().in('id_gasto', gastos.map(g => g.id));
-        if (es) { alert('Error al borrar divisiones: ' + es.message); return; }
-
-        const { error: eg2 } = await db.from('gastos').delete().eq('id_grupo', id);
-        if (eg2) { alert('Error al borrar gastos: ' + eg2.message); return; }
-    }
-
-    const { error: ep } = await db.from('participantes').delete().eq('id_grupo', id);
-    if (ep) { alert('Error al borrar participantes: ' + ep.message); return; }
-
-    const { error: egr } = await db.from('grupos').delete().eq('id', id);
-    if (egr) { alert('Error al borrar grupo: ' + egr.message); return; }
-
-    cargarGrupos();
-}
-
-// =============================================
-// PARTICIPANTES
-// =============================================
-async function cargarParticipantes() {
-    const { data, error } = await db.from('participantes')
-        .select('*').eq('id_grupo', grupoActual.id).order('id');
-    participantesActuales = data || [];
-    const cont = document.getElementById('lista-participantes');
-    if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
-    if (!data?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="users" data-size="40"></i></span>Sin personas todavía.<br>Agregá a quienes comparten los gastos.</div>`;
-        return;
-    }
-    cont.innerHTML = `<div class="card">${data.map(p => `
-        <div class="part-item">
-            <div class="avatar">${p.nombre.charAt(0).toUpperCase()}</div>
-            <div style="flex:1;min-width:0">
-                <div class="part-name">${escapeHtml(p.nombre)}</div>
-                ${p.email ? `<div class="text-muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><i data-icon="envelope" data-size="14"></i> ${escapeHtml(p.email)}</div>` : ''}
-            </div>
-            ${p.email ? '<span class="badge badge-green" style="font-size:11px">Invitado</span>' : ''}
-        </div>
-    `).join('')}</div>`;
-}
-
-async function agregarParticipante() {
-    if (!window._pm_gastos) window._pm_gastos = crearGestorDePersonas({ table: 'participantes', nameField: 'nombre', groupField: 'id_grupo', inputNameId: 'input-nombre-participante', inputEmailId: 'input-email-participante', inviteInfoId: 'invite-info', addButtonSelector: '#modal-participante .btn-primary', currentListVar: 'participantesActuales', redirectParam: 'invite_gasto' });
-    await window._pm_gastos.agregarPersona(grupoActual.id);
-}
-
-// =============================================
 // REEMBOLSOS
 // =============================================
 function abrirModalReembolso() {
     if (participantesActuales.length < 2) {
-        alert('Necesitás al menos 2 personas en el grupo para registrar un reembolso.');
+        alert('Necesitás al menos 2 personas en el círculo para registrar un reembolso.');
         return;
     }
     const opts = participantesActuales.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
     document.getElementById('reembolso-de').innerHTML = opts;
     document.getElementById('reembolso-para').innerHTML = opts;
-    // Preseleccionar distinto
     if (participantesActuales.length >= 2)
         document.getElementById('reembolso-para').selectedIndex = 1;
     document.getElementById('reembolso-monto').value = '';
@@ -506,36 +520,38 @@ function abrirModalReembolso() {
 }
 
 async function guardarReembolso() {
-    const de    = parseInt(document.getElementById('reembolso-de').value);
-    const para  = parseInt(document.getElementById('reembolso-para').value);
-    const monto = parseFloat(document.getElementById('reembolso-monto').value);
-    const fecha = document.getElementById('reembolso-fecha').value || hoyISO();
+    await withBusyButton('#modal-reembolso .btn-primary', async () => {
+        const de    = parseInt(document.getElementById('reembolso-de').value);
+        const para  = parseInt(document.getElementById('reembolso-para').value);
+        const monto = parseFloat(document.getElementById('reembolso-monto').value);
+        const fecha = document.getElementById('reembolso-fecha').value || hoyISO();
 
-    if (de === para) { alert('La persona que paga y la que recibe no pueden ser la misma.'); return; }
-    if (!monto || monto <= 0) { alert('Ingresá un monto válido.'); return; }
+        if (de === para) { alert('La persona que paga y la que recibe no pueden ser la misma.'); return; }
+        if (!monto || monto <= 0) { alert('Ingresá un monto válido.'); return; }
 
-    const nombreDe   = participantesActuales.find(p => p.id === de)?.nombre;
-    const nombrePara = participantesActuales.find(p => p.id === para)?.nombre;
+        const nombreDe   = participantesActuales.find(p => p.id === de)?.nombre;
+        const nombrePara = participantesActuales.find(p => p.id === para)?.nombre;
 
-    // Guardar como gasto especial: pagador = quien devuelve, split = quien recibe
-    const { data: gastoData, error: e1 } = await db.from('gastos').insert({
-        id_grupo: grupoActual.id,
-        id_pagador: de,
-        concepto: `Reembolso de ${nombreDe} a ${nombrePara}`,
-        monto,
-        tipo_gasto: 'Reembolso',
-        fecha_gasto: fecha
-    }).select().single();
+        const { data: gastoData, error: e1 } = await db.from('gastos').insert({
+            id_periodo: periodoActual.id,
+            id_circulo: circuloActual.id,
+            id_pagador: de,
+            concepto: `Reembolso de ${nombreDe} a ${nombrePara}`,
+            monto,
+            tipo_gasto: 'Reembolso',
+            fecha_gasto: fecha
+        }).select().single();
 
-    if (e1) { alert('Error: ' + e1.message); return; }
+        if (e1) { alert('Error: ' + e1.message); return; }
 
-    const { error: e2 } = await db.from('gastos_participantes')
-        .insert({ id_gasto: gastoData.id, id_participante: para, monto });
+        const { error: e2 } = await db.from('gastos_participantes')
+            .insert({ id_gasto: gastoData.id, id_participante: para, monto });
 
-    if (e2) { alert('Error al guardar división: ' + e2.message); return; }
+        if (e2) { alert('Error al guardar división: ' + e2.message); return; }
 
-    cerrarModal('modal-reembolso');
-    cargarGastos();
+        cerrarModal('modal-reembolso');
+        cargarGastos();
+    });
 }
 
 // =============================================
@@ -545,7 +561,7 @@ async function cargarGastos() {
     const cont = document.getElementById('lista-gastos');
     cont.innerHTML = '<div class="loader">Cargando gastos...</div>';
     const { data, error } = await db.from('gastos')
-        .select('*').eq('id_grupo', grupoActual.id)
+        .select('*').eq('id_periodo', periodoActual.id)
         .order('fecha_gasto', { ascending: false })
         .order('created_at', { ascending: false });
     if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
@@ -566,7 +582,7 @@ async function cargarGastos() {
         <div class="card" style="${esReembolso ? 'opacity:0.8' : ''}">
             <div class="gasto-item flex-between">
                 <div style="min-width:0">
-                    <div class="gasto-concepto">${TIPO_ICONO[g.tipo_gasto] || icon('archive-box',16)} ${escapeHtml(g.concepto)}</div>
+                    <div class="gasto-concepto">${getIconoTipo(g.tipo_gasto)} ${escapeHtml(g.concepto)}</div>
                     <div class="gasto-meta">${esReembolso ? '' : `Pagó <strong>${escapeHtml(pagMap[g.id_pagador] || '?')}</strong> · `}${parseFechaLocal(g.fecha_gasto)?.toLocaleDateString('es-AR') || new Date(g.created_at).toLocaleDateString('es-AR')}</div>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px">
@@ -589,59 +605,61 @@ async function cargarGastos() {
 }
 
 async function guardarGasto() {
-    const concepto = document.getElementById('input-concepto').value.trim();
-    const fecha    = document.getElementById('input-fecha-gasto').value || hoyISO();
-    const monto    = parseFloat(document.getElementById('input-monto').value);
-    const tipo     = document.getElementById('input-tipo').value;
-    const pagadorRaw = document.getElementById('input-pagador').value;
-    const pagador = pagadorRaw ? Number(pagadorRaw) : null;
+    await withBusyButton('#modal-gasto .btn-primary', async () => {
+        const concepto = document.getElementById('input-concepto').value.trim();
+        const fecha    = document.getElementById('input-fecha-gasto').value || hoyISO();
+        const monto    = parseFloat(document.getElementById('input-monto').value);
+        const tipo     = document.getElementById('input-tipo').value;
+        const pagadorRaw = document.getElementById('input-pagador').value;
+        const pagador = pagadorRaw ? Number(pagadorRaw) : null;
 
-    if (!concepto) { alert('Ingresá un concepto.'); return; }
-    if (!monto || monto <= 0) { alert('Ingresá un monto válido.'); return; }
-    if (!pagador || Number.isNaN(pagador)) { alert('Seleccioná quién pagó.'); return; }
+        if (!concepto) { alert('Ingresá un concepto.'); return; }
+        if (!monto || monto <= 0) { alert('Ingresá un monto válido.'); return; }
+        if (!pagador || Number.isNaN(pagador)) { alert('Seleccioná quién pagó.'); return; }
 
-    const splits = [];
-    let totalSplit = 0;
-    participantesActuales.forEach(p => {
-        const val = parseFloat(document.getElementById('split-' + p.id)?.value || 0);
-        if (val > 0) { splits.push({ id_participante: p.id, monto: val }); totalSplit += val; }
+        const splits = [];
+        let totalSplit = 0;
+        participantesActuales.forEach(p => {
+            const val = parseFloat(document.getElementById('split-' + p.id)?.value || 0);
+            if (val > 0) { splits.push({ id_participante: p.id, monto: val }); totalSplit += val; }
+        });
+
+        if (!splits.length) { alert('Distribuí el gasto entre las personas.'); return; }
+        if (Math.abs(totalSplit - monto) > 0.02) {
+            alert(`La suma de la división ($${fmt(totalSplit)}) no coincide con el monto ($${fmt(monto)}).`);
+            return;
+        }
+
+        if (gastoEditando) {
+            const { error: e1 } = await db.from('gastos').update({
+                id_pagador: pagador, concepto, monto, tipo_gasto: tipo, fecha_gasto: fecha
+            }).eq('id', gastoEditando);
+            if (e1) { alert('Error al actualizar gasto: ' + e1.message); return; }
+
+            const { error: e3 } = await db.from('gastos_participantes').delete().eq('id_gasto', gastoEditando);
+            if (e3) { alert('Error al borrar división anterior: ' + e3.message); return; }
+
+            const { error: e2 } = await db.from('gastos_participantes')
+                .insert(splits.map(s => ({ ...s, id_gasto: gastoEditando })));
+            if (e2) { alert('Gasto actualizado, pero error en la división: ' + e2.message); return; }
+
+            gastoEditando = null;
+        } else {
+            const { data: gastoData, error: e1 } = await db.from('gastos').insert({
+                id_periodo: periodoActual.id, id_circulo: circuloActual.id, id_pagador: pagador, concepto, monto, tipo_gasto: tipo, fecha_gasto: fecha
+            }).select().single();
+
+            if (e1) { alert('Error al guardar gasto: ' + e1.message); return; }
+
+            const { error: e2 } = await db.from('gastos_participantes')
+                .insert(splits.map(s => ({ ...s, id_gasto: gastoData.id })));
+
+            if (e2) { alert('Gasto guardado, pero error en la división: ' + e2.message); return; }
+        }
+
+        cerrarModal('modal-gasto');
+        cargarGastos();
     });
-
-    if (!splits.length) { alert('Distribuí el gasto entre las personas.'); return; }
-    if (Math.abs(totalSplit - monto) > 0.02) {
-        alert(`La suma de la división ($${fmt(totalSplit)}) no coincide con el monto ($${fmt(monto)}).`);
-        return;
-    }
-
-    if (gastoEditando) {
-        const { error: e1 } = await db.from('gastos').update({
-            id_pagador: pagador, concepto, monto, tipo_gasto: tipo, fecha_gasto: fecha
-        }).eq('id', gastoEditando);
-        if (e1) { alert('Error al actualizar gasto: ' + e1.message); return; }
-
-        const { error: e3 } = await db.from('gastos_participantes').delete().eq('id_gasto', gastoEditando);
-        if (e3) { alert('Error al borrar división anterior: ' + e3.message); return; }
-
-        const { error: e2 } = await db.from('gastos_participantes')
-            .insert(splits.map(s => ({ ...s, id_gasto: gastoEditando })));
-        if (e2) { alert('Gasto actualizado, pero error en la división: ' + e2.message + '\n¿Ejecutaste el SQL de configuración?'); return; }
-
-        gastoEditando = null;
-    } else {
-        const { data: gastoData, error: e1 } = await db.from('gastos').insert({
-            id_grupo: grupoActual.id, id_pagador: pagador, concepto, monto, tipo_gasto: tipo, fecha_gasto: fecha
-        }).select().single();
-
-        if (e1) { alert('Error al guardar gasto: ' + e1.message); return; }
-
-        const { error: e2 } = await db.from('gastos_participantes')
-            .insert(splits.map(s => ({ ...s, id_gasto: gastoData.id })));
-
-        if (e2) { alert('Gasto guardado, pero error en la división: ' + e2.message + '\n¿Ejecutaste el SQL de configuración?'); return; }
-    }
-
-    cerrarModal('modal-gasto');
-    cargarGastos();
 }
 
 // =============================================
@@ -652,12 +670,12 @@ async function calcularYMostrarBalance() {
     cont.innerHTML = '<div class="loader">Calculando balances...</div>';
 
     if (!participantesActuales.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="users" data-size="40"></i></span>Primero agregá personas al grupo.</div>`;
+        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="users" data-size="40"></i></span>Primero agregá personas al círculo.</div>`;
         return;
     }
 
     const { data: gastos, error: e1 } = await db.from('gastos')
-        .select('id, id_pagador, monto').eq('id_grupo', grupoActual.id);
+        .select('id, id_pagador, monto').eq('id_periodo', periodoActual.id);
     if (e1) { cont.innerHTML = `<div class="alert alert-error">${e1.message}</div>`; return; }
 
     if (!gastos?.length) {
@@ -673,7 +691,6 @@ async function calcularYMostrarBalance() {
         return;
     }
 
-    // Calcular balance neto
     const balance = {};
     participantesActuales.forEach(p => balance[p.id] = 0);
     gastos.forEach(g => { balance[g.id_pagador] = (balance[g.id_pagador] || 0) + Number(g.monto); });
@@ -749,55 +766,209 @@ function simplificarDeudas(balance) {
 }
 
 // =============================================
-// RESUMEN POR TIPO DE GASTO (todo el grupo, sin filtrar por fecha)
+// RESUMEN POR TIPO DE GASTO (+ comparación entre periodos)
 // =============================================
-async function calcularYMostrarResumen() {
-    const cont = document.getElementById('contenido-resumen');
-    cont.innerHTML = '<div class="loader">Calculando resumen...</div>';
+let resumenCache = null;
+let periodoCompararId = null;
 
-    const { data: gastos, error } = await db.from('gastos')
-        .select('monto, tipo_gasto')
-        .eq('id_grupo', grupoActual.id)
-        .neq('tipo_gasto', 'Reembolso');
-
-    if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
-
-    if (!gastos?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="chart-bar" data-size="40"></i></span>Sin gastos para resumir todavía.</div>`;
-        return;
-    }
-
-    const total = gastos.reduce((acc, g) => acc + Number(g.monto), 0);
-
-    const porTipo = {};
-    gastos.forEach(g => {
+function agregarGastosPorPeriodo(gastos) {
+    const map = {};
+    (gastos || []).forEach(g => {
+        const pid = Number(g.id_periodo);
+        if (!map[pid]) map[pid] = { total: 0, porTipo: {} };
+        const monto = Number(g.monto) || 0;
+        map[pid].total += monto;
         const tipo = g.tipo_gasto || 'Otro';
-        porTipo[tipo] = (porTipo[tipo] || 0) + Number(g.monto);
+        map[pid].porTipo[tipo] = (map[pid].porTipo[tipo] || 0) + monto;
     });
+    return map;
+}
 
-    const filas = Object.entries(porTipo)
+function statsVacios() {
+    return { total: 0, porTipo: {} };
+}
+
+function defaultPeriodoComparar(periodos, actualId) {
+    const otros = (periodos || []).filter(p => Number(p.id) !== Number(actualId));
+    if (!otros.length) return null;
+    // created_at desc: el primero distinto = el más reciente anterior / hermano
+    return Number(otros[0].id);
+}
+
+function renderFilasCategoria(stats) {
+    const total = stats.total;
+    const filas = Object.entries(stats.porTipo)
         .map(([tipo, monto]) => ({ tipo, monto, pct: total > 0 ? (monto / total) * 100 : 0 }))
         .sort((a, b) => b.monto - a.monto);
-
-    cont.innerHTML = `
-        <div class="total-card">
-            <div class="total-label">Total gastado (sin reembolsos)</div>
-            <div class="total-monto">$${fmt(total)}</div>
-        </div>
+    if (!filas.length) {
+        return `<div class="empty" style="padding:20px"><span class="empty-icon"><i data-icon="chart-bar" data-size="32"></i></span>Sin gastos en este periodo.</div>`;
+    }
+    return `
         <div class="card" style="padding:16px">
             ${filas.map(f => `
                 <div class="progress-row">
                     <div class="progress-label-row">
-                        <span>${TIPO_ICONO[f.tipo] || icon('archive-box',16)} ${escapeHtml(f.tipo)}</span>
+                        <span>${getIconoTipo(f.tipo)} ${escapeHtml(f.tipo)}</span>
                         <span class="text-muted">$${fmt(f.monto)} · ${f.pct.toFixed(0)}%</span>
                     </div>
                     <div class="progress-track">
-                        <div class="progress-fill" style="width:${f.pct.toFixed(1)}%"></div>
+                        <div class="progress-fill" style="width:${Math.min(100, f.pct).toFixed(1)}%"></div>
                     </div>
                 </div>
             `).join('')}
+        </div>`;
+}
+
+function renderComparacionPeriodos() {
+    if (!resumenCache) return '';
+    const { periodos, porPeriodo } = resumenCache;
+    const actualId = Number(periodoActual.id);
+    const otros = periodos.filter(p => Number(p.id) !== actualId);
+    if (!otros.length) {
+        return `
+            <div class="section-label">Comparar periodos</div>
+            <div class="card" style="padding:16px">
+                <div class="text-muted" style="font-size:14px;line-height:1.5">
+                    Creá otro periodo en este círculo para poder comparar totales y categorías.
+                </div>
+            </div>`;
+    }
+
+    if (!periodoCompararId || !otros.some(p => Number(p.id) === Number(periodoCompararId))) {
+        periodoCompararId = defaultPeriodoComparar(periodos, actualId);
+    }
+
+    const actual = periodos.find(p => Number(p.id) === actualId);
+    const otro = periodos.find(p => Number(p.id) === Number(periodoCompararId));
+    const statsA = porPeriodo[actualId] || statsVacios();
+    const statsB = porPeriodo[Number(periodoCompararId)] || statsVacios();
+    const diff = statsA.total - statsB.total;
+    const diffAbs = Math.abs(diff);
+    const basePct = statsB.total > 0 ? (diff / statsB.total) * 100 : null;
+    let diffTxt;
+    if (diff === 0) diffTxt = 'Mismo total en ambos periodos';
+    else if (diff > 0) {
+        diffTxt = `$${fmt(diffAbs)} más que ${escapeHtml(otro?.nombre || 'el otro')}`;
+        if (basePct != null) diffTxt += ` (+${Math.abs(basePct).toFixed(0)}%)`;
+    } else {
+        diffTxt = `$${fmt(diffAbs)} menos que ${escapeHtml(otro?.nombre || 'el otro')}`;
+        if (basePct != null) diffTxt += ` (−${Math.abs(basePct).toFixed(0)}%)`;
+    }
+    const diffClass = diff > 0 ? 'text-negative' : (diff < 0 ? 'text-positive' : 'text-muted');
+
+    const tipos = [...new Set([
+        ...Object.keys(statsA.porTipo),
+        ...Object.keys(statsB.porTipo)
+    ])].sort((a, b) => {
+        const ma = (statsA.porTipo[a] || 0) + (statsB.porTipo[a] || 0);
+        const mb = (statsA.porTipo[b] || 0) + (statsB.porTipo[b] || 0);
+        return mb - ma;
+    });
+
+    const filasCat = tipos.length ? tipos.map(tipo => {
+        const a = statsA.porTipo[tipo] || 0;
+        const b = statsB.porTipo[tipo] || 0;
+        const pctA = statsA.total > 0 ? (a / statsA.total) * 100 : 0;
+        const pctB = statsB.total > 0 ? (b / statsB.total) * 100 : 0;
+        return `
+            <div class="compare-cat-block">
+                <div class="compare-cat-title">${getIconoTipo(tipo)} ${escapeHtml(tipo)}</div>
+                <div class="compare-bar-row">
+                    <div class="compare-bar-meta">
+                        <span>Este · <strong>${escapeHtml(actual?.nombre || 'este')}</strong></span>
+                        <span>$${fmt(a)} · ${pctA.toFixed(0)}%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" style="width:${Math.min(100, pctA).toFixed(1)}%"></div>
+                    </div>
+                </div>
+                <div class="compare-bar-row">
+                    <div class="compare-bar-meta">
+                        <span>Otro · <strong>${escapeHtml(otro?.nombre || 'otro')}</strong></span>
+                        <span>$${fmt(b)} · ${pctB.toFixed(0)}%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill alt" style="width:${Math.min(100, pctB).toFixed(1)}%"></div>
+                    </div>
+                </div>
+            </div>`;
+    }).join('') : `<div class="text-muted" style="padding:8px 0;font-size:13px">Sin gastos en ninguno de los dos.</div>`;
+
+    return `
+        <div class="section-label">Comparar periodos</div>
+        <div class="card" style="padding:16px">
+            <div class="compare-head">
+                <label for="select-periodo-comparar" style="margin:0">Comparar con</label>
+                <select id="select-periodo-comparar" onchange="cambiarPeriodoComparar(this.value)">
+                    ${otros.map(p => `<option value="${p.id}" ${Number(p.id) === Number(periodoCompararId) ? 'selected' : ''}>${escapeHtml(p.nombre)}</option>`).join('')}
+                </select>
+            </div>
+            <div class="compare-grid">
+                <div class="compare-side">
+                    <div class="compare-side-label">Este periodo</div>
+                    <div class="compare-side-name">${escapeHtml(actual?.nombre || periodoActual.nombre)}</div>
+                    <div class="compare-side-monto">$${fmt(statsA.total)}</div>
+                </div>
+                <div class="compare-vs">vs</div>
+                <div class="compare-side">
+                    <div class="compare-side-label">Otro</div>
+                    <div class="compare-side-name">${escapeHtml(otro?.nombre || '')}</div>
+                    <div class="compare-side-monto">$${fmt(statsB.total)}</div>
+                </div>
+            </div>
+            <div class="compare-diff ${diffClass}">${diffTxt}</div>
+            <div class="section-label" style="margin-top:18px">Por categoría</div>
+            ${filasCat}
+        </div>`;
+}
+
+function pintarResumen() {
+    const cont = document.getElementById('contenido-resumen');
+    if (!cont || !resumenCache || !periodoActual) return;
+    const stats = resumenCache.porPeriodo[Number(periodoActual.id)] || statsVacios();
+    cont.innerHTML = `
+        <div class="total-card">
+            <div class="total-label">Total gastado (sin reembolsos)</div>
+            <div class="total-monto">$${fmt(stats.total)}</div>
         </div>
+        ${renderFilasCategoria(stats)}
+        ${renderComparacionPeriodos()}
     `;
+}
+
+function cambiarPeriodoComparar(id) {
+    periodoCompararId = Number(id);
+    pintarResumen();
+}
+
+async function calcularYMostrarResumen() {
+    const cont = document.getElementById('contenido-resumen');
+    cont.innerHTML = '<div class="loader">Calculando resumen...</div>';
+
+    const [{ data: periodos, error: ep }, { data: gastos, error: eg }] = await Promise.all([
+        db.from('periodos')
+            .select('id, nombre, created_at')
+            .eq('id_circulo', circuloActual.id)
+            .order('created_at', { ascending: false }),
+        db.from('gastos')
+            .select('id_periodo, monto, tipo_gasto')
+            .eq('id_circulo', circuloActual.id)
+            .neq('tipo_gasto', 'Reembolso')
+    ]);
+
+    if (ep || eg) {
+        cont.innerHTML = `<div class="alert alert-error">${(ep || eg).message}</div>`;
+        return;
+    }
+
+    resumenCache = {
+        periodos: periodos || [],
+        porPeriodo: agregarGastosPorPeriodo(gastos)
+    };
+    if (!periodoCompararId) {
+        periodoCompararId = defaultPeriodoComparar(resumenCache.periodos, periodoActual.id);
+    }
+    pintarResumen();
 }
 </script>
 </body>

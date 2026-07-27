@@ -5,7 +5,24 @@
 // =============================================
 
 async function requireAuth(onReady) {
-    const { data: { session } } = await db.auth.getSession();
+    let session = (await db.auth.getSession()).data.session;
+    if (!session) {
+        session = await new Promise(resolve => {
+            let sub = null;
+            const timeout = setTimeout(() => {
+                if (sub) sub.unsubscribe();
+                resolve(null);
+            }, 400);
+            const { data: { subscription } } = db.auth.onAuthStateChange((event, s) => {
+                if (s || event === 'INITIAL_SESSION') {
+                    clearTimeout(timeout);
+                    subscription.unsubscribe();
+                    resolve(s || null);
+                }
+            });
+            sub = subscription;
+        });
+    }
     if (!session) {
         window.location.href = 'index.html';
         return;
