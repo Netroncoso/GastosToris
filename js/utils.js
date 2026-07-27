@@ -240,6 +240,13 @@ new MutationObserver(mutations => {
     mutations.forEach(m => m.addedNodes.forEach(initIconsIn));
 }).observe(document.documentElement, { childList: true, subtree: true });
 
+// PWA: abre como app (sin pestaña nueva cada vez) y cachea estáticos
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+}
+
 // =============================================
 // FACTORY: GESTOR DE GRUPOS (creación/edición/abrir modal)
 // =============================================
