@@ -868,13 +868,29 @@ function renderComparacionPeriodos() {
     const filasCat = tipos.length ? tipos.map(tipo => {
         const a = statsA.porTipo[tipo] || 0;
         const b = statsB.porTipo[tipo] || 0;
-        const d = a - b;
-        const cls = d > 0 ? 'up' : (d < 0 ? 'down' : '');
+        const pctA = statsA.total > 0 ? (a / statsA.total) * 100 : 0;
+        const pctB = statsB.total > 0 ? (b / statsB.total) * 100 : 0;
         return `
-            <div class="compare-cat-row">
-                <div class="compare-cat-name">${getIconoTipo(tipo)}<span>${escapeHtml(tipo)}</span></div>
-                <div class="compare-cat-val">$${fmt(a)}</div>
-                <div class="compare-cat-val ${cls}">$${fmt(b)}${d !== 0 ? ` <span class="text-muted" style="font-size:11px">(${d > 0 ? '+' : ''}${fmt(d)})</span>` : ''}</div>
+            <div class="compare-cat-block">
+                <div class="compare-cat-title">${getIconoTipo(tipo)} ${escapeHtml(tipo)}</div>
+                <div class="compare-bar-row">
+                    <div class="compare-bar-meta">
+                        <span>Este · <strong>${escapeHtml(actual?.nombre || 'este')}</strong></span>
+                        <span>$${fmt(a)} · ${pctA.toFixed(0)}%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" style="width:${Math.min(100, pctA).toFixed(1)}%"></div>
+                    </div>
+                </div>
+                <div class="compare-bar-row">
+                    <div class="compare-bar-meta">
+                        <span>Otro · <strong>${escapeHtml(otro?.nombre || 'otro')}</strong></span>
+                        <span>$${fmt(b)} · ${pctB.toFixed(0)}%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill alt" style="width:${Math.min(100, pctB).toFixed(1)}%"></div>
+                    </div>
+                </div>
             </div>`;
     }).join('') : `<div class="text-muted" style="padding:8px 0;font-size:13px">Sin gastos en ninguno de los dos.</div>`;
 
@@ -902,11 +918,6 @@ function renderComparacionPeriodos() {
             </div>
             <div class="compare-diff ${diffClass}">${diffTxt}</div>
             <div class="section-label" style="margin-top:18px">Por categoría</div>
-            <div class="compare-cat-row" style="padding-top:0;border:none;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px">
-                <div></div>
-                <div class="compare-cat-val">Este</div>
-                <div class="compare-cat-val">Otro</div>
-            </div>
             ${filasCat}
         </div>`;
 }
