@@ -249,19 +249,21 @@ function isValidLastRoute(route) {
     return false;
 }
 
-/** Desde index.html: vuelve a la última pantalla si existe (una sola vez por arranque). */
-function redirectToLastRouteIfAny() {
-    if (sessionStorage.getItem('toris-restore-attempted')) return false;
+/** Ruta guardada para restaurar al abrir (null si no corresponde). */
+function getRestoreTarget() {
+    if (sessionStorage.getItem('toris-restore-attempted')) return null;
     const last = getLastRoute();
     if (!last || last === currentRoutePath() || !isValidLastRoute(last)) {
         if (last && !isValidLastRoute(last)) clearLastRoute();
-        return false;
+        return null;
     }
     const file = window.location.pathname.split('/').pop() || 'index.html';
-    if (file !== 'index.html') return false;
-    sessionStorage.setItem('toris-restore-attempted', '1');
-    window.location.replace('./' + last);
-    return true;
+    if (file !== 'index.html') return null;
+    return last;
+}
+
+function markRestoreAttempted() {
+    try { sessionStorage.setItem('toris-restore-attempted', '1'); } catch (_) {}
 }
 
 function clearRouteRestoreFlag() {
