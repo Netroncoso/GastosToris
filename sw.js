@@ -1,6 +1,6 @@
 /* Service worker liviano: cachea estáticos de GitHub Pages.
    No cachea llamadas a Supabase (siempre van a la red). */
-const CACHE = 'torisapp-static-v2';
+const CACHE = 'torisapp-static-v3';
 const PRECACHE = [
   './',
   './index.html',
