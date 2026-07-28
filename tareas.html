@@ -379,8 +379,10 @@ function renderTareas() {
                 </div>
                 <div class="prio-dot prio-${t.prioridad || 'media'}" title="Prioridad ${PRIO_LABEL[t.prioridad] || 'Media'}"></div>
                 <div class="lista-nombre ${t.hecha ? 'tachado' : ''}">${escapeHtml(t.titulo)}</div>
-                <button onclick="abrirModalEditarTarea(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;flex-shrink:0" title="Editar tarea"><i data-icon="pencil-square" data-size="14"></i></button>
-                <button onclick="borrarTarea(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;flex-shrink:0" title="Eliminar tarea"><i data-icon="x-mark" data-size="14"></i></button>
+                <div class="tarea-actions">
+                    <button class="btn-icon-plain" onclick="abrirModalEditarTarea(${t.id})" title="Editar tarea">${icon('pencil-square',18)}</button>
+                    <button class="btn-icon-plain btn-icon-danger" onclick="borrarTarea(${t.id})" title="Eliminar tarea">${icon('x-mark',18)}</button>
+                </div>
             </div>
             ${tieneBadges ? `
             <div class="tarea-item-badges">
