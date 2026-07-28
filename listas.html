@@ -121,7 +121,7 @@
             <h3>Cargar a gastos</h3>
             <button class="modal-close" onclick="cerrarModal('modal-cargar-gastos')"><i data-icon="x-mark" data-size="14"></i></button>
         </div>
-        <div id="cargar-gastos-resumen" class="alert alert-info" style="margin-bottom:14px"></div>
+        <div id="cargar-gastos-resumen" class="text-muted" style="margin-bottom:14px;font-size:13px;line-height:1.45"></div>
         <div class="form-group">
             <label>Periodo</label>
             <select id="cg-periodo"></select>
@@ -447,7 +447,9 @@ function renderItems() {
          <span>${comprados.length} comprado${comprados.length !== 1 ? 's' : ''}</span>`;
 
     const acciones = document.getElementById('acciones-comprados');
-    if (acciones) acciones.style.display = comprados.length > 0 ? 'flex' : 'none';
+    if (acciones) {
+        acciones.style.display = (filtroLista === 'comprados' && comprados.length > 0) ? 'flex' : 'none';
+    }
 
     if (!items.length) {
         const msgs = { pendientes: '<i data-icon="check-circle" data-size="18"></i> No hay ítems pendientes.', comprados: 'Sin ítems comprados todavía.', todos: '<i data-icon="clipboard-document-list" data-size="18"></i> La lista está vacía. Agregá algo.' };
@@ -532,19 +534,21 @@ function categoriasParaGasto() {
     // Defaults de la app + custom del círculo (sin duplicar por nombre)
     const byName = new Map();
     CATEGORIAS_DEFECTO.forEach(c => {
-        byName.set(c.nombre.toLowerCase(), { nombre: c.nombre, icono: c.icono || 'archive-box' });
+        byName.set(String(c.nombre).toLowerCase(), { nombre: c.nombre, icono: c.icono || 'archive-box' });
     });
     const raw = circuloActual?.categorias;
     if (Array.isArray(raw)) {
         raw.forEach(c => {
-            const item = typeof c === 'string' ? { nombre: c } : c;
-            if (!item?.nombre) return;
+            const item = typeof c === 'string'
+                ? { nombre: c }
+                : { nombre: c?.nombre || c?.name, icono: c?.icono || c?.icon };
+            if (!item.nombre) return;
             const key = String(item.nombre).toLowerCase();
             if (!byName.has(key)) {
                 byName.set(key, { nombre: item.nombre, icono: item.icono || 'archive-box' });
             } else if (item.icono) {
-                // Si ya existe (default), respeta ícono custom del círculo
-                byName.set(key, { nombre: byName.get(key).nombre, icono: item.icono });
+                const prev = byName.get(key);
+                byName.set(key, { nombre: prev.nombre, icono: item.icono });
             }
         });
     }
@@ -552,19 +556,20 @@ function categoriasParaGasto() {
 }
 
 async function asegurarDatosGasto() {
-    if (!participantesCirculo.length) {
-        const { data, error } = await db.from('participantes')
-            .select('*').eq('id_circulo', circuloId).order('id');
-        if (error) throw new Error(error.message);
-        participantesCirculo = data || [];
-    }
-    if (!periodosCirculo.length) {
-        const { data, error } = await db.from('periodos')
-            .select('id, nombre, created_at')
-            .eq('id_circulo', circuloId)
-            .order('created_at', { ascending: false });
-        if (error) throw new Error(error.message);
-        periodosCirculo = data || [];
+    // Siempre refrescar: si no, periodos/personas/categorías quedan viejos
+    const [{ data: partes, error: ep }, { data: periodos, error: eo }, { data: circulo, error: ec }] = await Promise.all([
+        db.from('participantes').select('*').eq('id_circulo', circuloId).order('id'),
+        db.from('periodos').select('id, nombre, created_at').eq('id_circulo', circuloId).order('created_at', { ascending: false }),
+        db.from('circulos').select('id, nombre, categorias').eq('id', circuloId).single()
+    ]);
+    if (ep) throw new Error(ep.message);
+    if (eo) throw new Error(eo.message);
+    if (ec) throw new Error(ec.message);
+    participantesCirculo = partes || [];
+    periodosCirculo = periodos || [];
+    if (circulo && circuloActual) {
+        circuloActual.categorias = circulo.categorias;
+        if (circulo.nombre) circuloActual.nombre = circulo.nombre;
     }
 }
 
@@ -602,16 +607,19 @@ async function abrirModalCargarGastos() {
     ).join('');
 
     document.getElementById('cg-concepto').value = listaActual?.nombre || '';
-    document.getElementById('cg-concepto').placeholder = 'Ej: Compra del sábado…';
     document.getElementById('cg-fecha').value = hoyISO();
     document.getElementById('cg-monto').value = '';
 
     const cats = categoriasParaGasto();
     const selTipo = document.getElementById('cg-tipo');
+    // value sin escapeHtml completo: si no, en algunos browsers no matchea el .value =
     selTipo.innerHTML = cats.map(c =>
-        `<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)}</option>`
+        `<option value="${String(c.nombre).replace(/"/g, '&quot;')}">${escapeHtml(c.nombre)}</option>`
     ).join('');
-    const preferida = cats.find(c => /super|verdul|carnic|otro/i.test(c.nombre)) || cats[0];
+    const nombreLista = (listaActual?.nombre || '').trim().toLowerCase();
+    const preferida = cats.find(c => c.nombre.toLowerCase() === nombreLista)
+        || cats.find(c => /super|verdul|carnic/i.test(c.nombre))
+        || cats[0];
     if (preferida) selTipo.value = preferida.nombre;
 
     const selPagador = document.getElementById('cg-pagador');
@@ -630,7 +638,7 @@ async function abrirModalCargarGastos() {
     document.getElementById('cg-split-total-row').innerHTML = '';
 
     abrirModal('modal-cargar-gastos');
-    setTimeout(() => document.getElementById('cg-monto').focus(), 120);
+    setTimeout(() => document.getElementById('cg-concepto').focus(), 120);
 }
 
 function cgOnMontoInput() {
@@ -640,7 +648,7 @@ function cgOnMontoInput() {
 function cgRepartirIgual() {
     const monto = parseFloat(document.getElementById('cg-monto').value) || 0;
     const n = participantesCirculo.length;
-    if (!n) return;
+    if (!monto || !n) return;
     const base = Math.floor((monto / n) * 100) / 100;
     let acum = 0;
     participantesCirculo.forEach((p, i) => {
@@ -686,6 +694,7 @@ async function guardarCargarGastos() {
         if (!periodoId) { alert('Elegí un periodo.'); return; }
         if (!concepto) { alert('Ingresá un concepto.'); return; }
         if (!(monto > 0)) { alert('Ingresá el monto total del ticket.'); return; }
+        if (!tipo) { alert('Elegí una categoría.'); return; }
         if (!pagador) { alert('Elegí quién pagó.'); return; }
 
         const splits = [];
