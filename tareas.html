@@ -35,10 +35,14 @@
 <!-- SCREEN: TAREAS DEL CÍRCULO -->
 <div id="screen-grupo" class="screen active">
     <div class="container">
-        <div class="filter-tabs">
+            <div class="filter-tabs">
                 <div class="filter-tab active" onclick="setFiltro('pendientes')">Pendientes</div>
                 <div class="filter-tab" onclick="setFiltro('todas')">Todas</div>
                 <div class="filter-tab" onclick="setFiltro('hechas')">Hechas</div>
+            </div>
+            <div id="calendar-connect-banner" class="alert alert-info hidden" style="margin-bottom:12px">
+                <div style="margin-bottom:8px"><i data-icon="calendar-days" data-size="16"></i> Conectá Google Calendar para sincronizar vencimientos.</div>
+                <button class="btn btn-primary btn-sm" type="button" onclick="conectarGoogleCalendar()">Conectar Calendar</button>
             </div>
             <div id="tareas-stats" class="stats-row"></div>
             <div id="tareas-items" class="card"></div>
@@ -198,8 +202,16 @@ async function abrirGrupo(grupo, opts = {}) {
         t.classList.toggle('active', ['pendientes','todas','hechas'][i] === filtro);
     });
     appReady();
+    await actualizarEstadoCalendarBanner();
     await Promise.all([cargarPersonasTareas(), cargarTareas(), cargarListasDisponibles()]);
     renderTareas();
+}
+
+async function actualizarEstadoCalendarBanner() {
+    const banner = document.getElementById('calendar-connect-banner');
+    if (!banner) return;
+    const ok = await tieneCalendarConectado();
+    banner.classList.toggle('hidden', ok);
 }
 
 function volverAlCirculo() {
@@ -429,8 +441,9 @@ async function agregarTarea() {
             const t = todasLasTareas.find(x => x.id === data.id);
             if (t) t.google_event_id = resultado.event_id;
             renderTareas();
+            await actualizarEstadoCalendarBanner();
         } catch (e) {
-            alert('La tarea se creó, pero no se pudo agregar a Google Calendar: ' + e.message);
+            await manejarErrorCalendar(e, 'La tarea se creó, pero no se pudo agregar a Google Calendar');
         }
     }
     });
@@ -610,7 +623,7 @@ async function guardarEdicionTarea() {
             await db.from('tareas').update({ google_event_id: null }).eq('id', tareaEditando);
         }
     } catch (e) {
-        alert('La tarea se guardó, pero hubo un problema con Google Calendar: ' + e.message);
+        await manejarErrorCalendar(e, 'La tarea se guardó, pero hubo un problema con Google Calendar');
     }
 
     Object.assign(tarea, {
