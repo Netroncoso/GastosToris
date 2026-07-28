@@ -75,10 +75,10 @@
         </div>
 
         <div id="acciones-comprados" class="mt-12" style="display:none;gap:8px">
-            <button class="btn btn-ghost" id="btn-desmarcar-comprados" onclick="desmarcarComprados()" style="flex:0 0 25%;max-width:25%;padding:10px 6px;font-size:12px" title="Desmarcar todos los comprados">
-                <i data-icon="arrow-uturn-left" data-size="16"></i>
+            <button class="btn btn-ghost" id="btn-desmarcar-comprados" onclick="desmarcarComprados()" style="flex:0 0 20%;max-width:20%;padding:10px 4px;font-size:12px" title="Desmarcar todos los comprados">
+                <i data-icon="arrow-path-rounded-square" data-size="16"></i>
             </button>
-            <button class="btn btn-primary" id="btn-cargar-gastos" onclick="abrirModalCargarGastos()" style="flex:1;min-width:0">
+            <button class="btn btn-primary" id="btn-cargar-gastos" onclick="abrirModalCargarGastos()" style="flex:1 1 80%;min-width:0">
                 <i data-icon="currency-dollar" data-size="16"></i> Cargar a gastos
             </button>
         </div>
@@ -175,11 +175,18 @@ let todosLosItems = [];
 let participantesCirculo = [];
 let periodosCirculo = [];
 
-const CATEGORIAS_LISTA_DEFECTO = [
-    { nombre: 'Comida', icono: 'shopping-cart' },
-    { nombre: 'Supermercado', icono: 'building-storefront' },
-    { nombre: 'Hogar', icono: 'home' },
-    { nombre: 'Otro', icono: 'archive-box' }
+const CATEGORIAS_DEFECTO = [
+    { nombre: 'Super', icono: 'shopping-cart' },
+    { nombre: 'Carnicería', icono: 'cake' },
+    { nombre: 'Verdulería', icono: 'shopping-bag' },
+    { nombre: 'Gatos', icono: 'heart' },
+    { nombre: 'Casa alquiler', icono: 'home' },
+    { nombre: 'Casa impuestos', icono: 'bolt' },
+    { nombre: 'Tarjetas', icono: 'credit-card' },
+    { nombre: 'Auto', icono: 'truck' },
+    { nombre: 'Viajes', icono: 'paper-airplane' },
+    { nombre: 'Salidas', icono: 'film' },
+    { nombre: 'Otros', icono: 'archive-box' }
 ];
 
 requireAuth(async () => {
@@ -522,10 +529,26 @@ async function desmarcarComprados() {
 // CARGAR COMPRADOS → GASTO
 // =============================================
 function categoriasParaGasto() {
-    if (circuloActual?.categorias && Array.isArray(circuloActual.categorias) && circuloActual.categorias.length) {
-        return circuloActual.categorias.map(c => ({ nombre: c.nombre, icono: c.icono || 'archive-box' }));
+    // Defaults de la app + custom del círculo (sin duplicar por nombre)
+    const byName = new Map();
+    CATEGORIAS_DEFECTO.forEach(c => {
+        byName.set(c.nombre.toLowerCase(), { nombre: c.nombre, icono: c.icono || 'archive-box' });
+    });
+    const raw = circuloActual?.categorias;
+    if (Array.isArray(raw)) {
+        raw.forEach(c => {
+            const item = typeof c === 'string' ? { nombre: c } : c;
+            if (!item?.nombre) return;
+            const key = String(item.nombre).toLowerCase();
+            if (!byName.has(key)) {
+                byName.set(key, { nombre: item.nombre, icono: item.icono || 'archive-box' });
+            } else if (item.icono) {
+                // Si ya existe (default), respeta ícono custom del círculo
+                byName.set(key, { nombre: byName.get(key).nombre, icono: item.icono });
+            }
+        });
     }
-    return CATEGORIAS_LISTA_DEFECTO.map(c => ({ ...c }));
+    return [...byName.values()];
 }
 
 async function asegurarDatosGasto() {
@@ -588,7 +611,7 @@ async function abrirModalCargarGastos() {
     selTipo.innerHTML = cats.map(c =>
         `<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)}</option>`
     ).join('');
-    const preferida = cats.find(c => /super|comida|compra|hogar/i.test(c.nombre)) || cats[0];
+    const preferida = cats.find(c => /super|verdul|carnic|otro/i.test(c.nombre)) || cats[0];
     if (preferida) selTipo.value = preferida.nombre;
 
     const selPagador = document.getElementById('cg-pagador');
