@@ -74,9 +74,14 @@
             </div>
         </div>
 
-        <button class="btn btn-ghost btn-full mt-12" id="btn-borrar-comprados" onclick="borrarComprados()" style="display:none;color:var(--danger);border-color:var(--danger)">
-            <i data-icon="trash" data-size="16"></i> Borrar todos los comprados
-        </button>
+        <div id="acciones-comprados" class="mt-12" style="display:none;gap:8px">
+            <button class="btn btn-ghost" id="btn-desmarcar-comprados" onclick="desmarcarComprados()" style="flex:0 0 25%;max-width:25%;padding:10px 6px;font-size:12px" title="Desmarcar todos los comprados">
+                <i data-icon="arrow-uturn-left" data-size="16"></i>
+            </button>
+            <button class="btn btn-primary" id="btn-cargar-gastos" onclick="abrirModalCargarGastos()" style="flex:1;min-width:0">
+                <i data-icon="currency-dollar" data-size="16"></i> Cargar a gastos
+            </button>
+        </div>
     </div>
 </div>
 
@@ -109,6 +114,51 @@
     </div>
 </div>
 
+<!-- MODAL: CARGAR COMPRADOS A GASTOS -->
+<div id="modal-cargar-gastos" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Cargar a gastos</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-cargar-gastos')"><i data-icon="x-mark" data-size="14"></i></button>
+        </div>
+        <div id="cargar-gastos-resumen" class="alert alert-info" style="margin-bottom:14px"></div>
+        <div class="form-group">
+            <label>Periodo</label>
+            <select id="cg-periodo"></select>
+        </div>
+        <div class="form-group">
+            <label>Concepto</label>
+            <input type="text" id="cg-concepto" placeholder="Ej: Compra del sábado…" />
+        </div>
+        <div class="form-group">
+            <label>Fecha del gasto</label>
+            <input type="date" id="cg-fecha" />
+        </div>
+        <div class="form-group">
+            <label>Monto total ($)</label>
+            <input type="number" id="cg-monto" placeholder="Total del ticket" step="0.01" min="0" oninput="cgOnMontoInput()" />
+        </div>
+        <div class="form-group">
+            <label>Categoría</label>
+            <select id="cg-tipo"></select>
+        </div>
+        <div class="form-group">
+            <label>¿Quién pagó?</label>
+            <select id="cg-pagador"></select>
+        </div>
+        <div class="form-group">
+            <label>División por persona ($)</label>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="cgRepartirIgual()">Partes iguales</button>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="cgLimpiarSplit()">Limpiar</button>
+            </div>
+            <div id="cg-split-container"></div>
+            <div id="cg-split-total-row" class="split-total-row"></div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="guardarCargarGastos()">Guardar gasto</button>
+    </div>
+</div>
+
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/utils.js"></script>
@@ -122,6 +172,15 @@ let circuloActual = null;
 let listaActual = null;
 let filtroLista = 'pendientes';
 let todosLosItems = [];
+let participantesCirculo = [];
+let periodosCirculo = [];
+
+const CATEGORIAS_LISTA_DEFECTO = [
+    { nombre: 'Comida', icono: 'shopping-cart' },
+    { nombre: 'Supermercado', icono: 'building-storefront' },
+    { nombre: 'Hogar', icono: 'home' },
+    { nombre: 'Otro', icono: 'archive-box' }
+];
 
 requireAuth(async () => {
     await syncInvitados({ personsTable: 'participantes', personGroupField: 'id_circulo', membershipTable: 'circulos_miembros', membershipGroupField: 'id_circulo' });
@@ -380,8 +439,8 @@ function renderItems() {
         `<span>${pendientes.length} pendiente${pendientes.length !== 1 ? 's' : ''}</span>
          <span>${comprados.length} comprado${comprados.length !== 1 ? 's' : ''}</span>`;
 
-    document.getElementById('btn-borrar-comprados').style.display =
-        comprados.length > 0 ? 'flex' : 'none';
+    const acciones = document.getElementById('acciones-comprados');
+    if (acciones) acciones.style.display = comprados.length > 0 ? 'flex' : 'none';
 
     if (!items.length) {
         const msgs = { pendientes: '<i data-icon="check-circle" data-size="18"></i> No hay ítems pendientes.', comprados: 'Sin ítems comprados todavía.', todos: '<i data-icon="clipboard-document-list" data-size="18"></i> La lista está vacía. Agregá algo.' };
@@ -441,13 +500,216 @@ async function borrarItem(id) {
     renderItems();
 }
 
-async function borrarComprados() {
-    if (!confirm('¿Borrar todos los ítems comprados?')) return;
-    const ids = todosLosItems.filter(i => i.comprado).map(i => i.id);
-    const { error } = await db.from('lista_compras').delete().in('id', ids);
+async function desmarcarComprados() {
+    const comprados = todosLosItems.filter(i => i.comprado);
+    if (!comprados.length) return;
+    if (!confirm(`¿Desmarcar ${comprados.length} ítem${comprados.length === 1 ? '' : 's'}? Vuelven a pendientes.`)) return;
+    const ids = comprados.map(i => i.id);
+    const { error } = await db.from('lista_compras')
+        .update({ comprado: false, comprado_at: null })
+        .in('id', ids);
     if (error) { alert('Error: ' + error.message); return; }
-    todosLosItems = todosLosItems.filter(i => !i.comprado);
+    todosLosItems.forEach(i => {
+        if (ids.includes(i.id)) {
+            i.comprado = false;
+            i.comprado_at = null;
+        }
+    });
     renderItems();
+}
+
+// =============================================
+// CARGAR COMPRADOS → GASTO
+// =============================================
+function categoriasParaGasto() {
+    if (circuloActual?.categorias && Array.isArray(circuloActual.categorias) && circuloActual.categorias.length) {
+        return circuloActual.categorias.map(c => ({ nombre: c.nombre, icono: c.icono || 'archive-box' }));
+    }
+    return CATEGORIAS_LISTA_DEFECTO.map(c => ({ ...c }));
+}
+
+async function asegurarDatosGasto() {
+    if (!participantesCirculo.length) {
+        const { data, error } = await db.from('participantes')
+            .select('*').eq('id_circulo', circuloId).order('id');
+        if (error) throw new Error(error.message);
+        participantesCirculo = data || [];
+    }
+    if (!periodosCirculo.length) {
+        const { data, error } = await db.from('periodos')
+            .select('id, nombre, created_at')
+            .eq('id_circulo', circuloId)
+            .order('created_at', { ascending: false });
+        if (error) throw new Error(error.message);
+        periodosCirculo = data || [];
+    }
+}
+
+async function abrirModalCargarGastos() {
+    const comprados = todosLosItems.filter(i => i.comprado);
+    if (!comprados.length) {
+        alert('No hay ítems comprados para cargar.');
+        return;
+    }
+    try {
+        await asegurarDatosGasto();
+    } catch (e) {
+        alert('Error al preparar el gasto: ' + e.message);
+        return;
+    }
+    if (!periodosCirculo.length) {
+        alert('No hay periodos en este círculo. Creá uno en Gastos primero.');
+        return;
+    }
+    if (!participantesCirculo.length) {
+        alert('Agregá personas al círculo antes de cargar un gasto.');
+        return;
+    }
+
+    const nombres = comprados.map(i => i.nombre);
+    const preview = nombres.length <= 4
+        ? nombres.join(', ')
+        : `${nombres.slice(0, 3).join(', ')} y ${nombres.length - 3} más`;
+    document.getElementById('cargar-gastos-resumen').innerHTML =
+        `<strong>${comprados.length} ítem${comprados.length === 1 ? '' : 's'} comprado${comprados.length === 1 ? '' : 's'}</strong><br>${escapeHtml(preview)}`;
+
+    const selPeriodo = document.getElementById('cg-periodo');
+    selPeriodo.innerHTML = periodosCirculo.map(p =>
+        `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`
+    ).join('');
+
+    document.getElementById('cg-concepto').value = listaActual?.nombre || '';
+    document.getElementById('cg-concepto').placeholder = 'Ej: Compra del sábado…';
+    document.getElementById('cg-fecha').value = hoyISO();
+    document.getElementById('cg-monto').value = '';
+
+    const cats = categoriasParaGasto();
+    const selTipo = document.getElementById('cg-tipo');
+    selTipo.innerHTML = cats.map(c =>
+        `<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)}</option>`
+    ).join('');
+    const preferida = cats.find(c => /super|comida|compra|hogar/i.test(c.nombre)) || cats[0];
+    if (preferida) selTipo.value = preferida.nombre;
+
+    const selPagador = document.getElementById('cg-pagador');
+    selPagador.innerHTML = participantesCirculo.map(p =>
+        `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`
+    ).join('');
+    if (participantesCirculo[0]) selPagador.value = String(participantesCirculo[0].id);
+
+    document.getElementById('cg-split-container').innerHTML = participantesCirculo.map(p => `
+        <div class="split-row">
+            <div class="split-name">${escapeHtml(p.nombre)}</div>
+            <input type="number" class="split-input" id="cg-split-${p.id}"
+                placeholder="0" step="0.01" min="0" oninput="cgUpdateSplitTotal()" />
+        </div>
+    `).join('');
+    document.getElementById('cg-split-total-row').innerHTML = '';
+
+    abrirModal('modal-cargar-gastos');
+    setTimeout(() => document.getElementById('cg-monto').focus(), 120);
+}
+
+function cgOnMontoInput() {
+    cgRepartirIgual();
+}
+
+function cgRepartirIgual() {
+    const monto = parseFloat(document.getElementById('cg-monto').value) || 0;
+    const n = participantesCirculo.length;
+    if (!n) return;
+    const base = Math.floor((monto / n) * 100) / 100;
+    let acum = 0;
+    participantesCirculo.forEach((p, i) => {
+        const input = document.getElementById('cg-split-' + p.id);
+        if (!input) return;
+        if (i === n - 1) input.value = (Math.round((monto - acum) * 100) / 100).toFixed(2);
+        else {
+            input.value = base.toFixed(2);
+            acum += base;
+        }
+    });
+    cgUpdateSplitTotal();
+}
+
+function cgLimpiarSplit() {
+    participantesCirculo.forEach(p => {
+        const input = document.getElementById('cg-split-' + p.id);
+        if (input) input.value = '';
+    });
+    document.getElementById('cg-split-total-row').innerHTML = '';
+}
+
+function cgUpdateSplitTotal() {
+    const monto = parseFloat(document.getElementById('cg-monto').value) || 0;
+    let total = 0;
+    participantesCirculo.forEach(p => {
+        total += parseFloat(document.getElementById('cg-split-' + p.id)?.value || 0);
+    });
+    const row = document.getElementById('cg-split-total-row');
+    const ok = Math.abs(total - monto) < 0.02;
+    row.innerHTML = `<span class="${ok ? 'text-positive' : 'text-negative'}">Suma: $${fmt(total)} / $${fmt(monto)}</span>`;
+}
+
+async function guardarCargarGastos() {
+    await withBusyButton('#modal-cargar-gastos .btn-primary', async () => {
+        const periodoId = Number(document.getElementById('cg-periodo').value);
+        const concepto = document.getElementById('cg-concepto').value.trim();
+        const fecha = document.getElementById('cg-fecha').value || hoyISO();
+        const monto = parseFloat(document.getElementById('cg-monto').value);
+        const tipo = document.getElementById('cg-tipo').value;
+        const pagador = Number(document.getElementById('cg-pagador').value);
+
+        if (!periodoId) { alert('Elegí un periodo.'); return; }
+        if (!concepto) { alert('Ingresá un concepto.'); return; }
+        if (!(monto > 0)) { alert('Ingresá el monto total del ticket.'); return; }
+        if (!pagador) { alert('Elegí quién pagó.'); return; }
+
+        const splits = [];
+        let totalSplit = 0;
+        participantesCirculo.forEach(p => {
+            const val = parseFloat(document.getElementById('cg-split-' + p.id)?.value || 0);
+            if (val > 0) {
+                splits.push({ id_participante: p.id, monto: val });
+                totalSplit += val;
+            }
+        });
+        if (!splits.length) { alert('Distribuí el gasto entre las personas.'); return; }
+        if (Math.abs(totalSplit - monto) > 0.05) {
+            alert(`La división ($${fmt(totalSplit)}) no cierra con el total ($${fmt(monto)}).`);
+            return;
+        }
+
+        const { data: gastoData, error: e1 } = await db.from('gastos').insert({
+            id_periodo: periodoId,
+            id_circulo: circuloId,
+            id_pagador: pagador,
+            concepto,
+            monto,
+            tipo_gasto: tipo,
+            fecha_gasto: fecha
+        }).select().single();
+        if (e1 || !gastoData) {
+            alert('Error al guardar el gasto: ' + (e1?.message || 'desconocido'));
+            return;
+        }
+
+        const { error: e2 } = await db.from('gastos_participantes')
+            .insert(splits.map(s => ({ ...s, id_gasto: gastoData.id })));
+        if (e2) {
+            alert('El gasto se creó, pero falló la división: ' + e2.message);
+            return;
+        }
+
+        cerrarModal('modal-cargar-gastos');
+        const periodo = periodosCirculo.find(p => Number(p.id) === periodoId);
+        const ir = confirm(
+            `Gasto guardado en ${periodo?.nombre || 'el periodo'}.\n¿Querés ir a verlo?`
+        );
+        if (ir) {
+            window.location.href = `./gastos.html?circulo=${circuloId}&periodo=${periodoId}`;
+        }
+    });
 }
 </script>
 </body>
