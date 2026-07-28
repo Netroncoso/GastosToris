@@ -655,17 +655,29 @@ async function cargarGastos({ silent = false } = {}) {
 
     const renderItem = g => {
         const esReembolso = g.tipo_gasto === 'Reembolso';
+        const fecha = parseFechaLocal(g.fecha_gasto)?.toLocaleDateString('es-AR') || new Date(g.created_at).toLocaleDateString('es-AR');
+        let titulo, meta;
+        if (esReembolso) {
+            const m = String(g.concepto || '').match(/^Reembolso de (.+?) a (.+)$/i);
+            titulo = `${getIconoTipo(g.tipo_gasto)} Reembolso`;
+            meta = m
+                ? `de <strong>${escapeHtml(m[1])}</strong> a <strong>${escapeHtml(m[2])}</strong> · ${fecha}`
+                : `${escapeHtml(g.concepto)} · ${fecha}`;
+        } else {
+            titulo = `${getIconoTipo(g.tipo_gasto)} ${escapeHtml(g.concepto)}`;
+            meta = `Pagó <strong>${escapeHtml(pagMap[g.id_pagador] || '?')}</strong> · ${fecha}`;
+        }
         return `
-        <div class="card gasto-card" style="${esReembolso ? 'opacity:0.8' : ''}">
+        <div class="card gasto-card">
             <div class="gasto-item flex-between">
                 <div style="min-width:0">
-                    <div class="gasto-concepto">${getIconoTipo(g.tipo_gasto)} ${escapeHtml(g.concepto)}</div>
-                    <div class="gasto-meta">${esReembolso ? '' : `Pagó <strong>${escapeHtml(pagMap[g.id_pagador] || '?')}</strong> · `}${parseFechaLocal(g.fecha_gasto)?.toLocaleDateString('es-AR') || new Date(g.created_at).toLocaleDateString('es-AR')}</div>
+                    <div class="gasto-concepto">${titulo}</div>
+                    <div class="gasto-meta">${meta}</div>
                 </div>
                 <div class="gasto-actions">
                     <div class="gasto-monto" style="${esReembolso ? 'color:var(--success)' : ''}">$${fmt(g.monto)}</div>
-                    <button class="btn-icon-plain" onclick="editarGasto(${g.id})" title="Editar">${icon('pencil-square',16)}</button>
-                    <button class="btn-icon-plain btn-icon-danger" onclick="eliminarGasto(${g.id}, '${escapeJsString(g.concepto)}')" title="Eliminar">${icon('trash',16)}</button>
+                    <button class="btn-icon-plain" onclick="editarGasto(${g.id})" title="Editar">${icon('pencil-square',18)}</button>
+                    <button class="btn-icon-plain btn-icon-danger" onclick="eliminarGasto(${g.id}, '${escapeJsString(g.concepto)}')" title="Eliminar">${icon('trash',18)}</button>
                 </div>
             </div>
         </div>`;
