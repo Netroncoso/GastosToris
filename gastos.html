@@ -84,7 +84,7 @@
         </div>
         <div class="form-group">
             <label>Monto ($)</label>
-            <input type="number" id="reembolso-monto" placeholder="0" step="1" min="0" />
+            <input type="text" class="input-monto" id="reembolso-monto" placeholder="0" inputmode="decimal" autocomplete="off" />
         </div>
         <button class="btn btn-primary btn-full" onclick="guardarReembolso()">Registrar Reembolso</button>
     </div>
@@ -107,7 +107,7 @@
         </div>
         <div class="form-group">
             <label>Monto total ($)</label>
-            <input type="number" id="input-monto" placeholder="0.00" step="0.01" min="0" oninput="onMontoInput()" />
+            <input type="text" class="input-monto" id="input-monto" placeholder="0" inputmode="decimal" autocomplete="off" />
         </div>
         <div class="form-group">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -343,6 +343,8 @@ requireAuth(async () => {
     setQueryParams({ circulo: circuloId, periodo: periodoId, tab });
     bootTab(tab);
     appReady();
+    bindMontoInput(document.getElementById('input-monto'), () => onMontoInput());
+    bindMontoInput(document.getElementById('reembolso-monto'));
 
     await cargarParticipantes();
     if (tab === 'gastos') {
@@ -441,7 +443,7 @@ async function editarGasto(id) {
     document.querySelector('#modal-gasto .btn-primary').textContent = 'Actualizar Gasto';
     document.getElementById('input-concepto').value = gasto.concepto || '';
     document.getElementById('input-fecha-gasto').value = gasto.fecha_gasto || hoyISO();
-    document.getElementById('input-monto').value = gasto.monto || '';
+    document.getElementById('input-monto').value = formatMontoInput(Number(gasto.monto));
     renderSelectTipo(gasto.tipo_gasto || categoriasActuales[0]?.nombre);
 
     const sel = document.getElementById('input-pagador');
@@ -458,7 +460,7 @@ async function editarGasto(id) {
     }
     (splits || []).forEach(s => {
         const input = document.getElementById('split-' + s.id_participante);
-        if (input) input.value = s.monto;
+        if (input) setMontoInput(input, Number(s.monto));
     });
     actualizarTotalSplit();
     abrirModal('modal-gasto');
@@ -481,21 +483,24 @@ function renderSplitContainer() {
     document.getElementById('split-container').innerHTML = participantesActuales.map(p => `
         <div class="split-row">
             <div class="split-name">${escapeHtml(p.nombre)}</div>
-            <input type="number" class="split-input" id="split-${p.id}"
-                placeholder="$0.00" step="0.01" min="0" oninput="actualizarTotalSplit()" />
+            <input type="text" class="split-input input-monto" id="split-${p.id}"
+                placeholder="0" inputmode="decimal" autocomplete="off" />
         </div>
     `).join('');
+    participantesActuales.forEach(p => {
+        bindMontoInput(document.getElementById('split-' + p.id), () => actualizarTotalSplit());
+    });
 }
 
 function repartirIgual() {
-    const monto = parseFloat(document.getElementById('input-monto').value) || 0;
+    const monto = parseMonto(document.getElementById('input-monto').value) || 0;
     const n = participantesActuales.length;
     if (!monto || n === 0) return;
     const base = Math.floor((monto / n) * 100) / 100;
     const resto = Math.round((monto - base * n) * 100) / 100;
     participantesActuales.forEach((p, i) => {
         const input = document.getElementById('split-' + p.id);
-        if (input) input.value = i === 0 ? (base + resto).toFixed(2) : base.toFixed(2);
+        if (input) setMontoInput(input, i === 0 ? (base + resto) : base);
     });
     actualizarTotalSplit();
 }
@@ -509,10 +514,10 @@ function limpiarSplit() {
 }
 
 function actualizarTotalSplit() {
-    const monto = parseFloat(document.getElementById('input-monto').value) || 0;
+    const monto = parseMonto(document.getElementById('input-monto').value) || 0;
     let total = 0;
     participantesActuales.forEach(p => {
-        total += parseFloat(document.getElementById('split-' + p.id)?.value || 0);
+        total += parseMonto(document.getElementById('split-' + p.id)?.value) || 0;
     });
     total = Math.round(total * 100) / 100;
     const row = document.getElementById('split-total-row');
@@ -547,7 +552,7 @@ async function guardarReembolso() {
     await withBusyButton('#modal-reembolso .btn-primary', async () => {
         const de    = parseInt(document.getElementById('reembolso-de').value);
         const para  = parseInt(document.getElementById('reembolso-para').value);
-        const monto = parseFloat(document.getElementById('reembolso-monto').value);
+        const monto = parseMonto(document.getElementById('reembolso-monto').value);
         const fecha = document.getElementById('reembolso-fecha').value || hoyISO();
 
         if (de === para) { alert('La persona que paga y la que recibe no pueden ser la misma.'); return; }
@@ -651,16 +656,16 @@ async function cargarGastos({ silent = false } = {}) {
     const renderItem = g => {
         const esReembolso = g.tipo_gasto === 'Reembolso';
         return `
-        <div class="card" style="${esReembolso ? 'opacity:0.8' : ''}">
+        <div class="card gasto-card" style="${esReembolso ? 'opacity:0.8' : ''}">
             <div class="gasto-item flex-between">
                 <div style="min-width:0">
                     <div class="gasto-concepto">${getIconoTipo(g.tipo_gasto)} ${escapeHtml(g.concepto)}</div>
                     <div class="gasto-meta">${esReembolso ? '' : `Pagó <strong>${escapeHtml(pagMap[g.id_pagador] || '?')}</strong> · `}${parseFechaLocal(g.fecha_gasto)?.toLocaleDateString('es-AR') || new Date(g.created_at).toLocaleDateString('es-AR')}</div>
                 </div>
-                <div style="display:flex;align-items:center;gap:8px">
-                    <div class="gasto-monto" style="margin-left:12px;${esReembolso ? 'color:var(--success)' : ''}">$${fmt(g.monto)}</div>
-                    <button class="btn btn-ghost btn-sm" onclick="editarGasto(${g.id})" title="Editar gasto">${icon('pencil-square',16)}</button>
-                    <button class="btn btn-danger btn-sm" onclick="eliminarGasto(${g.id}, '${escapeJsString(g.concepto)}')" title="Eliminar gasto">${icon('trash',16)}</button>
+                <div class="gasto-actions">
+                    <div class="gasto-monto" style="${esReembolso ? 'color:var(--success)' : ''}">$${fmt(g.monto)}</div>
+                    <button class="btn-icon-plain" onclick="editarGasto(${g.id})" title="Editar">${icon('pencil-square',16)}</button>
+                    <button class="btn-icon-plain btn-icon-danger" onclick="eliminarGasto(${g.id}, '${escapeJsString(g.concepto)}')" title="Eliminar">${icon('trash',16)}</button>
                 </div>
             </div>
         </div>`;
@@ -680,7 +685,7 @@ async function guardarGasto() {
     await withBusyButton('#modal-gasto .btn-primary', async () => {
         const concepto = document.getElementById('input-concepto').value.trim();
         const fecha    = document.getElementById('input-fecha-gasto').value || hoyISO();
-        const monto    = parseFloat(document.getElementById('input-monto').value);
+        const monto    = parseMonto(document.getElementById('input-monto').value);
         const tipo     = document.getElementById('input-tipo').value;
         const pagadorRaw = document.getElementById('input-pagador').value;
         const pagador = pagadorRaw ? Number(pagadorRaw) : null;
@@ -692,7 +697,7 @@ async function guardarGasto() {
         const splits = [];
         let totalSplit = 0;
         participantesActuales.forEach(p => {
-            const val = parseFloat(document.getElementById('split-' + p.id)?.value || 0);
+            const val = parseMonto(document.getElementById('split-' + p.id)?.value) || 0;
             if (val > 0) { splits.push({ id_participante: p.id, monto: val }); totalSplit += val; }
         });
 
