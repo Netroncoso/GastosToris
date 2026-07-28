@@ -55,6 +55,10 @@
     <div class="container">
         <div id="lista-grupos"><div class="loader">Cargando círculos...</div></div>
         <button class="btn btn-primary btn-full mt-16" onclick="abrirModalGrupo()"><i data-icon="plus" data-size="16"></i> Nuevo círculo</button>
+        <div id="seccion-accesos" class="hidden mt-16">
+            <div class="section-label" style="margin-top:0">Accesos directos</div>
+            <div id="lista-accesos"></div>
+        </div>
     </div>
 </div>
 
@@ -115,6 +119,7 @@
     });
 
     async function activarApp(user) {
+        window._indexUserId = user.id;
         document.getElementById('topbar').classList.remove('hidden');
         const nombre = (user.user_metadata?.full_name || user.email || '').split(' ')[0];
         document.getElementById('topbar-user').textContent = nombre;
@@ -130,6 +135,7 @@
         appReady();
         syncInvitados().catch(() => {});
         cargarGrupos();
+        pintarAccesosEnIndex(user.id);
     }
 
     function mostrarPantalla(nombre) {

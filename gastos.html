@@ -56,6 +56,10 @@
     </div>
 </div>
 
+<button type="button" id="fab-pin" class="fab-pin hidden" onclick="togglePinPaginaActual()" title="Fijar en inicio">
+    <i data-icon="bookmark" data-size="22"></i>
+</button>
+
 <!-- MODAL: REEMBOLSO -->
 <div id="modal-reembolso" class="modal-overlay">
     <div class="modal">
@@ -347,7 +351,26 @@ requireAuth(async () => {
         // Balance/Resumen cargan sus datos al activar la pestaña
         cambiarTab(tab);
     }
+    refreshFabPinGastos();
+    window.onAfterTabChange = () => refreshFabPinGastos();
 });
+
+function getFabPinDataGastos() {
+    if (!circuloActual || !periodoActual) return null;
+    const tab = getQueryParam('tab') || 'gastos';
+    return {
+        circuloId: circuloActual.id,
+        circuloNombre: circuloActual.nombre,
+        periodoId: periodoActual.id,
+        periodoNombre: periodoActual.nombre,
+        tab,
+        tipo: 'gastos-periodo'
+    };
+}
+
+async function refreshFabPinGastos() {
+    await refreshFabPin(getFabPinDataGastos());
+}
 
 // =============================================
 // NAVEGACIÓN

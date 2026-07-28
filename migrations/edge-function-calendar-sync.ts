@@ -34,7 +34,9 @@ async function refreshAccessToken(refreshToken: string): Promise<string> {
   })
   const data = await res.json()
   if (!res.ok) {
-    throw new Error(data.error_description || data.error || 'No se pudo renovar el token de Google. Puede que haya que volver a iniciar sesión.')
+    const detail = data.error_description || data.error || 'No se pudo renovar el token de Google.'
+    // invalid_client / deleted OAuth client → hay que alinear secrets con Google Cloud
+    throw new Error(detail)
   }
   return data.access_token as string
 }
