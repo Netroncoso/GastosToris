@@ -121,6 +121,54 @@ async function callCalendarSync(payload) {
     return data;
 }
 
+async function guardarTokenGoogleIfPresent(session) {
+    if (!session?.provider_refresh_token || !session.user?.id) return;
+    const { error } = await db.from('google_tokens').upsert({
+        user_id: session.user.id,
+        refresh_token: session.provider_refresh_token,
+        updated_at: new Date().toISOString()
+    });
+    if (error) console.error('No se pudo guardar el token de Google Calendar:', error.message);
+}
+
+async function tieneCalendarConectado() {
+    const userId = await getCurrentUserId();
+    if (!userId) return false;
+    const { data, error } = await db.from('google_tokens')
+        .select('refresh_token')
+        .eq('user_id', userId)
+        .maybeSingle();
+    return !error && !!data?.refresh_token;
+}
+
+/** OAuth solo para Calendar (con consent). No afecta el login diario. */
+async function conectarGoogleCalendar() {
+    const { error } = await db.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: window.location.href.split('#')[0],
+            scopes: 'https://www.googleapis.com/auth/calendar.events',
+            queryParams: { access_type: 'offline', prompt: 'consent' }
+        }
+    });
+    if (error) alert('Error al conectar Calendar: ' + error.message);
+}
+
+function esErrorCalendarDesconectado(msg) {
+    const m = String(msg || '').toLowerCase();
+    return m.includes('calendar conectado') || m.includes('invalid_grant') || m.includes('token');
+}
+
+async function manejarErrorCalendar(e, contexto) {
+    if (esErrorCalendarDesconectado(e?.message)) {
+        if (confirm('Google Calendar no está conectado o expiró. ¿Conectar ahora?')) {
+            await conectarGoogleCalendar();
+        }
+        return;
+    }
+    alert(`${contexto}: ${e.message}`);
+}
+
 // =============================================
 // NAVEGACIÓN, MODALES Y UTILIDADES COMPARTIDAS
 // =============================================

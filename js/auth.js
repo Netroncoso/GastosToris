@@ -31,7 +31,10 @@ async function requireAuth(onReady) {
     onReady(session.user);
 }
 
-db.auth.onAuthStateChange((event, session) => {
+db.auth.onAuthStateChange(async (event, session) => {
+    if (session && typeof guardarTokenGoogleIfPresent === 'function') {
+        await guardarTokenGoogleIfPresent(session);
+    }
     if (event === 'SIGNED_OUT') {
         window.location.href = './index.html';
     }
