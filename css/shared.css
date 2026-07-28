@@ -411,3 +411,22 @@ body.modal-open { overflow: hidden; }
 body.has-fab-pin .container { padding-bottom: 76px; }
 .acceso-card { margin-bottom: 8px; }
 .acceso-card .dash-icon { width: 40px; height: 40px; border-radius: 10px; }
+.acceso-unpin {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.acceso-unpin:hover {
+    color: var(--primary);
+    border-color: var(--primary);
+    background: var(--ghost-hover);
+}
