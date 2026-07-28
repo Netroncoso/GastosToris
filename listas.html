@@ -37,6 +37,7 @@
     <div class="container">
         <div id="lista-de-listas"><div class="loader">Cargando listas...</div></div>
         <button class="btn btn-primary btn-full mt-16" onclick="abrirModalLista()"><i data-icon="plus" data-size="16"></i> Nueva Lista</button>
+        <button class="btn btn-ghost btn-full mt-12" onclick="abrirModalPlantillas()"><i data-icon="clipboard-document-list" data-size="16"></i> Cargar plantilla</button>
     </div>
 </div>
 
@@ -94,9 +95,24 @@
     </div>
 </div>
 
+<!-- MODAL: PLANTILLAS -->
+<div id="modal-plantillas" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Cargar plantilla</h3>
+            <button class="modal-close" onclick="cerrarModal('modal-plantillas')"><i data-icon="x-mark" data-size="14"></i></button>
+        </div>
+        <p class="text-muted" style="margin-bottom:14px;font-size:13px;line-height:1.45">
+            Crea una lista nueva con ítems prearmados. Podés editarla después.
+        </p>
+        <div id="lista-plantillas"></div>
+    </div>
+</div>
+
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/listas-plantillas.js"></script>
 <script>
 // =============================================
 // ESTADO GLOBAL
@@ -246,6 +262,67 @@ async function crearLista() {
         cerrarModal('modal-lista');
         cargarListas();
     });
+}
+
+function abrirModalPlantillas() {
+    const cont = document.getElementById('lista-plantillas');
+    cont.innerHTML = (typeof LISTAS_PLANTILLAS !== 'undefined' ? LISTAS_PLANTILLAS : []).map(p => `
+        <div class="card card-click" style="margin-bottom:8px" onclick="cargarPlantilla('${escapeJsString(p.id)}')">
+            <div class="card-body dash-card" style="padding:14px 12px">
+                <div class="dash-icon" style="width:40px;height:40px"><i data-icon="${p.icon || 'clipboard-document-list'}" data-size="22"></i></div>
+                <div style="min-width:0;flex:1">
+                    <div class="dash-title" style="font-size:15px">${escapeHtml(p.nombre)}</div>
+                    <div class="dash-sub">${p.items.length} ítems</div>
+                </div>
+                <div class="dash-arrow">›</div>
+            </div>
+        </div>
+    `).join('') || `<div class="text-muted">No hay plantillas disponibles.</div>`;
+    abrirModal('modal-plantillas');
+}
+
+async function cargarPlantilla(plantillaId) {
+    const plantilla = (LISTAS_PLANTILLAS || []).find(p => p.id === plantillaId);
+    if (!plantilla) return;
+    if (window._cargandoPlantilla) return;
+    window._cargandoPlantilla = true;
+
+    const cont = document.getElementById('lista-plantillas');
+    const prev = cont.innerHTML;
+    cont.innerHTML = `<div class="loader">Creando "${escapeHtml(plantilla.nombre)}"…</div>`;
+
+    try {
+        const { data: lista, error } = await db.from('listas')
+            .insert({ nombre: plantilla.nombre, id_circulo: circuloId })
+            .select()
+            .single();
+        if (error || !lista) {
+            alert('Error al crear la lista: ' + (error?.message || 'desconocido'));
+            cont.innerHTML = prev;
+            return;
+        }
+
+        const rows = plantilla.items.map(nombre => ({
+            nombre,
+            id_lista: lista.id,
+            comprado: false
+        }));
+
+        const chunk = 80;
+        for (let i = 0; i < rows.length; i += chunk) {
+            const slice = rows.slice(i, i + chunk);
+            const { error: ei } = await db.from('lista_compras').insert(slice);
+            if (ei) {
+                alert('La lista se creó, pero falló al cargar algunos ítems: ' + ei.message);
+                break;
+            }
+        }
+
+        cerrarModal('modal-plantillas');
+        await abrirLista(lista);
+    } finally {
+        window._cargandoPlantilla = false;
+    }
 }
 
 async function eliminarLista(id, nombre) {
