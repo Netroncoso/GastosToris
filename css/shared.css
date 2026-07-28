@@ -381,3 +381,33 @@ body.modal-open { overflow: hidden; }
 .tarea-item-main { display: flex; align-items: center; gap: 12px; }
 .tarea-item-main .lista-nombre { flex: 1; min-width: 0; }
 .tarea-item-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; padding-left: 34px; }
+
+/* FAB: fijar acceso directo en inicio */
+.fab-pin {
+    position: fixed;
+    right: max(16px, env(safe-area-inset-right, 0px));
+    bottom: max(16px, env(safe-area-inset-bottom, 0px));
+    z-index: 85;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    box-shadow: var(--shadow-hover);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.12s, background 0.15s, color 0.15s, border-color 0.15s;
+}
+.fab-pin:hover { transform: translateY(-1px); }
+.fab-pin.pinned {
+    background: var(--card);
+    color: var(--primary);
+    border: 2px solid var(--primary);
+}
+.fab-pin.hidden { display: none !important; }
+body.has-fab-pin .container { padding-bottom: 76px; }
+.acceso-card { margin-bottom: 8px; }
+.acceso-card .dash-icon { width: 40px; height: 40px; border-radius: 10px; }

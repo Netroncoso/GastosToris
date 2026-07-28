@@ -53,6 +53,10 @@ function escapeHtml(str) {
         .replace(/'/g, '&#39;');
 }
 
+function escapeJsString(value) {
+    return String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
 // Fecha de hoy en formato YYYY-MM-DD, en hora local (para el value de un <input type="date">)
 function hoyISO() {
     const d = new Date();
@@ -156,7 +160,13 @@ async function conectarGoogleCalendar() {
 
 function esErrorCalendarDesconectado(msg) {
     const m = String(msg || '').toLowerCase();
-    return m.includes('calendar conectado') || m.includes('invalid_grant') || m.includes('token');
+    return (
+        m.includes('calendar conectado') ||
+        m.includes('invalid_grant') ||
+        m.includes('token') ||
+        m.includes('oauth client was not found') ||
+        m.includes('invalid_client')
+    );
 }
 
 async function manejarErrorCalendar(e, contexto) {
@@ -287,6 +297,193 @@ function irAlCirculo(id, seccion = null) {
     window.location.href = `./circulo.html?${q.toString()}`;
 }
 
+// =============================================
+// ACCESOS DIRECTOS (localStorage por usuario)
+// =============================================
+const ACCESOS_STORAGE = 'toris-accesos';
+const ACCESOS_MAX = 8;
+
+function accesosStorageKey(userId) {
+    return `${ACCESOS_STORAGE}:${userId}`;
+}
+
+function getAccesos(userId) {
+    if (!userId) return [];
+    try {
+        const raw = localStorage.getItem(accesosStorageKey(userId));
+        const list = raw ? JSON.parse(raw) : [];
+        return Array.isArray(list) ? list : [];
+    } catch (_) {
+        return [];
+    }
+}
+
+function saveAccesos(userId, list) {
+    if (!userId) return;
+    try { localStorage.setItem(accesosStorageKey(userId), JSON.stringify(list)); } catch (_) {}
+}
+
+function accesoIdFrom(data) {
+    return [
+        data.circuloId,
+        data.tipo,
+        data.periodoId || '',
+        data.tab || ''
+    ].join('-');
+}
+
+function buildAccesoLabel(data) {
+    const circulo = data.circuloNombre || 'Círculo';
+    if (data.tipo === 'gastos-periodo') {
+        const tabLabels = { gastos: 'Gastos', balance: 'Balance', resumen: 'Resumen' };
+        const tab = data.tab && data.tab !== 'gastos' ? ` · ${tabLabels[data.tab] || data.tab}` : '';
+        return `${circulo} · ${data.periodoNombre || 'Periodo'}${tab}`;
+    }
+    if (data.tipo === 'gastos-periodos') return `${circulo} · Gastos`;
+    if (data.tipo === 'listas') return `${circulo} · Listas`;
+    if (data.tipo === 'tareas') return `${circulo} · Tareas`;
+    if (data.tipo === 'personas') return `${circulo} · Personas`;
+    return circulo;
+}
+
+function accesoIcon(data) {
+    if (data.tipo === 'gastos-periodo' || data.tipo === 'gastos-periodos') return 'currency-dollar';
+    if (data.tipo === 'listas') return 'shopping-cart';
+    if (data.tipo === 'tareas') return 'check-circle';
+    if (data.tipo === 'personas') return 'users';
+    return 'cube-transparent';
+}
+
+function urlAcceso(acceso) {
+    switch (acceso.tipo) {
+        case 'gastos-periodo': {
+            let url = `./gastos.html?circulo=${acceso.circuloId}&periodo=${acceso.periodoId}`;
+            if (acceso.tab && acceso.tab !== 'gastos') url += `&tab=${acceso.tab}`;
+            return url;
+        }
+        case 'gastos-periodos':
+            return `./circulo.html?abrir=${acceso.circuloId}&seccion=gastos`;
+        case 'listas':
+            return `./listas.html?circulo=${acceso.circuloId}`;
+        case 'tareas':
+            return `./tareas.html?abrir=${acceso.circuloId}`;
+        case 'personas':
+            return `./circulo.html?abrir=${acceso.circuloId}&seccion=personas`;
+        default:
+            return './index.html';
+    }
+}
+
+function isAccesoPinned(userId, data) {
+    const id = accesoIdFrom(data);
+    return getAccesos(userId).some(a => a.id === id);
+}
+
+/** true = fijado, false = quitado, null = límite alcanzado */
+function toggleAcceso(userId, data) {
+    if (!userId || !data?.circuloId || !data?.tipo) return null;
+    const id = accesoIdFrom(data);
+    const list = getAccesos(userId);
+    const idx = list.findIndex(a => a.id === id);
+    if (idx >= 0) {
+        list.splice(idx, 1);
+        saveAccesos(userId, list);
+        return false;
+    }
+    if (list.length >= ACCESOS_MAX) {
+        alert(`Máximo ${ACCESOS_MAX} accesos directos. Quitá uno desde el inicio.`);
+        return null;
+    }
+    list.push({
+        id,
+        circuloId: Number(data.circuloId),
+        circuloNombre: data.circuloNombre || '',
+        tipo: data.tipo,
+        periodoId: data.periodoId ? Number(data.periodoId) : undefined,
+        periodoNombre: data.periodoNombre || undefined,
+        tab: data.tab || undefined,
+        label: buildAccesoLabel(data)
+    });
+    saveAccesos(userId, list);
+    return true;
+}
+
+function quitarAcceso(userId, accesoId) {
+    const list = getAccesos(userId).filter(a => a.id !== accesoId);
+    saveAccesos(userId, list);
+}
+
+function updateFabPinButton(btn, pinned) {
+    if (!btn) return;
+    btn.classList.toggle('pinned', pinned);
+    btn.title = pinned ? 'Quitar acceso directo' : 'Fijar en inicio';
+}
+
+async function refreshFabPin(data) {
+    const btn = document.getElementById('fab-pin');
+    if (!btn) return;
+    if (!data) {
+        btn.classList.add('hidden');
+        document.body.classList.remove('has-fab-pin');
+        window._fabPinData = null;
+        return;
+    }
+    window._fabPinData = data;
+    btn.classList.remove('hidden');
+    document.body.classList.add('has-fab-pin');
+    const userId = await getCurrentUserId();
+    updateFabPinButton(btn, userId && isAccesoPinned(userId, data));
+}
+
+async function togglePinPaginaActual() {
+    const userId = await getCurrentUserId();
+    const data = window._fabPinData;
+    if (!userId || !data) return;
+    const result = toggleAcceso(userId, data);
+    if (result === null) return;
+    updateFabPinButton(document.getElementById('fab-pin'), result);
+}
+
+async function pintarAccesosEnIndex(userId) {
+    const sec = document.getElementById('seccion-accesos');
+    const cont = document.getElementById('lista-accesos');
+    if (!sec || !cont) return;
+    const list = getAccesos(userId);
+    if (!list.length) {
+        sec.classList.add('hidden');
+        cont.innerHTML = '';
+        return;
+    }
+    sec.classList.remove('hidden');
+    cont.innerHTML = list.map(a => `
+        <div class="card acceso-card">
+            <div class="card-body flex-between card-click" style="gap:10px" onclick="abrirAccesoDirecto('${escapeJsString(a.id)}')">
+                <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+                    <div class="dash-icon" style="width:40px;height:40px"><i data-icon="${accesoIcon(a)}" data-size="22"></i></div>
+                    <div style="min-width:0">
+                        <div style="font-weight:600;font-size:15px;word-break:break-word">${escapeHtml(a.label || buildAccesoLabel(a))}</div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="event.stopPropagation();quitarAccesoDirecto('${escapeJsString(a.id)}')" title="Quitar acceso">${icon('x-mark', 16)}</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function abrirAccesoDirecto(accesoId) {
+    const userId = window._indexUserId;
+    if (!userId) return;
+    const acceso = getAccesos(userId).find(a => a.id === accesoId);
+    if (acceso) window.location.href = urlAcceso(acceso);
+}
+
+async function quitarAccesoDirecto(accesoId) {
+    const userId = window._indexUserId;
+    if (!userId) return;
+    quitarAcceso(userId, accesoId);
+    await pintarAccesosEnIndex(userId);
+}
+
 /** Quita el splash de boot (llamar cuando la pantalla correcta ya está activa). */
 function appReady() {
     document.body.classList.remove('app-booting');
@@ -325,6 +522,7 @@ function cambiarTab(nombre) {
     }
     const cb = window['onTab_' + nombre];
     if (typeof cb === 'function') cb();
+    if (typeof window.onAfterTabChange === 'function') window.onAfterTabChange(nombre);
 }
 
 // Sincroniza invitados (participantes.email) → membresía en circulos_miembros. 1 vez por sesión.
