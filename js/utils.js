@@ -415,8 +415,10 @@ function quitarAcceso(userId, accesoId) {
 
 function updateFabPinButton(btn, pinned) {
     if (!btn) return;
-    btn.classList.toggle('pinned', pinned);
+    btn.classList.toggle('pinned', !!pinned);
     btn.title = pinned ? 'Quitar acceso directo' : 'Fijar en inicio';
+    btn.innerHTML = `<i data-icon="${pinned ? 'bookmark-slash' : 'bookmark'}" data-size="22"></i>`;
+    if (typeof initIconsIn === 'function') initIconsIn(btn);
 }
 
 async function refreshFabPin(data) {
@@ -464,7 +466,7 @@ async function pintarAccesosEnIndex(userId) {
                         <div style="font-weight:600;font-size:15px;word-break:break-word">${escapeHtml(a.label || buildAccesoLabel(a))}</div>
                     </div>
                 </div>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="event.stopPropagation();quitarAccesoDirecto('${escapeJsString(a.id)}')" title="Quitar acceso">${icon('x-mark', 16)}</button>
+                <button type="button" class="acceso-unpin" onclick="event.stopPropagation();quitarAccesoDirecto('${escapeJsString(a.id)}')" title="Quitar acceso"><i data-icon="bookmark-slash" data-size="16"></i></button>
             </div>
         </div>
     `).join('');
