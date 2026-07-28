@@ -353,6 +353,7 @@ requireAuth(async () => {
     }
     refreshFabPinGastos();
     window.onAfterTabChange = () => refreshFabPinGastos();
+    suscribirGastosRealtime();
 });
 
 function getFabPinDataGastos() {
@@ -580,9 +581,57 @@ async function guardarReembolso() {
 // =============================================
 // GASTOS
 // =============================================
-async function cargarGastos() {
+let gastosChannel = null;
+let gastosRealtimeTimer = null;
+
+function suscribirGastosRealtime() {
+    if (!periodoActual?.id || gastosChannel) return;
+    gastosChannel = db
+        .channel(`gastos-periodo-${periodoActual.id}`)
+        .on(
+            'postgres_changes',
+            {
+                event: '*',
+                schema: 'public',
+                table: 'gastos',
+                filter: `id_periodo=eq.${periodoActual.id}`
+            },
+            () => {
+                clearTimeout(gastosRealtimeTimer);
+                gastosRealtimeTimer = setTimeout(refrescarVistaPorRealtime, 280);
+            }
+        )
+        .subscribe();
+}
+
+function desuscribirGastosRealtime() {
+    clearTimeout(gastosRealtimeTimer);
+    gastosRealtimeTimer = null;
+    if (!gastosChannel) return;
+    db.removeChannel(gastosChannel);
+    gastosChannel = null;
+}
+
+function refrescarVistaPorRealtime() {
+    if (!periodoActual) return;
+    const tab = getQueryParam('tab') || 'gastos';
+    if (tab === 'balance') {
+        calcularYMostrarBalance();
+        return;
+    }
+    if (tab === 'resumen') {
+        resumenCache = null;
+        calcularYMostrarResumen();
+        return;
+    }
+    cargarGastos({ silent: true });
+}
+
+window.addEventListener('pagehide', desuscribirGastosRealtime);
+
+async function cargarGastos({ silent = false } = {}) {
     const cont = document.getElementById('lista-gastos');
-    cont.innerHTML = '<div class="loader">Cargando gastos...</div>';
+    if (!silent) cont.innerHTML = '<div class="loader">Cargando gastos...</div>';
     const { data, error } = await db.from('gastos')
         .select('*').eq('id_periodo', periodoActual.id)
         .order('fecha_gasto', { ascending: false })
