@@ -44,6 +44,77 @@ function fmt(n) {
     return num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+/** Parsea monto escrito (es-AR: 1.234,56) a número. */
+function parseMonto(val) {
+    if (val == null || val === '') return NaN;
+    let s = String(val).replace(/[^\d,.-]/g, '').replace(/\s/g, '');
+    if (!s || s === '-' || s === ',') return NaN;
+    if (s.includes(',')) {
+        s = s.replace(/\./g, '').replace(',', '.');
+    } else {
+        const dots = (s.match(/\./g) || []).length;
+        if (dots > 1) s = s.replace(/\./g, '');
+        else if (dots === 1) {
+            const [a, b] = s.split('.');
+            if (b && b.length === 3 && a.length <= 3) s = a + b;
+        }
+    }
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? n : NaN;
+}
+
+/** Formatea número para mostrar en un input de monto (es-AR). */
+function formatMontoInput(n) {
+    if (!Number.isFinite(n)) return '';
+    if (Math.abs(n % 1) < 1e-9) return n.toLocaleString('es-AR', { maximumFractionDigits: 0 });
+    return n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/** Formatea texto mientras el usuario escribe (miles con punto, decimales con coma). */
+function formatMontoLive(raw) {
+    let cleaned = String(raw).replace(/[^\d,]/g, '');
+    const commaIdx = cleaned.indexOf(',');
+    let intPart, decPart;
+    if (commaIdx >= 0) {
+        intPart = cleaned.slice(0, commaIdx).replace(/\D/g, '');
+        decPart = cleaned.slice(commaIdx + 1).replace(/\D/g, '').slice(0, 2);
+    } else {
+        intPart = cleaned.replace(/\D/g, '');
+        decPart = null;
+    }
+    if (!intPart && decPart == null) return '';
+    const n = parseInt(intPart || '0', 10);
+    let result = n.toLocaleString('es-AR', { maximumFractionDigits: 0 });
+    if (commaIdx >= 0) result += ',' + (decPart ?? '');
+    return result;
+}
+
+function setMontoInput(el, n) {
+    if (!el) return;
+    el.value = Number.isFinite(n) ? formatMontoInput(n) : '';
+}
+
+/** Enlaza formateo de monto en un input (type=text, inputmode=decimal). */
+function bindMontoInput(el, onChange) {
+    if (!el || el.dataset.montoBound) return;
+    el.dataset.montoBound = '1';
+    el.type = 'text';
+    el.inputMode = 'decimal';
+    el.autocomplete = 'off';
+    el.addEventListener('input', () => {
+        const pos = el.selectionStart;
+        const oldLen = el.value.length;
+        const formatted = formatMontoLive(el.value);
+        el.value = formatted;
+        try {
+            const newPos = Math.max(0, pos + (formatted.length - oldLen));
+            el.setSelectionRange(newPos, newPos);
+        } catch (_) {}
+        const n = parseMonto(formatted);
+        if (onChange) onChange(Number.isFinite(n) ? n : 0);
+    });
+}
+
 function escapeHtml(str) {
     return String(str)
         .replace(/&/g, '&amp;')
