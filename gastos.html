@@ -17,46 +17,47 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="app-booting">
-<div id="boot-splash">Cargando...</div>
+<a href="#main-content" class="skip-link">Saltar al contenido</a>
+<div id="boot-splash" role="status" aria-live="polite">Cargando…</div>
 
 <!-- TOPBAR -->
 <div class="topbar">
     <div class="topbar-left">
-        <button id="btn-back" class="btn-icon" onclick="volverAlCirculo()" title="Menú del círculo"><i data-icon="arrow-left" data-size="18"></i></button>
+        <button type="button" id="btn-back" class="btn-icon" onclick="volverAlCirculo()" aria-label="Menú del círculo"><i data-icon="arrow-left" data-size="18"></i></button>
         <h1 id="topbar-title"><i data-icon="currency-dollar" data-size="20"></i> Gastos</h1>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
         <span id="topbar-user" class="topbar-user"></span>
-        <button class="btn-icon" data-theme-toggle onclick="toggleTheme()" title="Modo oscuro"><i data-icon="moon" data-size="18"></i></button>
-        <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión"><i data-icon="arrow-right-on-rectangle" data-size="18"></i></button>
+        <button type="button" class="btn-icon" data-theme-toggle onclick="toggleTheme()" aria-label="Modo oscuro"><i data-icon="moon" data-size="18"></i></button>
+        <button type="button" class="btn-icon" onclick="cerrarSesion()" aria-label="Cerrar sesión"><i data-icon="arrow-right-on-rectangle" data-size="18"></i></button>
     </div>
 </div>
 
 <!-- SCREEN: PERIODO -->
 <div id="screen-periodo" class="screen active">
-    <div class="tabs">
-        <div class="tab active" data-tab="gastos" onclick="cambiarTab('gastos')"><i data-icon="currency-dollar" data-size="18"></i> Gastos</div>
-        <div class="tab" data-tab="balance" onclick="cambiarTab('balance')"><i data-icon="scale" data-size="18"></i> Balance</div>
-        <div class="tab" data-tab="resumen" onclick="cambiarTab('resumen')"><i data-icon="chart-bar" data-size="18"></i> Resumen</div>
+    <div class="tabs" role="tablist" aria-label="Secciones de gastos">
+        <button type="button" class="tab active" role="tab" aria-selected="true" data-tab="gastos" onclick="cambiarTab('gastos')"><i data-icon="currency-dollar" data-size="18"></i> Gastos</button>
+        <button type="button" class="tab" role="tab" aria-selected="false" tabindex="-1" data-tab="balance" onclick="cambiarTab('balance')"><i data-icon="scale" data-size="18"></i> Balance</button>
+        <button type="button" class="tab" role="tab" aria-selected="false" tabindex="-1" data-tab="resumen" onclick="cambiarTab('resumen')"><i data-icon="chart-bar" data-size="18"></i> Resumen</button>
     </div>
-    <div class="container">
-        <div id="tab-gastos" class="tab-content active">
-            <div id="lista-gastos"><div class="loader">Cargando...</div></div>
+    <main id="main-content" class="container">
+        <div id="tab-gastos" class="tab-content active" role="tabpanel">
+            <div id="lista-gastos"><div class="loader" role="status" aria-live="polite">Cargando…</div></div>
             <div style="display:flex;gap:8px;margin-top:16px">
-                <button class="btn btn-primary btn-full" onclick="abrirModalGasto()"><i data-icon="plus" data-size="16"></i> Gasto</button>
-                <button class="btn btn-ghost btn-full" onclick="abrirModalReembolso()"><i data-icon="arrow-path" data-size="16"></i> Reembolso</button>
+                <button type="button" class="btn btn-primary btn-full" onclick="abrirModalGasto()"><i data-icon="plus" data-size="16"></i> Gasto</button>
+                <button type="button" class="btn btn-ghost btn-full" onclick="abrirModalReembolso()"><i data-icon="arrow-path" data-size="16"></i> Reembolso</button>
             </div>
         </div>
-        <div id="tab-balance" class="tab-content">
-            <div id="contenido-balance"><div class="loader">Calculando...</div></div>
+        <div id="tab-balance" class="tab-content" role="tabpanel">
+            <div id="contenido-balance"><div class="loader" role="status" aria-live="polite">Calculando…</div></div>
         </div>
-        <div id="tab-resumen" class="tab-content">
-            <div id="contenido-resumen"><div class="loader">Calculando...</div></div>
+        <div id="tab-resumen" class="tab-content" role="tabpanel">
+            <div id="contenido-resumen"><div class="loader" role="status" aria-live="polite">Calculando…</div></div>
         </div>
-    </div>
+    </main>
 </div>
 
-<button type="button" id="fab-pin" class="fab-pin hidden" onclick="togglePinPaginaActual()" title="Fijar en inicio">
+<button type="button" id="fab-pin" class="fab-pin hidden" onclick="togglePinPaginaActual()" aria-label="Fijar en inicio">
     <i data-icon="bookmark" data-size="22"></i>
 </button>
 
@@ -64,29 +65,29 @@
 <div id="modal-reembolso" class="modal-overlay">
     <div class="modal">
         <div class="modal-header">
-            <h3><i data-icon="arrow-path" data-size="18"></i> Registrar Reembolso</h3>
-            <button class="modal-close" onclick="cerrarModal('modal-reembolso')"><i data-icon="x-mark" data-size="14"></i></button>
+            <h3 id="modal-reembolso-title"><i data-icon="arrow-path" data-size="18"></i> Registrar reembolso</h3>
+            <button type="button" class="modal-close" onclick="cerrarModal('modal-reembolso')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
         </div>
         <div class="alert alert-info" style="margin-bottom:16px">
             Registrá cuando alguien le devuelve plata a otro. Esto actualiza el balance automáticamente.
         </div>
         <div class="form-group">
-            <label>¿Quién pagó / devolvió?</label>
-            <select id="reembolso-de"></select>
+            <label for="reembolso-de">¿Quién pagó / devolvió?</label>
+            <select id="reembolso-de" name="reembolso_de"></select>
         </div>
         <div class="form-group">
-            <label>¿A quién le pagó?</label>
-            <select id="reembolso-para"></select>
+            <label for="reembolso-para">¿A quién le pagó?</label>
+            <select id="reembolso-para" name="reembolso_para"></select>
         </div>
         <div class="form-group">
-            <label>Fecha</label>
-            <input type="date" id="reembolso-fecha" />
+            <label for="reembolso-fecha">Fecha</label>
+            <input type="date" id="reembolso-fecha" name="fecha" />
         </div>
         <div class="form-group">
-            <label>Monto ($)</label>
-            <input type="text" class="input-monto" id="reembolso-monto" placeholder="0" inputmode="decimal" autocomplete="off" />
+            <label for="reembolso-monto">Monto ($)</label>
+            <input type="text" class="input-monto" id="reembolso-monto" name="monto" placeholder="0" inputmode="decimal" autocomplete="off" />
         </div>
-        <button class="btn btn-primary btn-full" onclick="guardarReembolso()">Registrar Reembolso</button>
+        <button type="button" class="btn btn-primary btn-full" onclick="guardarReembolso()">Registrar reembolso</button>
     </div>
 </div>
 
@@ -95,10 +96,10 @@
     <div class="modal">
         <div class="modal-header">
             <h3 id="modal-gasto-title">Nuevo gasto</h3>
-            <button class="modal-close" onclick="cerrarModal('modal-gasto')"><i data-icon="x-mark" data-size="14"></i></button>
+            <button type="button" class="modal-close" onclick="cerrarModal('modal-gasto')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
         </div>
         <div id="gasto-form-mount"></div>
-        <button class="btn btn-primary btn-full" id="btn-guardar-gasto" onclick="guardarGasto()">Guardar gasto</button>
+        <button type="button" class="btn btn-primary btn-full" id="btn-guardar-gasto" onclick="guardarGasto()">Guardar gasto</button>
     </div>
 </div>
 
@@ -106,23 +107,23 @@
 <div id="modal-categorias" class="modal-overlay">
     <div class="modal">
         <div class="modal-header">
-            <h3><i data-icon="tag" data-size="18"></i> Categorías de Gastos</h3>
-            <button class="modal-close" onclick="cerrarModal('modal-categorias')"><i data-icon="x-mark" data-size="14"></i></button>
+            <h3 id="modal-categorias-title"><i data-icon="tag" data-size="18"></i> Categorías de gastos</h3>
+            <button type="button" class="modal-close" onclick="cerrarModal('modal-categorias')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
         </div>
         <div id="lista-categorias" class="card" style="margin-bottom:16px;max-height:240px;overflow-y:auto"></div>
         <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Nueva categoría</div>
         <div class="add-item-row" style="margin-bottom:12px">
             <div class="form-group" style="flex:1;margin-bottom:0">
-                <label>Nombre</label>
-                <input type="text" id="input-nueva-categoria" placeholder="Ej: Regalos"
-                    onkeydown="if(event.key==='Enter') agregarCategoria()" />
+                <label for="input-nueva-categoria">Nombre</label>
+                <input type="text" id="input-nueva-categoria" name="categoria_nombre" placeholder="Ej: Regalos…"
+                    onkeydown="if(event.key==='Enter') agregarCategoria()" autocomplete="off" />
             </div>
             <div class="form-group" style="flex:1;margin-bottom:0">
-                <label>Ícono</label>
-                <select id="input-icono-categoria"></select>
+                <label for="input-icono-categoria">Ícono</label>
+                <select id="input-icono-categoria" name="categoria_icono"></select>
             </div>
         </div>
-        <button class="btn btn-primary btn-full" onclick="agregarCategoria()"><i data-icon="plus" data-size="16"></i> Agregar Categoría</button>
+        <button type="button" class="btn btn-primary btn-full" onclick="agregarCategoria()"><i data-icon="plus" data-size="16"></i> Agregar categoría</button>
     </div>
 </div>
 
@@ -538,7 +539,7 @@ window.addEventListener('pagehide', desuscribirGastosRealtime);
 
 async function cargarGastos({ silent = false } = {}) {
     const cont = document.getElementById('lista-gastos');
-    if (!silent) cont.innerHTML = '<div class="loader">Cargando gastos...</div>';
+    if (!silent) cont.innerHTML = loaderHtml('Cargando gastos…');
     const { data, error } = await db.from('gastos')
         .select('*').eq('id_periodo', periodoActual.id)
         .order('fecha_gasto', { ascending: false })
@@ -578,8 +579,8 @@ async function cargarGastos({ silent = false } = {}) {
                 </div>
                 <div class="gasto-actions">
                     <div class="gasto-monto" style="${esReembolso ? 'color:var(--success)' : ''}">$${fmt(g.monto)}</div>
-                    <button class="btn-icon-plain" onclick="editarGasto(${g.id})" title="Editar">${icon('pencil-square',18)}</button>
-                    <button class="btn-icon-plain btn-icon-danger" onclick="eliminarGasto(${g.id}, '${escapeJsString(g.concepto)}')" title="Eliminar">${icon('trash',18)}</button>
+                    <button type="button" class="btn-icon-plain" onclick="editarGasto(${g.id})" aria-label="Editar gasto">${icon('pencil-square',18)}</button>
+                    <button type="button" class="btn-icon-plain btn-icon-danger" onclick="eliminarGasto(${g.id}, '${escapeJsString(g.concepto)}')" aria-label="Eliminar gasto">${icon('trash',18)}</button>
                 </div>
             </div>
         </div>`;
@@ -647,7 +648,7 @@ async function guardarGasto() {
 // =============================================
 async function calcularYMostrarBalance() {
     const cont = document.getElementById('contenido-balance');
-    cont.innerHTML = '<div class="loader">Calculando balances...</div>';
+    cont.innerHTML = loaderHtml('Calculando balances…');
 
     if (!participantesActuales.length) {
         cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="users" data-size="40"></i></span>Primero agregá personas al círculo.</div>`;
@@ -923,7 +924,7 @@ function cambiarPeriodoComparar(id) {
 
 async function calcularYMostrarResumen() {
     const cont = document.getElementById('contenido-resumen');
-    cont.innerHTML = '<div class="loader">Calculando resumen...</div>';
+    cont.innerHTML = loaderHtml('Calculando resumen…');
 
     const [{ data: periodos, error: ep }, { data: gastos, error: eg }] = await Promise.all([
         db.from('periodos')

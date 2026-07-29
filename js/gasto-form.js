@@ -65,31 +65,31 @@ function montarGastoForm(rootEl, options = {}) {
     rootEl.innerHTML = `
         ${showPeriodo ? `
         <div class="form-group">
-            <label>Periodo</label>
-            <select id="${p}-periodo"></select>
+            <label for="${p}-periodo">Periodo</label>
+            <select id="${p}-periodo" name="periodo"></select>
         </div>` : ''}
         <div class="form-group">
-            <label>Concepto</label>
-            <input type="text" id="${p}-concepto" placeholder="Ej: Compra del sábado…" />
+            <label for="${p}-concepto">Concepto</label>
+            <input type="text" id="${p}-concepto" name="concepto" placeholder="Ej: Compra del sábado…" autocomplete="off" />
         </div>
         <div class="form-group">
-            <label>Fecha del gasto</label>
-            <input type="date" id="${p}-fecha" />
+            <label for="${p}-fecha">Fecha del gasto</label>
+            <input type="date" id="${p}-fecha" name="fecha_gasto" />
         </div>
         <div class="form-group">
-            <label>Monto total ($)</label>
-            <input type="text" id="${p}-monto" class="input-monto" placeholder="0" inputmode="decimal" autocomplete="off" />
+            <label for="${p}-monto">Monto total ($)</label>
+            <input type="text" id="${p}-monto" name="monto" class="input-monto" placeholder="0" inputmode="decimal" autocomplete="off" />
         </div>
         <div class="form-group">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                <label style="margin-bottom:0">Categoría</label>
+                <label for="${p}-tipo" style="margin-bottom:0">Categoría</label>
                 ${showGestionar ? `<button type="button" class="btn btn-ghost btn-sm" id="${p}-btn-cats" style="padding:2px 8px;font-size:12px">Gestionar</button>` : ''}
             </div>
-            <select id="${p}-tipo"></select>
+            <select id="${p}-tipo" name="tipo"></select>
         </div>
         <div class="form-group">
-            <label>¿Quién pagó?</label>
-            <select id="${p}-pagador"></select>
+            <label for="${p}-pagador">¿Quién pagó?</label>
+            <select id="${p}-pagador" name="pagador"></select>
         </div>
         <div class="form-group">
             <label>División por persona ($)</label>

@@ -17,16 +17,17 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="app-booting">
-<div id="boot-splash">Cargando...</div>
+<a href="#main-content" class="skip-link">Saltar al contenido</a>
+<div id="boot-splash" role="status" aria-live="polite">Cargando…</div>
 
 <!-- SCREEN: LOGIN -->
 <div id="screen-login" class="screen">
-    <button class="btn-icon" data-theme-toggle onclick="toggleTheme()" title="Modo oscuro" style="position:fixed;top:16px;right:16px;z-index:10"><i data-icon="moon" data-size="18"></i></button>
+    <button type="button" class="btn-icon" data-theme-toggle onclick="toggleTheme()" aria-label="Modo oscuro" style="position:fixed;top:16px;right:16px;z-index:10"><i data-icon="moon" data-size="18"></i></button>
     <div class="login-card">
         <div class="login-logo"><i data-icon="cube-transparent" data-size="48"></i></div>
         <h1>TorisApp</h1>
         <p>Círculos compartidos: gastos, listas y tareas</p>
-        <button class="btn-google" onclick="iniciarSesion()">
+        <button type="button" class="btn-google" onclick="iniciarSesion()">
             <svg width="18" height="18" viewBox="0 0 48 48">
                 <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
                 <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -45,35 +46,35 @@
     </div>
     <div style="display:flex;align-items:center;gap:8px">
         <span id="topbar-user" class="topbar-user"></span>
-        <button class="btn-icon" data-theme-toggle onclick="toggleTheme()" title="Modo oscuro"><i data-icon="moon" data-size="18"></i></button>
-        <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión"><i data-icon="arrow-right-on-rectangle" data-size="18"></i></button>
+        <button type="button" class="btn-icon" data-theme-toggle onclick="toggleTheme()" aria-label="Modo oscuro"><i data-icon="moon" data-size="18"></i></button>
+        <button type="button" class="btn-icon" onclick="cerrarSesion()" aria-label="Cerrar sesión"><i data-icon="arrow-right-on-rectangle" data-size="18"></i></button>
     </div>
 </div>
 
 <!-- SCREEN: CÍRCULOS -->
 <div id="screen-dashboard" class="screen">
-    <div class="container">
-        <div id="lista-grupos"><div class="loader">Cargando círculos...</div></div>
-        <button class="btn btn-primary btn-full mt-16" onclick="abrirModalGrupo()"><i data-icon="plus" data-size="16"></i> Nuevo círculo</button>
+    <main id="main-content" class="container">
+        <div id="lista-grupos"><div class="loader" role="status" aria-live="polite">Cargando círculos…</div></div>
+        <button type="button" class="btn btn-primary btn-full mt-16" onclick="abrirModalGrupo()"><i data-icon="plus" data-size="16"></i> Nuevo círculo</button>
         <div id="seccion-accesos" class="hidden mt-16">
             <div class="section-label" style="margin-top:0">Accesos directos</div>
             <div id="lista-accesos"></div>
         </div>
-    </div>
+    </main>
 </div>
 
 <!-- MODAL: NUEVO CÍRCULO -->
 <div id="modal-grupo" class="modal-overlay">
     <div class="modal">
         <div class="modal-header">
-            <h3>Nuevo círculo</h3>
-            <button class="modal-close" onclick="cerrarModal('modal-grupo')"><i data-icon="x-mark" data-size="14"></i></button>
+            <h3 id="modal-grupo-title">Nuevo círculo</h3>
+            <button type="button" class="modal-close" onclick="cerrarModal('modal-grupo')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
         </div>
         <div class="form-group">
-            <label>Nombre</label>
-            <input type="text" id="input-nombre-grupo" placeholder="Ej: Hogar, Viaje con los chicos..." />
+            <label for="input-nombre-grupo">Nombre</label>
+            <input type="text" id="input-nombre-grupo" name="nombre_grupo" placeholder="Ej: Hogar, viaje con los chicos…" autocomplete="off" />
         </div>
-        <button class="btn btn-primary btn-full" onclick="crearGrupo()">Crear círculo</button>
+        <button type="button" class="btn btn-primary btn-full" onclick="crearGrupo()">Crear círculo</button>
     </div>
 </div>
 
@@ -174,7 +175,7 @@
 
     async function cargarGrupos() {
         const cont = document.getElementById('lista-grupos');
-        cont.innerHTML = '<div class="loader">Cargando círculos...</div>';
+        cont.innerHTML = loaderHtml('Cargando círculos…');
         const { data, error } = await db.from('circulos').select('*').order('created_at', { ascending: false });
         if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}</div>`; return; }
         if (!data?.length) {

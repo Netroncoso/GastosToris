@@ -17,28 +17,29 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="app-booting">
-<div id="boot-splash">Cargando...</div>
+<a href="#main-content" class="skip-link">Saltar al contenido</a>
+<div id="boot-splash" role="status" aria-live="polite">Cargando…</div>
 
 <!-- TOPBAR -->
 <div class="topbar">
     <div class="topbar-left">
-        <button id="btn-back" class="btn-icon" onclick="volverAlCirculo()"><i data-icon="arrow-left" data-size="18"></i></button>
+        <button type="button" id="btn-back" class="btn-icon" onclick="volverAlCirculo()" aria-label="Volver al círculo"><i data-icon="arrow-left" data-size="18"></i></button>
         <h1 id="topbar-title"><i data-icon="check-circle" data-size="20"></i> Tareas</h1>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
         <span id="topbar-user" class="topbar-user"></span>
-        <button class="btn-icon" data-theme-toggle onclick="toggleTheme()" title="Modo oscuro"><i data-icon="moon" data-size="18"></i></button>
-        <button class="btn-icon" onclick="cerrarSesion()" title="Cerrar sesión"><i data-icon="arrow-right-on-rectangle" data-size="18"></i></button>
+        <button type="button" class="btn-icon" data-theme-toggle onclick="toggleTheme()" aria-label="Modo oscuro"><i data-icon="moon" data-size="18"></i></button>
+        <button type="button" class="btn-icon" onclick="cerrarSesion()" aria-label="Cerrar sesión"><i data-icon="arrow-right-on-rectangle" data-size="18"></i></button>
     </div>
 </div>
 
 <!-- SCREEN: TAREAS DEL CÍRCULO -->
 <div id="screen-grupo" class="screen active">
-    <div class="container">
-            <div class="filter-tabs">
-                <div class="filter-tab active" onclick="setFiltro('pendientes')">Pendientes</div>
-                <div class="filter-tab" onclick="setFiltro('todas')">Todas</div>
-                <div class="filter-tab" onclick="setFiltro('hechas')">Hechas</div>
+    <main id="main-content" class="container">
+            <div class="filter-tabs" id="tareas-filters" role="tablist" aria-label="Filtrar tareas">
+                <button type="button" class="filter-tab active" role="tab" aria-selected="true" data-filtro="pendientes" onclick="setFiltro('pendientes')">Pendientes</button>
+                <button type="button" class="filter-tab" role="tab" aria-selected="false" tabindex="-1" data-filtro="todas" onclick="setFiltro('todas')">Todas</button>
+                <button type="button" class="filter-tab" role="tab" aria-selected="false" tabindex="-1" data-filtro="hechas" onclick="setFiltro('hechas')">Hechas</button>
             </div>
             <div id="calendar-connect-banner" class="alert alert-info hidden" style="margin-bottom:12px">
                 <div style="margin-bottom:8px"><i data-icon="calendar-days" data-size="16"></i> Conectá Google Calendar para sincronizar vencimientos.</div>
@@ -50,8 +51,9 @@
             <div class="add-item-form mt-12">
                 <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Nueva tarea</div>
                 <div class="form-group" style="margin-bottom:8px">
-                    <input type="text" id="input-titulo-tarea" placeholder="Ej: Pagar el alquiler" class="input-sm"
-                        onkeydown="if(event.key==='Enter') agregarTarea()" />
+                    <label for="input-titulo-tarea" class="sr-only">Título de la tarea</label>
+                    <input type="text" id="input-titulo-tarea" name="titulo" placeholder="Ej: Pagar el alquiler…" class="input-sm"
+                        onkeydown="if(event.key==='Enter') agregarTarea()" autocomplete="off" />
                 </div>
                 <div class="add-item-row" style="margin-bottom:8px">
                     <select id="input-prioridad-tarea" class="input-sm" style="flex:1">
@@ -64,70 +66,70 @@
                     </select>
                 </div>
                 <div class="form-group" style="margin-bottom:8px">
-                    <label style="margin-bottom:4px">Vencimiento (opcional — la agrega a Google Calendar)</label>
-                    <input type="datetime-local" id="input-fecha-tarea" class="input-sm" />
+                    <label for="input-fecha-tarea" style="margin-bottom:4px">Vencimiento (opcional — la agrega a Google Calendar)</label>
+                    <input type="datetime-local" id="input-fecha-tarea" name="fecha_vencimiento" class="input-sm" />
                 </div>
                 <div id="section-calendar-invites" style="display:none; margin-bottom:8px; padding:10px; background:var(--border); border-radius:8px; opacity:0.95;">
                     <label style="margin-bottom:6px; font-size:11px; color:var(--muted)">Invitar al calendario:</label>
                     <div id="calendar-invites-list" style="display:flex; flex-direction:column; gap:6px;"></div>
                 </div>
                 <div class="form-group" style="margin-bottom:0">
-                    <label style="margin-bottom:4px">Vincular con una lista (opcional)</label>
-                    <select id="input-lista-tarea" class="input-sm">
+                    <label for="input-lista-tarea" style="margin-bottom:4px">Vincular con una lista (opcional)</label>
+                    <select id="input-lista-tarea" name="lista" class="input-sm">
                         <option value="">Ninguna</option>
                     </select>
                 </div>
-                <button class="btn btn-primary btn-full mt-12" onclick="agregarTarea()"><i data-icon="plus" data-size="16"></i> Agregar tarea</button>
+                <button type="button" class="btn btn-primary btn-full mt-12" onclick="agregarTarea()"><i data-icon="plus" data-size="16"></i> Agregar tarea</button>
             </div>
 
-            <button class="btn btn-ghost btn-full mt-12" id="btn-borrar-hechas" onclick="borrarHechas()" style="display:none;color:var(--danger);border-color:var(--danger)">
+            <button type="button" class="btn btn-ghost btn-full mt-12" id="btn-borrar-hechas" onclick="borrarHechas()" style="display:none;color:var(--danger);border-color:var(--danger)">
                 <i data-icon="trash" data-size="16"></i> Borrar todas las hechas
             </button>
-    </div>
+    </main>
 </div>
 
 <!-- MODAL: EDITAR TAREA -->
 <div id="modal-editar-tarea" class="modal-overlay">
     <div class="modal">
         <div class="modal-header">
-            <h3><i data-icon="pencil-square" data-size="18"></i> Editar Tarea</h3>
-            <button class="modal-close" onclick="cerrarModal('modal-editar-tarea')"><i data-icon="x-mark" data-size="14"></i></button>
+            <h3 id="modal-editar-tarea-title"><i data-icon="pencil-square" data-size="18"></i> Editar tarea</h3>
+            <button type="button" class="modal-close" onclick="cerrarModal('modal-editar-tarea')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
         </div>
         <div class="form-group">
-            <label>Título</label>
-            <input type="text" id="input-edit-titulo-tarea" placeholder="Ej: Pagar el alquiler" />
+            <label for="input-edit-titulo-tarea">Título</label>
+            <input type="text" id="input-edit-titulo-tarea" name="titulo" placeholder="Ej: Pagar el alquiler…" autocomplete="off" />
         </div>
         <div class="add-item-row" style="margin-bottom:12px">
             <div class="form-group" style="flex:1;margin-bottom:0">
-                <label>Prioridad</label>
-                <select id="input-edit-prioridad-tarea">
+                <label for="input-edit-prioridad-tarea">Prioridad</label>
+                <select id="input-edit-prioridad-tarea" name="prioridad">
                     <option value="baja">Baja</option>
                     <option value="media">Media</option>
                     <option value="alta">Alta</option>
                 </select>
             </div>
             <div class="form-group" style="flex:1;margin-bottom:0">
-                <label>Asignado</label>
-                <select id="input-edit-asignado-tarea">
+                <label for="input-edit-asignado-tarea">Asignado</label>
+                <select id="input-edit-asignado-tarea" name="asignado">
                     <option value="">Sin asignar</option>
                 </select>
             </div>
         </div>
         <div class="form-group">
-            <label>Vencimiento (opcional — la agrega a Google Calendar)</label>
-            <input type="datetime-local" id="input-edit-fecha-tarea" />
+            <label for="input-edit-fecha-tarea">Vencimiento (opcional — la agrega a Google Calendar)</label>
+            <input type="datetime-local" id="input-edit-fecha-tarea" name="fecha_vencimiento" />
         </div>
         <div id="section-edit-calendar-invites" style="display:none; margin-bottom:12px; padding:10px; background:var(--border); border-radius:8px; opacity:0.95;">
             <label style="margin-bottom:6px; font-size:11px; color:var(--muted)">Invitar al calendario:</label>
             <div id="calendar-edit-invites-list" style="display:flex; flex-direction:column; gap:6px;"></div>
         </div>
         <div class="form-group">
-            <label>Vincular con una lista (opcional)</label>
-            <select id="input-edit-lista-tarea">
+            <label for="input-edit-lista-tarea">Vincular con una lista (opcional)</label>
+            <select id="input-edit-lista-tarea" name="lista">
                 <option value="">Ninguna</option>
             </select>
         </div>
-        <button class="btn btn-primary btn-full" onclick="guardarEdicionTarea()">Guardar Cambios</button>
+        <button type="button" class="btn btn-primary btn-full" onclick="guardarEdicionTarea()">Guardar cambios</button>
     </div>
 </div>
 
@@ -198,9 +200,7 @@ async function abrirGrupo(grupo, opts = {}) {
     setQueryParams({ abrir: grupo.id, filtro });
     document.getElementById('topbar-title').textContent = grupo.nombre;
     filtroTareas = filtro;
-    document.querySelectorAll('.filter-tab').forEach((t, i) => {
-        t.classList.toggle('active', ['pendientes','todas','hechas'][i] === filtro);
-    });
+    syncFilterTabsUI(document.getElementById('tareas-filters'), filtro);
     appReady();
     await actualizarEstadoCalendarBanner();
     await Promise.all([cargarPersonasTareas(), cargarTareas(), cargarListasDisponibles()]);
@@ -321,16 +321,14 @@ function nombreLista(id) {
 // =============================================
 function setFiltro(f) {
     filtroTareas = f;
-    document.querySelectorAll('.filter-tab').forEach((t, i) => {
-        t.classList.toggle('active', ['pendientes','todas','hechas'][i] === f);
-    });
+    syncFilterTabsUI(document.getElementById('tareas-filters'), f);
     if (grupoActual) setQueryParams({ abrir: grupoActual.id, filtro: f });
     renderTareas();
 }
 
 async function cargarTareas() {
     const cont = document.getElementById('tareas-items');
-    cont.innerHTML = '<div class="loader">Cargando tareas...</div>';
+    cont.innerHTML = loaderHtml('Cargando tareas…');
     const { data, error } = await db.from('tareas')
         .select('*').eq('id_circulo', grupoActual.id)
         .order('hecha').order('created_at', { ascending: false });
@@ -374,14 +372,14 @@ function renderTareas() {
         return `
         <div class="tarea-item ${t.hecha ? 'comprado' : ''}" id="tarea-${t.id}">
             <div class="tarea-item-main">
-                <div class="lista-check ${t.hecha ? 'checked' : ''}" onclick="toggleTarea(${t.id}, ${t.hecha})">
+                <div class="lista-check ${t.hecha ? 'checked' : ''}" onclick="toggleTarea(${t.id}, ${t.hecha})" aria-label="${t.hecha ? 'Marcar como pendiente' : 'Marcar como hecha'}">
                     ${t.hecha ? icon('check',14) : ''}
                 </div>
                 <div class="prio-dot prio-${t.prioridad || 'media'}" title="Prioridad ${PRIO_LABEL[t.prioridad] || 'Media'}"></div>
                 <div class="lista-nombre ${t.hecha ? 'tachado' : ''}">${escapeHtml(t.titulo)}</div>
                 <div class="tarea-actions">
-                    <button class="btn-icon-plain" onclick="abrirModalEditarTarea(${t.id})" title="Editar tarea">${icon('pencil-square',18)}</button>
-                    <button class="btn-icon-plain btn-icon-danger" onclick="borrarTarea(${t.id})" title="Eliminar tarea">${icon('x-mark',18)}</button>
+                    <button type="button" class="btn-icon-plain" onclick="abrirModalEditarTarea(${t.id})" aria-label="Editar tarea">${icon('pencil-square',18)}</button>
+                    <button type="button" class="btn-icon-plain btn-icon-danger" onclick="borrarTarea(${t.id})" aria-label="Eliminar tarea">${icon('x-mark',18)}</button>
                 </div>
             </div>
             ${tieneBadges ? `
