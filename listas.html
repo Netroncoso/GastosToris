@@ -122,46 +122,15 @@
             <button class="modal-close" onclick="cerrarModal('modal-cargar-gastos')"><i data-icon="x-mark" data-size="14"></i></button>
         </div>
         <div id="cargar-gastos-resumen" class="text-muted" style="margin-bottom:14px;font-size:13px;line-height:1.45"></div>
-        <div class="form-group">
-            <label>Periodo</label>
-            <select id="cg-periodo"></select>
-        </div>
-        <div class="form-group">
-            <label>Concepto</label>
-            <input type="text" id="cg-concepto" placeholder="Ej: Compra del sábado…" />
-        </div>
-        <div class="form-group">
-            <label>Fecha del gasto</label>
-            <input type="date" id="cg-fecha" />
-        </div>
-        <div class="form-group">
-            <label>Monto total ($)</label>
-            <input type="text" id="cg-monto" class="input-monto" placeholder="Total del ticket" inputmode="decimal" autocomplete="off" />
-        </div>
-        <div class="form-group">
-            <label>Categoría</label>
-            <select id="cg-tipo"></select>
-        </div>
-        <div class="form-group">
-            <label>¿Quién pagó?</label>
-            <select id="cg-pagador"></select>
-        </div>
-        <div class="form-group">
-            <label>División por persona ($)</label>
-            <div style="display:flex;gap:8px;margin-bottom:10px">
-                <button type="button" class="btn btn-ghost btn-sm" onclick="cgRepartirIgual()">Partes iguales</button>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="cgLimpiarSplit()">Limpiar</button>
-            </div>
-            <div id="cg-split-container"></div>
-            <div id="cg-split-total-row" class="split-total-row"></div>
-        </div>
-        <button class="btn btn-primary btn-full" onclick="guardarCargarGastos()">Guardar gasto</button>
+        <div id="cargar-gasto-form-mount"></div>
+        <button class="btn btn-primary btn-full" id="btn-guardar-cargar-gasto" onclick="guardarCargarGastos()">Guardar gasto</button>
     </div>
 </div>
 
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/gasto-form.js"></script>
 <script src="js/listas-plantillas.js"></script>
 <script>
 // =============================================
@@ -174,20 +143,7 @@ let filtroLista = 'pendientes';
 let todosLosItems = [];
 let participantesCirculo = [];
 let periodosCirculo = [];
-
-const CATEGORIAS_DEFECTO = [
-    { nombre: 'Super', icono: 'shopping-cart' },
-    { nombre: 'Carnicería', icono: 'cake' },
-    { nombre: 'Verdulería', icono: 'shopping-bag' },
-    { nombre: 'Gatos', icono: 'heart' },
-    { nombre: 'Casa alquiler', icono: 'home' },
-    { nombre: 'Casa impuestos', icono: 'bolt' },
-    { nombre: 'Tarjetas', icono: 'credit-card' },
-    { nombre: 'Auto', icono: 'truck' },
-    { nombre: 'Viajes', icono: 'paper-airplane' },
-    { nombre: 'Salidas', icono: 'film' },
-    { nombre: 'Otros', icono: 'archive-box' }
-];
+let cargarGastoForm = null;
 
 requireAuth(async () => {
     await syncInvitados({ personsTable: 'participantes', personGroupField: 'id_circulo', membershipTable: 'circulos_miembros', membershipGroupField: 'id_circulo' });
@@ -218,6 +174,13 @@ requireAuth(async () => {
     }
     circuloActual = circulo;
     setQueryParams({ circulo: circuloId });
+
+    cargarGastoForm = montarGastoForm(document.getElementById('cargar-gasto-form-mount'), {
+        idPrefix: 'cg',
+        showPeriodo: true,
+        showGestionarCategorias: false,
+        autoRepartirOnMonto: true
+    });
 
     if (abrirId) {
         bootScreen('detalle');
@@ -392,7 +355,12 @@ async function cargarPlantilla(plantillaId) {
 }
 
 async function eliminarLista(id, nombre) {
-    if (!confirm(`¿Eliminar la lista "${nombre}"?\nSe borrarán todos sus ítems.`)) return;
+    if (!(await torisConfirm({
+        title: 'Eliminar lista',
+        message: `¿Eliminar la lista "${nombre}"?\nSe borrarán todos sus ítems.`,
+        confirmLabel: 'Eliminar',
+        danger: true
+    }))) return;
     const { error: ei } = await db.from('lista_compras').delete().eq('id_lista', id);
     if (ei) { alert('Error al borrar ítems: ' + ei.message); return; }
     const { error: el } = await db.from('listas').delete().eq('id', id);
@@ -512,7 +480,12 @@ async function borrarItem(id) {
 async function desmarcarComprados() {
     const comprados = todosLosItems.filter(i => i.comprado);
     if (!comprados.length) return;
-    if (!confirm(`¿Desmarcar ${comprados.length} ítem${comprados.length === 1 ? '' : 's'}? Vuelven a pendientes.`)) return;
+    if (!(await torisConfirm({
+        title: 'Desmarcar comprados',
+        message: `¿Desmarcar ${comprados.length} ítem${comprados.length === 1 ? '' : 's'}? Vuelven a pendientes.`,
+        confirmLabel: 'Desmarcar',
+        danger: false
+    }))) return;
     const ids = comprados.map(i => i.id);
     const { error } = await db.from('lista_compras')
         .update({ comprado: false, comprado_at: null })
@@ -530,33 +503,7 @@ async function desmarcarComprados() {
 // =============================================
 // CARGAR COMPRADOS → GASTO
 // =============================================
-function categoriasParaGasto() {
-    // Defaults de la app + custom del círculo (sin duplicar por nombre)
-    const byName = new Map();
-    CATEGORIAS_DEFECTO.forEach(c => {
-        byName.set(String(c.nombre).toLowerCase(), { nombre: c.nombre, icono: c.icono || 'archive-box' });
-    });
-    const raw = circuloActual?.categorias;
-    if (Array.isArray(raw)) {
-        raw.forEach(c => {
-            const item = typeof c === 'string'
-                ? { nombre: c }
-                : { nombre: c?.nombre || c?.name, icono: c?.icono || c?.icon };
-            if (!item.nombre) return;
-            const key = String(item.nombre).toLowerCase();
-            if (!byName.has(key)) {
-                byName.set(key, { nombre: item.nombre, icono: item.icono || 'archive-box' });
-            } else if (item.icono) {
-                const prev = byName.get(key);
-                byName.set(key, { nombre: prev.nombre, icono: item.icono });
-            }
-        });
-    }
-    return [...byName.values()];
-}
-
 async function asegurarDatosGasto() {
-    // Siempre refrescar: si no, periodos/personas/categorías quedan viejos
     const [{ data: partes, error: ep }, { data: periodos, error: eo }, { data: circulo, error: ec }] = await Promise.all([
         db.from('participantes').select('*').eq('id_circulo', circuloId).order('id'),
         db.from('periodos').select('id, nombre, created_at').eq('id_circulo', circuloId).order('created_at', { ascending: false }),
@@ -601,149 +548,28 @@ async function abrirModalCargarGastos() {
     document.getElementById('cargar-gastos-resumen').innerHTML =
         `<strong>${comprados.length} ítem${comprados.length === 1 ? '' : 's'} comprado${comprados.length === 1 ? '' : 's'}</strong><br>${escapeHtml(preview)}`;
 
-    const selPeriodo = document.getElementById('cg-periodo');
-    selPeriodo.innerHTML = periodosCirculo.map(p =>
-        `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`
-    ).join('');
-
-    document.getElementById('cg-concepto').value = listaActual?.nombre || '';
-    document.getElementById('cg-fecha').value = hoyISO();
-    setMontoInput(document.getElementById('cg-monto'), NaN);
-    bindMontoInput(document.getElementById('cg-monto'), () => cgOnMontoInput());
-
-    const cats = categoriasParaGasto();
-    const selTipo = document.getElementById('cg-tipo');
-    // value sin escapeHtml completo: si no, en algunos browsers no matchea el .value =
-    selTipo.innerHTML = cats.map(c =>
-        `<option value="${String(c.nombre).replace(/"/g, '&quot;')}">${escapeHtml(c.nombre)}</option>`
-    ).join('');
-    const nombreLista = (listaActual?.nombre || '').trim().toLowerCase();
-    const preferida = cats.find(c => c.nombre.toLowerCase() === nombreLista)
-        || cats.find(c => /super|verdul|carnic/i.test(c.nombre))
-        || cats[0];
-    if (preferida) selTipo.value = preferida.nombre;
-
-    const selPagador = document.getElementById('cg-pagador');
-    selPagador.innerHTML = participantesCirculo.map(p =>
-        `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`
-    ).join('');
-    if (participantesCirculo[0]) selPagador.value = String(participantesCirculo[0].id);
-
-    document.getElementById('cg-split-container').innerHTML = participantesCirculo.map(p => `
-        <div class="split-row">
-            <div class="split-name">${escapeHtml(p.nombre)}</div>
-            <input type="text" class="split-input input-monto" id="cg-split-${p.id}"
-                placeholder="0" inputmode="decimal" autocomplete="off" />
-        </div>
-    `).join('');
-    participantesCirculo.forEach(p => {
-        bindMontoInput(document.getElementById('cg-split-' + p.id), () => cgOnSplitInput(p.id));
+    cargarGastoForm.setPeriodos(periodosCirculo);
+    cargarGastoForm.setParticipantes(participantesCirculo);
+    cargarGastoForm.setCategoriasFromCirculo(circuloActual.categorias);
+    cargarGastoForm.reset({
+        concepto: listaActual?.nombre || '',
+        preferTipoFromConcepto: true,
+        autoRepartir: true
     });
-    document.getElementById('cg-split-total-row').innerHTML = '';
-    cgSyncSplitInputsEnabled();
 
     abrirModal('modal-cargar-gastos');
-    setTimeout(() => document.getElementById('cg-concepto').focus(), 120);
-}
-
-function cgOnMontoInput() {
-    cgSyncSplitInputsEnabled();
-    cgRepartirIgual();
-}
-
-function cgSyncSplitInputsEnabled() {
-    const monto = parseMonto(document.getElementById('cg-monto').value) || 0;
-    const enabled = monto > 0;
-    participantesCirculo.forEach(p => {
-        const input = document.getElementById('cg-split-' + p.id);
-        if (!input) return;
-        input.disabled = !enabled;
-        if (!enabled) {
-            input.value = '';
-            delete input.dataset.autoResto;
-        }
-    });
-    if (!enabled) document.getElementById('cg-split-total-row').innerHTML = '';
-}
-
-function cgRepartirIgual() {
-    const monto = parseMonto(document.getElementById('cg-monto').value) || 0;
-    const n = participantesCirculo.length;
-    if (!monto || !n) return;
-    cgSyncSplitInputsEnabled();
-    const base = Math.floor((monto / n) * 100) / 100;
-    const resto = Math.round((monto - base * n) * 100) / 100;
-    participantesCirculo.forEach((p, i) => {
-        const input = document.getElementById('cg-split-' + p.id);
-        if (!input) return;
-        setMontoInput(input, i === 0 ? (base + resto) : base);
-        delete input.dataset.autoResto;
-    });
-    cgUpdateSplitTotal();
-}
-
-function cgLimpiarSplit() {
-    participantesCirculo.forEach(p => {
-        const input = document.getElementById('cg-split-' + p.id);
-        if (!input) return;
-        input.value = '';
-        delete input.dataset.autoResto;
-    });
-    document.getElementById('cg-split-total-row').innerHTML = '';
-}
-
-function cgOnSplitInput(changedId) {
-    const monto = parseMonto(document.getElementById('cg-monto').value) || 0;
-    if (!(monto > 0)) {
-        cgSyncSplitInputsEnabled();
-        return;
-    }
-    aplicarRestoSplit({
-        total: monto,
-        participantes: participantesCirculo,
-        changedId,
-        getInput: id => document.getElementById('cg-split-' + id)
-    });
-    cgUpdateSplitTotal();
-}
-
-function cgUpdateSplitTotal() {
-    const monto = parseMonto(document.getElementById('cg-monto').value) || 0;
-    let total = 0;
-    participantesCirculo.forEach(p => {
-        total += parseMonto(document.getElementById('cg-split-' + p.id)?.value) || 0;
-    });
-    total = Math.round(total * 100) / 100;
-    const row = document.getElementById('cg-split-total-row');
-    if (!monto) { row.innerHTML = ''; return; }
-    const ok = Math.abs(total - monto) < 0.02;
-    row.innerHTML = `<span class="${ok ? 'text-positive' : 'text-negative'}">Suma: $${fmt(total)} / $${fmt(monto)}</span>`;
+    cargarGastoForm.focusConcepto();
 }
 
 async function guardarCargarGastos() {
-    await withBusyButton('#modal-cargar-gastos .btn-primary', async () => {
-        const periodoId = Number(document.getElementById('cg-periodo').value);
-        const concepto = document.getElementById('cg-concepto').value.trim();
-        const fecha = document.getElementById('cg-fecha').value || hoyISO();
-        const monto = parseMonto(document.getElementById('cg-monto').value);
-        const tipo = document.getElementById('cg-tipo').value;
-        const pagador = Number(document.getElementById('cg-pagador').value);
+    await withBusyButton('#btn-guardar-cargar-gasto', async () => {
+        const { periodoId, concepto, fecha, monto, tipo, pagador, splits, totalSplit } = cargarGastoForm.getValues();
 
         if (!periodoId) { alert('Elegí un periodo.'); return; }
         if (!concepto) { alert('Ingresá un concepto.'); return; }
         if (!(monto > 0)) { alert('Ingresá el monto total del ticket.'); return; }
         if (!tipo) { alert('Elegí una categoría.'); return; }
         if (!pagador) { alert('Elegí quién pagó.'); return; }
-
-        const splits = [];
-        let totalSplit = 0;
-        participantesCirculo.forEach(p => {
-            const val = parseMonto(document.getElementById('cg-split-' + p.id)?.value) || 0;
-            if (val > 0) {
-                splits.push({ id_participante: p.id, monto: val });
-                totalSplit += val;
-            }
-        });
         if (!splits.length) { alert('Distribuí el gasto entre las personas.'); return; }
         if (Math.abs(totalSplit - monto) > 0.05) {
             alert(`La división ($${fmt(totalSplit)}) no cierra con el total ($${fmt(monto)}).`);
@@ -773,14 +599,18 @@ async function guardarCargarGastos() {
 
         cerrarModal('modal-cargar-gastos');
         const periodo = periodosCirculo.find(p => Number(p.id) === periodoId);
-        const ir = confirm(
-            `Gasto guardado en ${periodo?.nombre || 'el periodo'}.\n¿Querés ir a verlo?`
-        );
+        const ir = await torisConfirm({
+            title: 'Gasto guardado',
+            message: `Gasto guardado en ${periodo?.nombre || 'el periodo'}.\n¿Querés ir a verlo?`,
+            confirmLabel: 'Ir a gastos',
+            cancelLabel: 'Quedarme'
+        });
         if (ir) {
             window.location.href = `./gastos.html?circulo=${circuloId}&periodo=${periodoId}`;
         }
     });
 }
+
 </script>
 </body>
 </html>

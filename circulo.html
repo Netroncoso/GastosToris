@@ -293,7 +293,12 @@ async function crearPeriodo() {
 }
 
 async function eliminarPeriodo(id, nombre) {
-    if (!confirm(`¿Eliminar el periodo "${nombre}"?\nSe borrarán todos sus gastos.`)) return;
+    if (!(await torisConfirm({
+        title: 'Eliminar periodo',
+        message: `¿Eliminar el periodo "${nombre}"?\nSe borrarán todos sus gastos.`,
+        confirmLabel: 'Eliminar',
+        danger: true
+    }))) return;
     const { error } = await db.from('periodos').delete().eq('id', id);
     if (error) { alert('Error: ' + error.message); return; }
     cargarPeriodos();

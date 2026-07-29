@@ -161,7 +161,12 @@
     }
 
     async function eliminarGrupo(id, nombre) {
-        if (!confirm(`¿Eliminar el círculo "${nombre}"?\nSe borrarán periodos, gastos, listas, tareas y personas.`)) return;
+        if (!(await torisConfirm({
+            title: 'Eliminar círculo',
+            message: `¿Eliminar el círculo "${nombre}"?\nSe borrarán periodos, gastos, listas, tareas y personas.`,
+            confirmLabel: 'Eliminar',
+            danger: true
+        }))) return;
         const { error } = await db.from('circulos').delete().eq('id', id);
         if (error) { alert('Error: ' + error.message); return; }
         cargarGrupos();

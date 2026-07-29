@@ -479,7 +479,12 @@ async function borrarTarea(id) {
 }
 
 async function borrarHechas() {
-    if (!confirm('¿Borrar todas las tareas hechas de este grupo?')) return;
+    if (!(await torisConfirm({
+        title: 'Borrar tareas hechas',
+        message: '¿Borrar todas las tareas hechas de este grupo?',
+        confirmLabel: 'Borrar',
+        danger: true
+    }))) return;
     const ids = todasLasTareas.filter(t => t.hecha).map(t => t.id);
     const { error } = await db.from('tareas').delete().in('id', ids);
     if (error) { alert('Error: ' + error.message); return; }

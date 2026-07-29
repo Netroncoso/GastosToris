@@ -94,42 +94,11 @@
 <div id="modal-gasto" class="modal-overlay">
     <div class="modal">
         <div class="modal-header">
-            <h3>Agregar Gasto</h3>
+            <h3 id="modal-gasto-title">Agregar Gasto</h3>
             <button class="modal-close" onclick="cerrarModal('modal-gasto')"><i data-icon="x-mark" data-size="14"></i></button>
         </div>
-        <div class="form-group">
-            <label>Concepto</label>
-            <input type="text" id="input-concepto" placeholder="Ej: Cena en restaurante" />
-        </div>
-        <div class="form-group">
-            <label>Fecha del gasto</label>
-            <input type="date" id="input-fecha-gasto" />
-        </div>
-        <div class="form-group">
-            <label>Monto total ($)</label>
-            <input type="text" class="input-monto" id="input-monto" placeholder="0" inputmode="decimal" autocomplete="off" />
-        </div>
-        <div class="form-group">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                <label style="margin-bottom:0">Tipo</label>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="abrirModalCategorias()" style="padding:2px 8px;font-size:12px">Gestionar</button>
-            </div>
-            <select id="input-tipo"></select>
-        </div>
-        <div class="form-group">
-            <label>¿Quién pagó?</label>
-            <select id="input-pagador"></select>
-        </div>
-        <div class="form-group">
-            <label>División por persona ($)</label>
-            <div style="display:flex;gap:8px;margin-bottom:10px">
-                <button class="btn btn-ghost btn-sm" onclick="repartirIgual()">Partes iguales</button>
-                <button class="btn btn-ghost btn-sm" onclick="limpiarSplit()">Limpiar</button>
-            </div>
-            <div id="split-container"></div>
-            <div id="split-total-row" class="split-total-row"></div>
-        </div>
-        <button class="btn btn-primary btn-full" onclick="guardarGasto()">Guardar Gasto</button>
+        <div id="gasto-form-mount"></div>
+        <button class="btn btn-primary btn-full" id="btn-guardar-gasto" onclick="guardarGasto()">Guardar Gasto</button>
     </div>
 </div>
 
@@ -160,6 +129,7 @@
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/gasto-form.js"></script>
 <script>
 // =============================================
 // ESTADO GLOBAL
@@ -170,20 +140,7 @@ let participantesActuales = [];
 let currentGastos = [];
 let gastoEditando = null;
 let categoriasActuales = [];
-
-const CATEGORIAS_DEFECTO = [
-    { nombre: 'Super', icono: 'shopping-cart' },
-    { nombre: 'Carnicería', icono: 'cake' },
-    { nombre: 'Verdulería', icono: 'shopping-bag' },
-    { nombre: 'Gatos', icono: 'heart' },
-    { nombre: 'Casa alquiler', icono: 'home' },
-    { nombre: 'Casa impuestos', icono: 'bolt' },
-    { nombre: 'Tarjetas', icono: 'credit-card' },
-    { nombre: 'Auto', icono: 'truck' },
-    { nombre: 'Viajes', icono: 'paper-airplane' },
-    { nombre: 'Salidas', icono: 'film' },
-    { nombre: 'Otros', icono: 'archive-box' },
-];
+let gastoForm = null;
 
 const ICONOS_DISPONIBLES = [
     'shopping-cart', 'cake', 'shopping-bag', 'heart', 'home', 'bolt',
@@ -218,16 +175,7 @@ function getIconoTipo(nombre) {
 }
 
 function renderSelectTipo(valorActual = null) {
-    const sel = document.getElementById('input-tipo');
-    if (!sel) return;
-    sel.innerHTML = categoriasActuales.map(c =>
-        `<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)}</option>`
-    ).join('');
-    if (valorActual && categoriasActuales.some(c => c.nombre === valorActual)) {
-        sel.value = valorActual;
-    } else if (categoriasActuales.length) {
-        sel.value = categoriasActuales[0].nombre;
-    }
+    if (gastoForm) gastoForm.setCategoriasFromCirculo(categoriasActuales, valorActual);
 }
 
 function renderSelectIconos() {
@@ -285,7 +233,7 @@ async function agregarCategoria() {
         }
         document.getElementById('input-nueva-categoria').value = '';
         renderListaCategorias();
-        renderSelectTipo(document.getElementById('input-tipo').value);
+        renderSelectTipo();
         cargarGastos();
     });
 }
@@ -296,7 +244,12 @@ async function eliminarCategoria(index) {
         return;
     }
     const cat = categoriasActuales[index];
-    if (!confirm(`¿Eliminar la categoría "${cat.nombre}"?`)) return;
+    if (!(await torisConfirm({
+        title: 'Eliminar categoría',
+        message: `¿Eliminar la categoría "${cat.nombre}"?`,
+        confirmLabel: 'Eliminar',
+        danger: true
+    }))) return;
     categoriasActuales.splice(index, 1);
     if (!await guardarCategoriasEnDB()) return;
     renderListaCategorias();
@@ -339,14 +292,22 @@ requireAuth(async () => {
     initCategorias();
     document.getElementById('topbar-title').textContent = periodo.nombre;
 
+    gastoForm = montarGastoForm(document.getElementById('gasto-form-mount'), {
+        idPrefix: 'gf',
+        showGestionarCategorias: true,
+        onGestionarCategorias: () => abrirModalCategorias(),
+        autoRepartirOnMonto: true
+    });
+    gastoForm.setCategoriasFromCirculo(circuloActual.categorias);
+
     const tab = TABS_GASTOS.includes(params.get('tab')) ? params.get('tab') : 'gastos';
     setQueryParams({ circulo: circuloId, periodo: periodoId, tab });
     bootTab(tab);
     appReady();
-    bindMontoInput(document.getElementById('input-monto'), () => onMontoInput());
     bindMontoInput(document.getElementById('reembolso-monto'));
 
     await cargarParticipantes();
+    gastoForm.setParticipantes(participantesActuales);
     if (tab === 'gastos') {
         await cargarGastos();
     } else {
@@ -406,26 +367,14 @@ function abrirModalGasto() {
         return;
     }
     gastoEditando = null;
-    document.querySelector('#modal-gasto .btn-primary').textContent = 'Guardar Gasto';
-    document.getElementById('input-concepto').value = '';
-    document.getElementById('input-fecha-gasto').value = hoyISO();
-    document.getElementById('input-monto').value = '';
-    renderSelectTipo();
-
-    const sel = document.getElementById('input-pagador');
-    sel.innerHTML = participantesActuales.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
-    sel.value = String(participantesActuales[0].id);
-
-    renderSplitContainer();
-    document.getElementById('split-total-row').innerHTML = '';
+    document.getElementById('modal-gasto-title').textContent = 'Agregar Gasto';
+    document.getElementById('btn-guardar-gasto').textContent = 'Guardar Gasto';
+    gastoForm.setAutoRepartir(true);
+    gastoForm.setParticipantes(participantesActuales);
+    gastoForm.setCategoriasFromCirculo(categoriasActuales);
+    gastoForm.reset({ autoRepartir: true });
     abrirModal('modal-gasto');
-    setTimeout(() => document.getElementById('input-concepto').focus(), 100);
-}
-
-function onMontoInput() {
-    syncSplitInputsEnabled();
-    if (!gastoEditando) repartirIgual();
-    else actualizarTotalSplit();
+    gastoForm.focusConcepto();
 }
 
 function escapeJsString(value) {
@@ -441,17 +390,12 @@ async function editarGasto(id) {
     if (!gasto) return;
 
     gastoEditando = id;
-    document.querySelector('#modal-gasto .btn-primary').textContent = 'Actualizar Gasto';
-    document.getElementById('input-concepto').value = gasto.concepto || '';
-    document.getElementById('input-fecha-gasto').value = gasto.fecha_gasto || hoyISO();
-    document.getElementById('input-monto').value = formatMontoInput(Number(gasto.monto));
-    renderSelectTipo(gasto.tipo_gasto || categoriasActuales[0]?.nombre);
+    document.getElementById('modal-gasto-title').textContent = 'Editar Gasto';
+    document.getElementById('btn-guardar-gasto').textContent = 'Actualizar Gasto';
+    gastoForm.setAutoRepartir(false);
+    gastoForm.setParticipantes(participantesActuales);
+    gastoForm.setCategoriasFromCirculo(categoriasActuales);
 
-    const sel = document.getElementById('input-pagador');
-    sel.innerHTML = participantesActuales.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
-    sel.value = gasto.id_pagador;
-
-    renderSplitContainer();
     const { data: splits, error } = await db.from('gastos_participantes')
         .select('id_participante,monto')
         .eq('id_gasto', id);
@@ -459,111 +403,32 @@ async function editarGasto(id) {
         alert('Error al cargar división: ' + error.message);
         return;
     }
-    (splits || []).forEach(s => {
-        const input = document.getElementById('split-' + s.id_participante);
-        if (input) setMontoInput(input, Number(s.monto));
+
+    gastoForm.reset({
+        concepto: gasto.concepto || '',
+        fecha: gasto.fecha_gasto || hoyISO(),
+        monto: Number(gasto.monto),
+        tipo: gasto.tipo_gasto || categoriasActuales[0]?.nombre,
+        pagadorId: gasto.id_pagador,
+        splits: splits || [],
+        autoRepartir: false
     });
-    actualizarTotalSplit();
     abrirModal('modal-gasto');
-    setTimeout(() => document.getElementById('input-concepto').focus(), 100);
+    gastoForm.focusConcepto();
 }
 
 async function eliminarGasto(id, concepto) {
-    if (!confirm(`¿Eliminar el gasto "${concepto}"?`)) return;
+    if (!(await torisConfirm({
+        title: 'Eliminar gasto',
+        message: `¿Eliminar el gasto "${concepto}"?`,
+        confirmLabel: 'Eliminar',
+        danger: true
+    }))) return;
     const { error: e1 } = await db.from('gastos_participantes').delete().eq('id_gasto', id);
     if (e1) { alert('Error al borrar división: ' + e1.message); return; }
     const { error: e2 } = await db.from('gastos').delete().eq('id', id);
     if (e2) { alert('Error al borrar gasto: ' + e2.message); return; }
     cargarGastos();
-}
-
-// =============================================
-// SPLIT
-// =============================================
-function renderSplitContainer() {
-    document.getElementById('split-container').innerHTML = participantesActuales.map(p => `
-        <div class="split-row">
-            <div class="split-name">${escapeHtml(p.nombre)}</div>
-            <input type="text" class="split-input input-monto" id="split-${p.id}"
-                placeholder="0" inputmode="decimal" autocomplete="off" />
-        </div>
-    `).join('');
-    participantesActuales.forEach(p => {
-        bindMontoInput(document.getElementById('split-' + p.id), () => onSplitInput(p.id));
-    });
-    syncSplitInputsEnabled();
-}
-
-function syncSplitInputsEnabled() {
-    const monto = parseMonto(document.getElementById('input-monto').value) || 0;
-    const enabled = monto > 0;
-    participantesActuales.forEach(p => {
-        const input = document.getElementById('split-' + p.id);
-        if (!input) return;
-        input.disabled = !enabled;
-        if (!enabled) {
-            input.value = '';
-            delete input.dataset.autoResto;
-        }
-    });
-    if (!enabled) document.getElementById('split-total-row').innerHTML = '';
-}
-
-function repartirIgual() {
-    const monto = parseMonto(document.getElementById('input-monto').value) || 0;
-    const n = participantesActuales.length;
-    if (!monto || n === 0) return;
-    syncSplitInputsEnabled();
-    const base = Math.floor((monto / n) * 100) / 100;
-    const resto = Math.round((monto - base * n) * 100) / 100;
-    participantesActuales.forEach((p, i) => {
-        const input = document.getElementById('split-' + p.id);
-        if (!input) return;
-        setMontoInput(input, i === 0 ? (base + resto) : base);
-        delete input.dataset.autoResto;
-    });
-    actualizarTotalSplit();
-}
-
-function limpiarSplit() {
-    participantesActuales.forEach(p => {
-        const input = document.getElementById('split-' + p.id);
-        if (!input) return;
-        input.value = '';
-        delete input.dataset.autoResto;
-    });
-    document.getElementById('split-total-row').innerHTML = '';
-}
-
-function onSplitInput(changedId) {
-    const monto = parseMonto(document.getElementById('input-monto').value) || 0;
-    if (!(monto > 0)) {
-        syncSplitInputsEnabled();
-        return;
-    }
-    aplicarRestoSplit({
-        total: monto,
-        participantes: participantesActuales,
-        changedId,
-        getInput: id => document.getElementById('split-' + id)
-    });
-    actualizarTotalSplit();
-}
-
-function actualizarTotalSplit() {
-    const monto = parseMonto(document.getElementById('input-monto').value) || 0;
-    let total = 0;
-    participantesActuales.forEach(p => {
-        total += parseMonto(document.getElementById('split-' + p.id)?.value) || 0;
-    });
-    total = Math.round(total * 100) / 100;
-    const row = document.getElementById('split-total-row');
-    if (!monto) { row.innerHTML = ''; return; }
-    const diff = Math.round((total - monto) * 100) / 100;
-    const ok = Math.abs(diff) < 0.02;
-    row.innerHTML = ok
-        ? `<span style="color:var(--success);font-weight:600"><i data-icon="check" data-size="14"></i> Total: $${fmt(total)}</span>`
-        : `<span style="color:var(--danger)">Total: $${fmt(total)} · ${diff > 0 ? '+' : ''}$${fmt(diff)}</span>`;
 }
 
 // =============================================
@@ -731,24 +596,13 @@ async function cargarGastos({ silent = false } = {}) {
 }
 
 async function guardarGasto() {
-    await withBusyButton('#modal-gasto .btn-primary', async () => {
-        const concepto = document.getElementById('input-concepto').value.trim();
-        const fecha    = document.getElementById('input-fecha-gasto').value || hoyISO();
-        const monto    = parseMonto(document.getElementById('input-monto').value);
-        const tipo     = document.getElementById('input-tipo').value;
-        const pagadorRaw = document.getElementById('input-pagador').value;
-        const pagador = pagadorRaw ? Number(pagadorRaw) : null;
+    await withBusyButton('#btn-guardar-gasto', async () => {
+        const { concepto, fecha, monto, tipo, pagador, splits, totalSplit } = gastoForm.getValues();
 
         if (!concepto) { alert('Ingresá un concepto.'); return; }
         if (!monto || monto <= 0) { alert('Ingresá un monto válido.'); return; }
         if (!pagador || Number.isNaN(pagador)) { alert('Seleccioná quién pagó.'); return; }
-
-        const splits = [];
-        let totalSplit = 0;
-        participantesActuales.forEach(p => {
-            const val = parseMonto(document.getElementById('split-' + p.id)?.value) || 0;
-            if (val > 0) { splits.push({ id_participante: p.id, monto: val }); totalSplit += val; }
-        });
+        if (!tipo) { alert('Elegí una categoría.'); return; }
 
         if (!splits.length) { alert('Distribuí el gasto entre las personas.'); return; }
         if (Math.abs(totalSplit - monto) > 0.02) {
