@@ -27,6 +27,7 @@ function applyTheme(theme) {
     document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
         const icon = next === 'dark' ? 'sun' : 'moon';
         btn.setAttribute('title', next === 'dark' ? 'Modo claro' : 'Modo oscuro');
+        btn.setAttribute('aria-label', next === 'dark' ? 'Modo claro' : 'Modo oscuro');
         btn.innerHTML = `<i data-icon="${icon}" data-size="18"></i>`;
         if (typeof initIconsIn === 'function') initIconsIn(btn);
     });
@@ -200,7 +201,12 @@ function getDisplayNameFromUser(user) {
 const HEROICONS_BASE = 'https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline';
 function icon(name, size = 20) {
     const url = `${HEROICONS_BASE}/${name}.svg`;
-    return `<span class="hicon" style="width:${size}px;height:${size}px;-webkit-mask-image:url(${url});mask-image:url(${url})"></span>`;
+    return `<span class="hicon" aria-hidden="true" style="width:${size}px;height:${size}px;-webkit-mask-image:url(${url});mask-image:url(${url})"></span>`;
+}
+
+/** Loader accesible para contenido async. */
+function loaderHtml(text = 'Cargando…') {
+    return `<div class="loader" role="status" aria-live="polite">${escapeHtml(text)}</div>`;
 }
 
 // Convierte un string "YYYY-MM-DD" (como lo guarda un <input type="date">) a un Date
@@ -321,12 +327,41 @@ function syncVisualViewport() {
     root.style.setProperty('--vv-height', `${Math.round(vv.height)}px`);
 }
 
+let _modalFocusStack = [];
+
+function setupModalA11y(overlay) {
+    const modal = overlay?.querySelector('.modal');
+    if (!modal) return;
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    const title = modal.querySelector('.modal-header h3');
+    if (title && !title.id) title.id = `${overlay.id}-title`;
+    if (title?.id) modal.setAttribute('aria-labelledby', title.id);
+}
+
+function getModalFocusables(modal) {
+    return [...modal.querySelectorAll(
+        'button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+    )].filter(el => !el.closest('[hidden]') && el.getAttribute('aria-hidden') !== 'true');
+}
+
 function abrirModal(id) {
     const el = document.getElementById(id);
     if (!el) return;
+    if (!document.querySelector('.modal-overlay.open')) {
+        _modalFocusStack.push(document.activeElement);
+    }
     syncVisualViewport();
+    setupModalA11y(el);
     el.classList.add('open');
     document.body.classList.add('modal-open');
+    const modal = el.querySelector('.modal');
+    const isCoarse = window.matchMedia('(pointer: coarse)').matches;
+    if (modal && !isCoarse) {
+        const focusables = getModalFocusables(modal);
+        const target = focusables.find(f => !f.classList.contains('modal-close')) || focusables[0];
+        if (target) setTimeout(() => target.focus(), 50);
+    }
 }
 
 function cerrarModal(id) {
@@ -334,8 +369,41 @@ function cerrarModal(id) {
     if (el) el.classList.remove('open');
     if (!document.querySelector('.modal-overlay.open')) {
         document.body.classList.remove('modal-open');
+        const prev = _modalFocusStack.pop();
+        if (prev?.focus) prev.focus();
     }
 }
+
+function handleModalKeydown(e) {
+    const open = [...document.querySelectorAll('.modal-overlay.open')];
+    if (!open.length) return;
+    const overlay = open[open.length - 1];
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        if (overlay.id === 'modal-toris-confirm') {
+            document.getElementById('toris-confirm-cancel')?.click();
+        } else {
+            cerrarModal(overlay.id);
+        }
+        return;
+    }
+    if (e.key !== 'Tab') return;
+    const modal = overlay.querySelector('.modal');
+    if (!modal) return;
+    const focusables = getModalFocusables(modal);
+    if (focusables.length < 2) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+    }
+}
+
+document.addEventListener('keydown', handleModalKeydown);
 
 /**
  * Confirmación con modal Toris (reemplaza window.confirm).
@@ -416,7 +484,8 @@ document.addEventListener('focusin', (e) => {
     if (!field?.closest?.('.modal-overlay.open')) return;
     const bringIntoView = () => {
         syncVisualViewport();
-        field.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+        const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+        field.scrollIntoView({ block: 'center', inline: 'nearest', behavior });
     };
     bringIntoView();
     setTimeout(bringIntoView, 280);
@@ -680,33 +749,49 @@ function bootScreen(nombre) {
     if (el) el.classList.add('active');
 }
 
-/** Activa pestaña de contenido sin disparar side-effects (onTab_*). */
-function bootTab(nombre) {
+function syncTabsUI(nombre) {
     document.querySelectorAll('.tab').forEach(t => {
         const tabName = t.getAttribute('data-tab') || (t.getAttribute('onclick') || '').match(/cambiarTab\('([^']+)'\)/)?.[1];
-        t.classList.toggle('active', tabName === nombre);
+        const on = tabName === nombre;
+        t.classList.toggle('active', on);
+        if (t.getAttribute('role') === 'tab') {
+            t.setAttribute('aria-selected', on ? 'true' : 'false');
+            t.tabIndex = on ? 0 : -1;
+        }
     });
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     const el = document.getElementById('tab-' + nombre);
     if (el) el.classList.add('active');
 }
 
+/** Activa pestaña de contenido sin disparar side-effects (onTab_*). */
+function bootTab(nombre) {
+    syncTabsUI(nombre);
+}
+
 // cambiarTab: busca el contenedor `tab-<nombre>` y activa la pestaña.
 // Persiste `tab` en la URL siempre que exista el contenido (para que F5 restaure).
 function cambiarTab(nombre) {
-    document.querySelectorAll('.tab').forEach(t => {
-        const tabName = t.getAttribute('data-tab') || (t.getAttribute('onclick') || '').match(/cambiarTab\('([^']+)'\)/)?.[1];
-        t.classList.toggle('active', tabName === nombre);
-    });
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    syncTabsUI(nombre);
     const el = document.getElementById('tab-' + nombre);
-    if (el) {
-        el.classList.add('active');
-        setQueryParam('tab', nombre);
-    }
+    if (el) setQueryParam('tab', nombre);
     const cb = window['onTab_' + nombre];
     if (typeof cb === 'function') cb();
     if (typeof window.onAfterTabChange === 'function') window.onAfterTabChange(nombre);
+}
+
+/** Sincroniza aria-selected en filter-tabs. */
+function syncFilterTabsUI(container, activeName) {
+    if (!container) return;
+    container.querySelectorAll('.filter-tab').forEach(t => {
+        const name = t.getAttribute('data-filtro') || (t.getAttribute('onclick') || '').match(/setFiltro\('([^']+)'\)/)?.[1];
+        const on = name === activeName;
+        t.classList.toggle('active', on);
+        if (t.getAttribute('role') === 'tab') {
+            t.setAttribute('aria-selected', on ? 'true' : 'false');
+            t.tabIndex = on ? 0 : -1;
+        }
+    });
 }
 
 // Sincroniza invitados (participantes.email) → membresía en circulos_miembros. 1 vez por sesión.
@@ -741,18 +826,61 @@ function initIcon(el) {
     el.style.webkitMaskImage = `url(${url})`;
     el.style.maskImage = `url(${url})`;
     el.classList.add('hicon');
+    el.setAttribute('aria-hidden', 'true');
+}
+
+function pressableKeydown(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.currentTarget.click();
+    }
+}
+
+function initPressablesIn(root) {
+    if (root.nodeType !== 1) return;
+    const pressableSel = '.card-click, .lista-check';
+    if (root.matches?.(pressableSel)) bindPressable(root);
+    root.querySelectorAll?.(pressableSel).forEach(bindPressable);
+}
+
+function bindPressable(el) {
+    if (el.dataset.pressable) return;
+    el.dataset.pressable = '1';
+    if (!el.hasAttribute('tabindex')) el.tabIndex = 0;
+    if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
+    el.addEventListener('keydown', pressableKeydown);
+}
+
+function enhanceA11yIn(root) {
+    if (root.nodeType !== 1) return;
+    const q = (sel) => root.querySelectorAll?.(sel) || [];
+    if (root.matches?.('.modal-close:not([aria-label])')) root.setAttribute('aria-label', 'Cerrar');
+    q('.modal-close:not([aria-label])').forEach(b => b.setAttribute('aria-label', 'Cerrar'));
+    q('.btn-icon[title]:not([aria-label]), .btn-icon-plain[title]:not([aria-label]), .fab-pin[title]:not([aria-label]), .acceso-unpin[title]:not([aria-label])').forEach(b => {
+        b.setAttribute('aria-label', b.getAttribute('title'));
+    });
+    initPressablesIn(root);
 }
 
 function initIconsIn(root) {
     if (root.nodeType !== 1) return;
     if (root.matches('[data-icon]')) initIcon(root);
     root.querySelectorAll('[data-icon]').forEach(initIcon);
+    enhanceA11yIn(root);
 }
 
-document.addEventListener('DOMContentLoaded', () => initIconsIn(document.documentElement));
+document.addEventListener('DOMContentLoaded', () => {
+    initIconsIn(document.documentElement);
+    document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
+        if (!btn.getAttribute('aria-label')) {
+            const label = btn.getAttribute('title') || (getTheme() === 'dark' ? 'Modo claro' : 'Modo oscuro');
+            btn.setAttribute('aria-label', label);
+        }
+    });
+});
 
 new MutationObserver(mutations => {
-    mutations.forEach(m => m.addedNodes.forEach(initIconsIn));
+    mutations.forEach(m => m.addedNodes.forEach(node => initIconsIn(node)));
 }).observe(document.documentElement, { childList: true, subtree: true });
 
 // PWA: abre como app (sin pestaña nueva cada vez) y cachea estáticos
