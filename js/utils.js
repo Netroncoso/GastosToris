@@ -283,7 +283,11 @@ function esErrorCalendarDesconectado(msg) {
 
 async function manejarErrorCalendar(e, contexto) {
     if (esErrorCalendarDesconectado(e?.message)) {
-        if (confirm('Google Calendar no está conectado o expiró. ¿Conectar ahora?')) {
+        if (await torisConfirm({
+            title: 'Google Calendar',
+            message: 'Google Calendar no está conectado o expiró. ¿Conectar ahora?',
+            confirmLabel: 'Conectar'
+        })) {
             await conectarGoogleCalendar();
         }
         return;
@@ -331,6 +335,72 @@ function cerrarModal(id) {
     if (!document.querySelector('.modal-overlay.open')) {
         document.body.classList.remove('modal-open');
     }
+}
+
+/**
+ * Confirmación con modal Toris (reemplaza window.confirm).
+ * @returns {Promise<boolean>}
+ */
+function torisConfirm({
+    title = 'TorisApp',
+    message = '',
+    confirmLabel = 'Confirmar',
+    cancelLabel = 'Cancelar',
+    danger = false
+} = {}) {
+    ensureTorisConfirmModal();
+    const overlay = document.getElementById('modal-toris-confirm');
+    const titleEl = document.getElementById('toris-confirm-title');
+    const msgEl = document.getElementById('toris-confirm-message');
+    const btnOk = document.getElementById('toris-confirm-ok');
+    const btnCancel = document.getElementById('toris-confirm-cancel');
+
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+    btnOk.textContent = confirmLabel;
+    btnCancel.textContent = cancelLabel;
+    btnOk.className = danger ? 'btn btn-danger' : 'btn btn-primary';
+    btnCancel.className = 'btn btn-ghost';
+
+    return new Promise(resolve => {
+        const finish = (value) => {
+            btnOk.onclick = null;
+            btnCancel.onclick = null;
+            overlay.onclick = null;
+            cerrarModal('modal-toris-confirm');
+            resolve(value);
+        };
+        btnOk.onclick = () => finish(true);
+        btnCancel.onclick = () => finish(false);
+        overlay.onclick = (e) => {
+            if (e.target === overlay) finish(false);
+        };
+        abrirModal('modal-toris-confirm');
+        setTimeout(() => btnCancel.focus(), 50);
+    });
+}
+
+function ensureTorisConfirmModal() {
+    if (document.getElementById('modal-toris-confirm')) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `
+<div id="modal-toris-confirm" class="modal-overlay modal-toris-confirm" style="z-index:300">
+    <div class="modal" style="max-width:360px" role="dialog" aria-modal="true" aria-labelledby="toris-confirm-title">
+        <div class="modal-header">
+            <h3 id="toris-confirm-title">TorisApp</h3>
+            <button type="button" class="modal-close" id="toris-confirm-x" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
+        </div>
+        <p id="toris-confirm-message" class="toris-confirm-message"></p>
+        <div class="toris-confirm-actions">
+            <button type="button" class="btn btn-ghost" id="toris-confirm-cancel">Cancelar</button>
+            <button type="button" class="btn btn-primary" id="toris-confirm-ok">Confirmar</button>
+        </div>
+    </div>
+</div>`;
+    document.body.appendChild(wrap.firstElementChild);
+    document.getElementById('toris-confirm-x').onclick = () => {
+        document.getElementById('toris-confirm-cancel')?.click();
+    };
 }
 
 syncVisualViewport();
