@@ -94,6 +94,47 @@ function setMontoInput(el, n) {
     el.value = Number.isFinite(n) ? formatMontoInput(n) : '';
 }
 
+/**
+ * Rellena el resto del total en la división.
+ * - 2 personas: siempre actualiza el otro (corrige mientras escribís).
+ * - 3+: actualiza el único vacío o el marcado data-auto-resto.
+ */
+function aplicarRestoSplit({ total, participantes, changedId, getInput }) {
+    if (!(total > 0) || !participantes?.length || participantes.length < 2) return;
+    const changed = getInput(changedId);
+    if (changed) delete changed.dataset.autoResto;
+
+    const others = participantes.filter(p => Number(p.id) !== Number(changedId));
+
+    if (participantes.length === 2) {
+        const other = others[0];
+        const otherEl = other && getInput(other.id);
+        if (!otherEl) return;
+        const current = parseMonto(changed?.value) || 0;
+        const resto = Math.max(0, Math.round((total - current) * 100) / 100);
+        setMontoInput(otherEl, resto);
+        otherEl.dataset.autoResto = '1';
+        return;
+    }
+
+    const targets = others.filter(p => {
+        const inp = getInput(p.id);
+        const v = parseMonto(inp?.value);
+        return inp?.dataset.autoResto === '1' || !(v > 0);
+    });
+    if (targets.length !== 1) return;
+
+    let suma = 0;
+    participantes.forEach(p => {
+        if (Number(p.id) === Number(targets[0].id)) return;
+        suma += parseMonto(getInput(p.id)?.value) || 0;
+    });
+    const targetEl = getInput(targets[0].id);
+    if (!targetEl) return;
+    setMontoInput(targetEl, Math.max(0, Math.round((total - suma) * 100) / 100));
+    targetEl.dataset.autoResto = '1';
+}
+
 /** Enlaza formateo de monto en un input (type=text, inputmode=decimal). */
 function bindMontoInput(el, onChange) {
     if (!el || el.dataset.montoBound) return;

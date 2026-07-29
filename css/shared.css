@@ -280,6 +280,7 @@ body.modal-open { overflow: hidden; }
 .split-row:last-child { border-bottom: none; }
 .split-name { flex: 1; font-size: 14px; font-weight: 500; }
 .split-input { width: 110px; font-size: 14px; padding: 8px 10px; }
+.split-input:disabled { opacity: 0.45; cursor: not-allowed; }
 .split-total-row { display: flex; justify-content: flex-end; align-items: center; gap: 6px; font-size: 13px; margin-top: 8px; }
 
 /* BALANCE */
