@@ -488,7 +488,7 @@ function renderSplitContainer() {
         </div>
     `).join('');
     participantesActuales.forEach(p => {
-        bindMontoInput(document.getElementById('split-' + p.id), () => actualizarTotalSplit());
+        bindMontoInput(document.getElementById('split-' + p.id), () => onSplitInput(p.id));
     });
 }
 
@@ -511,6 +511,28 @@ function limpiarSplit() {
         if (input) input.value = '';
     });
     document.getElementById('split-total-row').innerHTML = '';
+}
+
+/** Si queda exactamente 1 persona sin monto, rellena el resto del total. */
+function onSplitInput(changedId) {
+    const monto = parseMonto(document.getElementById('input-monto').value) || 0;
+    if (monto > 0 && participantesActuales.length >= 2) {
+        const vacios = participantesActuales.filter(p => {
+            if (Number(p.id) === Number(changedId)) return false;
+            const v = parseMonto(document.getElementById('split-' + p.id)?.value);
+            return !(v > 0);
+        });
+        if (vacios.length === 1) {
+            let sumaOtros = 0;
+            participantesActuales.forEach(p => {
+                if (Number(p.id) === Number(vacios[0].id)) return;
+                sumaOtros += parseMonto(document.getElementById('split-' + p.id)?.value) || 0;
+            });
+            const resto = Math.round((monto - sumaOtros) * 100) / 100;
+            setMontoInput(document.getElementById('split-' + vacios[0].id), Math.max(0, resto));
+        }
+    }
+    actualizarTotalSplit();
 }
 
 function actualizarTotalSplit() {

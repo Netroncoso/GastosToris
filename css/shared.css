@@ -265,6 +265,7 @@ body.modal-open { overflow: hidden; }
 }
 .btn-icon-plain .hicon { width: 18px; height: 18px; }
 .btn-icon-plain:hover { color: var(--primary); background: var(--soft); }
+.btn-icon-plain.btn-icon-danger { color: var(--danger); }
 .btn-icon-plain.btn-icon-danger:hover { color: var(--danger); background: rgba(220, 53, 69, 0.1); }
 
 /* PARTICIPANTE ITEM */
