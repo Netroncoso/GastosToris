@@ -94,11 +94,11 @@
 <div id="modal-gasto" class="modal-overlay">
     <div class="modal">
         <div class="modal-header">
-            <h3 id="modal-gasto-title">Agregar Gasto</h3>
+            <h3 id="modal-gasto-title">Nuevo gasto</h3>
             <button class="modal-close" onclick="cerrarModal('modal-gasto')"><i data-icon="x-mark" data-size="14"></i></button>
         </div>
         <div id="gasto-form-mount"></div>
-        <button class="btn btn-primary btn-full" id="btn-guardar-gasto" onclick="guardarGasto()">Guardar Gasto</button>
+        <button class="btn btn-primary btn-full" id="btn-guardar-gasto" onclick="guardarGasto()">Guardar gasto</button>
     </div>
 </div>
 
@@ -367,8 +367,8 @@ function abrirModalGasto() {
         return;
     }
     gastoEditando = null;
-    document.getElementById('modal-gasto-title').textContent = 'Agregar Gasto';
-    document.getElementById('btn-guardar-gasto').textContent = 'Guardar Gasto';
+    document.getElementById('modal-gasto-title').textContent = 'Nuevo gasto';
+    document.getElementById('btn-guardar-gasto').textContent = 'Guardar gasto';
     gastoForm.setAutoRepartir(true);
     gastoForm.setParticipantes(participantesActuales);
     gastoForm.setCategoriasFromCirculo(categoriasActuales);
@@ -390,8 +390,8 @@ async function editarGasto(id) {
     if (!gasto) return;
 
     gastoEditando = id;
-    document.getElementById('modal-gasto-title').textContent = 'Editar Gasto';
-    document.getElementById('btn-guardar-gasto').textContent = 'Actualizar Gasto';
+    document.getElementById('modal-gasto-title').textContent = 'Editar gasto';
+    document.getElementById('btn-guardar-gasto').textContent = 'Guardar gasto';
     gastoForm.setAutoRepartir(false);
     gastoForm.setParticipantes(participantesActuales);
     gastoForm.setCategoriasFromCirculo(categoriasActuales);
