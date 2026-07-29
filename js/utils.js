@@ -864,9 +864,13 @@ function enhanceA11yIn(root) {
 
 function initIconsIn(root) {
     if (root.nodeType !== 1) return;
-    if (root.matches('[data-icon]')) initIcon(root);
-    root.querySelectorAll('[data-icon]').forEach(initIcon);
-    enhanceA11yIn(root);
+    try {
+        if (root.matches('[data-icon]')) initIcon(root);
+        root.querySelectorAll('[data-icon]').forEach(initIcon);
+        enhanceA11yIn(root);
+    } catch (err) {
+        console.warn('initIconsIn:', err);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

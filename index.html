@@ -91,28 +91,30 @@
 
     async function cerrarSesion() {
         try { localStorage.removeItem('toris-last-route'); } catch (_) {}
+        _appActivada = false;
         await db.auth.signOut();
     }
 
     let _appLista = false;
+    let _appActivada = false;
+    let _cargarGruposSeq = 0;
 
     db.auth.onAuthStateChange(async (event, session) => {
         if (session) await guardarTokenGoogleIfPresent(session);
         if (event === 'INITIAL_SESSION') {
-            if (session) activarApp(session.user);
+            _appLista = true;
+            if (session) await activarApp(session.user);
             else {
                 mostrarPantalla('login');
                 document.getElementById('topbar').classList.add('hidden');
                 appReady();
             }
-            _appLista = true;
             return;
         }
-        if (session) {
-            if (event === 'SIGNED_IN') {
-                activarApp(session.user);
-            }
+        if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+            await activarApp(session.user);
         } else if (event === 'SIGNED_OUT') {
+            _appActivada = false;
             mostrarPantalla('login');
             document.getElementById('topbar').classList.add('hidden');
             appReady();
@@ -120,6 +122,8 @@
     });
 
     async function activarApp(user) {
+        if (_appActivada) return;
+        _appActivada = true;
         window._indexUserId = user.id;
         document.getElementById('topbar').classList.remove('hidden');
         const nombre = (user.user_metadata?.full_name || user.email || '').split(' ')[0];
@@ -135,8 +139,8 @@
         mostrarPantalla('dashboard');
         appReady();
         syncInvitados().catch(() => {});
-        cargarGrupos();
-        pintarAccesosEnIndex(user.id);
+        pintarAccesosEnIndex(user.id).catch(() => {});
+        await cargarGrupos();
     }
 
     function mostrarPantalla(nombre) {
@@ -175,14 +179,23 @@
 
     async function cargarGrupos() {
         const cont = document.getElementById('lista-grupos');
-        cont.innerHTML = loaderHtml('Cargando círculos…');
-        const { data, error } = await db.from('circulos').select('*').order('created_at', { ascending: false });
-        if (error) { cont.innerHTML = `<div class="alert alert-error">Error: ${error.message}</div>`; return; }
-        if (!data?.length) {
-            cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="users" data-size="40"></i></span>Sin círculos todavía.<br>Creá uno para empezar (ej: Hogar).</div>`;
-            return;
-        }
-        cont.innerHTML = data.map(g => `
+        if (!cont) return;
+        const seq = ++_cargarGruposSeq;
+        try {
+            cont.innerHTML = typeof loaderHtml === 'function'
+                ? loaderHtml('Cargando círculos…')
+                : '<div class="loader" role="status" aria-live="polite">Cargando círculos…</div>';
+            const { data, error } = await db.from('circulos').select('*').order('created_at', { ascending: false });
+            if (seq !== _cargarGruposSeq) return;
+            if (error) {
+                cont.innerHTML = `<div class="alert alert-error">Error al cargar círculos: ${escapeHtml(error.message)}</div>`;
+                return;
+            }
+            if (!data?.length) {
+                cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="users" data-size="40"></i></span>Sin círculos todavía.<br>Creá uno para empezar (ej: Hogar).</div>`;
+                return;
+            }
+            cont.innerHTML = data.map(g => `
             <div class="card card-click" onclick="irAlCirculo(${g.id})">
                 <div class="card-body flex-between" style="gap:10px">
                     <div style="flex:1;min-width:0">
@@ -190,27 +203,52 @@
                         <div class="text-muted">${new Date(g.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })}</div>
                     </div>
                     <div class="card-actions" onclick="event.stopPropagation()">
-                        <button class="btn btn-ghost btn-sm" onclick="editarGrupo(${g.id})" title="Editar">${icon('pencil-square',16)}</button>
-                        <button class="btn btn-danger btn-sm" onclick="eliminarGrupo(${g.id}, '${escapeJsString(g.nombre)}')" title="Eliminar">${icon('trash',16)}</button>
+                        <button type="button" class="btn btn-ghost btn-sm" onclick="editarGrupo(${g.id})" aria-label="Editar">${icon('pencil-square',16)}</button>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="eliminarGrupo(${g.id}, '${escapeJsString(g.nombre)}')" aria-label="Eliminar">${icon('trash',16)}</button>
                     </div>
                 </div>
             </div>
         `).join('');
+        } catch (e) {
+            if (seq !== _cargarGruposSeq) return;
+            cont.innerHTML = `<div class="alert alert-error">No se pudieron cargar los círculos.<br>${escapeHtml(e?.message || String(e))}</div>`;
+        }
     }
 
     function escapeJsString(value) {
         return String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     }
 
-    db.auth.getSession().then(({ data: { session } }) => {
+    async function bootIndexAuth() {
         if (_appLista) return;
-        if (session) activarApp(session.user);
+        let session = (await db.auth.getSession()).data.session;
+        if (!session) {
+            session = await new Promise(resolve => {
+                let sub = null;
+                const timeout = setTimeout(() => {
+                    if (sub) sub.unsubscribe();
+                    resolve(null);
+                }, 5000);
+                const { data: { subscription } } = db.auth.onAuthStateChange((event, s) => {
+                    if (event === 'INITIAL_SESSION' || s) {
+                        clearTimeout(timeout);
+                        subscription.unsubscribe();
+                        resolve(s || null);
+                    }
+                });
+                sub = subscription;
+            });
+        }
+        if (_appLista) return;
+        if (session) await activarApp(session.user);
         else {
             mostrarPantalla('login');
             document.getElementById('topbar').classList.add('hidden');
             appReady();
         }
-    });
+    }
+
+    bootIndexAuth();
 </script>
 </body>
 </html>
