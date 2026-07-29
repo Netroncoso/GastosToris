@@ -136,7 +136,7 @@
         </div>
         <div class="form-group">
             <label>Monto total ($)</label>
-            <input type="number" id="cg-monto" placeholder="Total del ticket" step="0.01" min="0" oninput="cgOnMontoInput()" />
+            <input type="text" id="cg-monto" class="input-monto" placeholder="Total del ticket" inputmode="decimal" autocomplete="off" />
         </div>
         <div class="form-group">
             <label>Categoría</label>
@@ -608,7 +608,8 @@ async function abrirModalCargarGastos() {
 
     document.getElementById('cg-concepto').value = listaActual?.nombre || '';
     document.getElementById('cg-fecha').value = hoyISO();
-    document.getElementById('cg-monto').value = '';
+    setMontoInput(document.getElementById('cg-monto'), NaN);
+    bindMontoInput(document.getElementById('cg-monto'), () => cgOnMontoInput());
 
     const cats = categoriasParaGasto();
     const selTipo = document.getElementById('cg-tipo');
@@ -631,10 +632,13 @@ async function abrirModalCargarGastos() {
     document.getElementById('cg-split-container').innerHTML = participantesCirculo.map(p => `
         <div class="split-row">
             <div class="split-name">${escapeHtml(p.nombre)}</div>
-            <input type="number" class="split-input" id="cg-split-${p.id}"
-                placeholder="0" step="0.01" min="0" oninput="cgUpdateSplitTotal()" />
+            <input type="text" class="split-input input-monto" id="cg-split-${p.id}"
+                placeholder="0" inputmode="decimal" autocomplete="off" />
         </div>
     `).join('');
+    participantesCirculo.forEach(p => {
+        bindMontoInput(document.getElementById('cg-split-' + p.id), () => cgOnSplitInput(p.id));
+    });
     document.getElementById('cg-split-total-row').innerHTML = '';
 
     abrirModal('modal-cargar-gastos');
@@ -646,19 +650,14 @@ function cgOnMontoInput() {
 }
 
 function cgRepartirIgual() {
-    const monto = parseFloat(document.getElementById('cg-monto').value) || 0;
+    const monto = parseMonto(document.getElementById('cg-monto').value) || 0;
     const n = participantesCirculo.length;
     if (!monto || !n) return;
     const base = Math.floor((monto / n) * 100) / 100;
-    let acum = 0;
+    const resto = Math.round((monto - base * n) * 100) / 100;
     participantesCirculo.forEach((p, i) => {
         const input = document.getElementById('cg-split-' + p.id);
-        if (!input) return;
-        if (i === n - 1) input.value = (Math.round((monto - acum) * 100) / 100).toFixed(2);
-        else {
-            input.value = base.toFixed(2);
-            acum += base;
-        }
+        if (input) setMontoInput(input, i === 0 ? (base + resto) : base);
     });
     cgUpdateSplitTotal();
 }
@@ -671,13 +670,37 @@ function cgLimpiarSplit() {
     document.getElementById('cg-split-total-row').innerHTML = '';
 }
 
+/** Si queda exactamente 1 persona sin monto, rellena el resto del total. */
+function cgOnSplitInput(changedId) {
+    const monto = parseMonto(document.getElementById('cg-monto').value) || 0;
+    if (monto > 0 && participantesCirculo.length >= 2) {
+        const vacios = participantesCirculo.filter(p => {
+            if (Number(p.id) === Number(changedId)) return false;
+            const v = parseMonto(document.getElementById('cg-split-' + p.id)?.value);
+            return !(v > 0);
+        });
+        if (vacios.length === 1) {
+            let sumaOtros = 0;
+            participantesCirculo.forEach(p => {
+                if (Number(p.id) === Number(vacios[0].id)) return;
+                sumaOtros += parseMonto(document.getElementById('cg-split-' + p.id)?.value) || 0;
+            });
+            const resto = Math.round((monto - sumaOtros) * 100) / 100;
+            setMontoInput(document.getElementById('cg-split-' + vacios[0].id), Math.max(0, resto));
+        }
+    }
+    cgUpdateSplitTotal();
+}
+
 function cgUpdateSplitTotal() {
-    const monto = parseFloat(document.getElementById('cg-monto').value) || 0;
+    const monto = parseMonto(document.getElementById('cg-monto').value) || 0;
     let total = 0;
     participantesCirculo.forEach(p => {
-        total += parseFloat(document.getElementById('cg-split-' + p.id)?.value || 0);
+        total += parseMonto(document.getElementById('cg-split-' + p.id)?.value) || 0;
     });
+    total = Math.round(total * 100) / 100;
     const row = document.getElementById('cg-split-total-row');
+    if (!monto) { row.innerHTML = ''; return; }
     const ok = Math.abs(total - monto) < 0.02;
     row.innerHTML = `<span class="${ok ? 'text-positive' : 'text-negative'}">Suma: $${fmt(total)} / $${fmt(monto)}</span>`;
 }
@@ -687,7 +710,7 @@ async function guardarCargarGastos() {
         const periodoId = Number(document.getElementById('cg-periodo').value);
         const concepto = document.getElementById('cg-concepto').value.trim();
         const fecha = document.getElementById('cg-fecha').value || hoyISO();
-        const monto = parseFloat(document.getElementById('cg-monto').value);
+        const monto = parseMonto(document.getElementById('cg-monto').value);
         const tipo = document.getElementById('cg-tipo').value;
         const pagador = Number(document.getElementById('cg-pagador').value);
 
@@ -700,7 +723,7 @@ async function guardarCargarGastos() {
         const splits = [];
         let totalSplit = 0;
         participantesCirculo.forEach(p => {
-            const val = parseFloat(document.getElementById('cg-split-' + p.id)?.value || 0);
+            const val = parseMonto(document.getElementById('cg-split-' + p.id)?.value) || 0;
             if (val > 0) {
                 splits.push({ id_participante: p.id, monto: val });
                 totalSplit += val;
