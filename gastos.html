@@ -423,6 +423,7 @@ function abrirModalGasto() {
 }
 
 function onMontoInput() {
+    syncSplitInputsEnabled();
     if (!gastoEditando) repartirIgual();
     else actualizarTotalSplit();
 }
@@ -490,17 +491,36 @@ function renderSplitContainer() {
     participantesActuales.forEach(p => {
         bindMontoInput(document.getElementById('split-' + p.id), () => onSplitInput(p.id));
     });
+    syncSplitInputsEnabled();
+}
+
+function syncSplitInputsEnabled() {
+    const monto = parseMonto(document.getElementById('input-monto').value) || 0;
+    const enabled = monto > 0;
+    participantesActuales.forEach(p => {
+        const input = document.getElementById('split-' + p.id);
+        if (!input) return;
+        input.disabled = !enabled;
+        if (!enabled) {
+            input.value = '';
+            delete input.dataset.autoResto;
+        }
+    });
+    if (!enabled) document.getElementById('split-total-row').innerHTML = '';
 }
 
 function repartirIgual() {
     const monto = parseMonto(document.getElementById('input-monto').value) || 0;
     const n = participantesActuales.length;
     if (!monto || n === 0) return;
+    syncSplitInputsEnabled();
     const base = Math.floor((monto / n) * 100) / 100;
     const resto = Math.round((monto - base * n) * 100) / 100;
     participantesActuales.forEach((p, i) => {
         const input = document.getElementById('split-' + p.id);
-        if (input) setMontoInput(input, i === 0 ? (base + resto) : base);
+        if (!input) return;
+        setMontoInput(input, i === 0 ? (base + resto) : base);
+        delete input.dataset.autoResto;
     });
     actualizarTotalSplit();
 }
@@ -508,30 +528,25 @@ function repartirIgual() {
 function limpiarSplit() {
     participantesActuales.forEach(p => {
         const input = document.getElementById('split-' + p.id);
-        if (input) input.value = '';
+        if (!input) return;
+        input.value = '';
+        delete input.dataset.autoResto;
     });
     document.getElementById('split-total-row').innerHTML = '';
 }
 
-/** Si queda exactamente 1 persona sin monto, rellena el resto del total. */
 function onSplitInput(changedId) {
     const monto = parseMonto(document.getElementById('input-monto').value) || 0;
-    if (monto > 0 && participantesActuales.length >= 2) {
-        const vacios = participantesActuales.filter(p => {
-            if (Number(p.id) === Number(changedId)) return false;
-            const v = parseMonto(document.getElementById('split-' + p.id)?.value);
-            return !(v > 0);
-        });
-        if (vacios.length === 1) {
-            let sumaOtros = 0;
-            participantesActuales.forEach(p => {
-                if (Number(p.id) === Number(vacios[0].id)) return;
-                sumaOtros += parseMonto(document.getElementById('split-' + p.id)?.value) || 0;
-            });
-            const resto = Math.round((monto - sumaOtros) * 100) / 100;
-            setMontoInput(document.getElementById('split-' + vacios[0].id), Math.max(0, resto));
-        }
+    if (!(monto > 0)) {
+        syncSplitInputsEnabled();
+        return;
     }
+    aplicarRestoSplit({
+        total: monto,
+        participantes: participantesActuales,
+        changedId,
+        getInput: id => document.getElementById('split-' + id)
+    });
     actualizarTotalSplit();
 }
 

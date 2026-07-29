@@ -640,24 +640,44 @@ async function abrirModalCargarGastos() {
         bindMontoInput(document.getElementById('cg-split-' + p.id), () => cgOnSplitInput(p.id));
     });
     document.getElementById('cg-split-total-row').innerHTML = '';
+    cgSyncSplitInputsEnabled();
 
     abrirModal('modal-cargar-gastos');
     setTimeout(() => document.getElementById('cg-concepto').focus(), 120);
 }
 
 function cgOnMontoInput() {
+    cgSyncSplitInputsEnabled();
     cgRepartirIgual();
+}
+
+function cgSyncSplitInputsEnabled() {
+    const monto = parseMonto(document.getElementById('cg-monto').value) || 0;
+    const enabled = monto > 0;
+    participantesCirculo.forEach(p => {
+        const input = document.getElementById('cg-split-' + p.id);
+        if (!input) return;
+        input.disabled = !enabled;
+        if (!enabled) {
+            input.value = '';
+            delete input.dataset.autoResto;
+        }
+    });
+    if (!enabled) document.getElementById('cg-split-total-row').innerHTML = '';
 }
 
 function cgRepartirIgual() {
     const monto = parseMonto(document.getElementById('cg-monto').value) || 0;
     const n = participantesCirculo.length;
     if (!monto || !n) return;
+    cgSyncSplitInputsEnabled();
     const base = Math.floor((monto / n) * 100) / 100;
     const resto = Math.round((monto - base * n) * 100) / 100;
     participantesCirculo.forEach((p, i) => {
         const input = document.getElementById('cg-split-' + p.id);
-        if (input) setMontoInput(input, i === 0 ? (base + resto) : base);
+        if (!input) return;
+        setMontoInput(input, i === 0 ? (base + resto) : base);
+        delete input.dataset.autoResto;
     });
     cgUpdateSplitTotal();
 }
@@ -665,30 +685,25 @@ function cgRepartirIgual() {
 function cgLimpiarSplit() {
     participantesCirculo.forEach(p => {
         const input = document.getElementById('cg-split-' + p.id);
-        if (input) input.value = '';
+        if (!input) return;
+        input.value = '';
+        delete input.dataset.autoResto;
     });
     document.getElementById('cg-split-total-row').innerHTML = '';
 }
 
-/** Si queda exactamente 1 persona sin monto, rellena el resto del total. */
 function cgOnSplitInput(changedId) {
     const monto = parseMonto(document.getElementById('cg-monto').value) || 0;
-    if (monto > 0 && participantesCirculo.length >= 2) {
-        const vacios = participantesCirculo.filter(p => {
-            if (Number(p.id) === Number(changedId)) return false;
-            const v = parseMonto(document.getElementById('cg-split-' + p.id)?.value);
-            return !(v > 0);
-        });
-        if (vacios.length === 1) {
-            let sumaOtros = 0;
-            participantesCirculo.forEach(p => {
-                if (Number(p.id) === Number(vacios[0].id)) return;
-                sumaOtros += parseMonto(document.getElementById('cg-split-' + p.id)?.value) || 0;
-            });
-            const resto = Math.round((monto - sumaOtros) * 100) / 100;
-            setMontoInput(document.getElementById('cg-split-' + vacios[0].id), Math.max(0, resto));
-        }
+    if (!(monto > 0)) {
+        cgSyncSplitInputsEnabled();
+        return;
     }
+    aplicarRestoSplit({
+        total: monto,
+        participantes: participantesCirculo,
+        changedId,
+        getInput: id => document.getElementById('cg-split-' + id)
+    });
     cgUpdateSplitTotal();
 }
 
