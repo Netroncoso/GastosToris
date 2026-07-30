@@ -369,7 +369,31 @@ function abrirModal(id) {
     }
 }
 
+/** Handlers opcionales al cerrar un modal (stack / volver al anterior). */
+const _modalCloseHandlers = Object.create(null);
+
+function setModalCloseHandler(id, fn) {
+    if (!id) return;
+    if (typeof fn === 'function') _modalCloseHandlers[id] = fn;
+    else delete _modalCloseHandlers[id];
+}
+
 function cerrarModal(id) {
+    if (id && typeof _modalCloseHandlers[id] === 'function') {
+        _modalCloseHandlers[id]();
+        return;
+    }
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('open');
+    if (!document.querySelector('.modal-overlay.open')) {
+        document.body.classList.remove('modal-open');
+        const prev = _modalFocusStack.pop();
+        if (prev?.focus) prev.focus();
+    }
+}
+
+/** Cierra el overlay sin invocar el handler de stack (uso interno de los wrappers). */
+function cerrarModalRaw(id) {
     const el = document.getElementById(id);
     if (el) el.classList.remove('open');
     if (!document.querySelector('.modal-overlay.open')) {

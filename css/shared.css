@@ -256,6 +256,38 @@ button.tab { background: none; border: none; font-family: inherit; width: 100%; 
     cursor: pointer; font-size: 14px; color: var(--muted); display: flex; align-items: center; justify-content: center; }
 body.modal-open { overflow: hidden; }
 
+/* Scrollbars finos solo en desktop; en touch no se toca el look nativo */
+@media (pointer: fine) {
+    .modal,
+    .modal-body,
+    .modal-list-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--muted) 45%, transparent) transparent;
+    }
+    .modal::-webkit-scrollbar,
+    .modal-body::-webkit-scrollbar,
+    .modal-list-scroll::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    .modal::-webkit-scrollbar-track,
+    .modal-body::-webkit-scrollbar-track,
+    .modal-list-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .modal::-webkit-scrollbar-thumb,
+    .modal-body::-webkit-scrollbar-thumb,
+    .modal-list-scroll::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--muted) 40%, transparent);
+        border-radius: 999px;
+    }
+    .modal::-webkit-scrollbar-thumb:hover,
+    .modal-body::-webkit-scrollbar-thumb:hover,
+    .modal-list-scroll::-webkit-scrollbar-thumb:hover {
+        background: color-mix(in srgb, var(--muted) 65%, transparent);
+    }
+}
+
 .toris-confirm-message {
     margin: 0 0 18px;
     font-size: 14px;
