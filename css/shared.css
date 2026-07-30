@@ -481,6 +481,51 @@ button.filter-tab { font-family: inherit; width: 100%; }
 }
 .fab-pin.hidden { display: none !important; }
 body.has-fab-pin .container { padding-bottom: 76px; }
+.fab-pin-tip {
+    position: fixed;
+    right: max(16px, env(safe-area-inset-right, 0px));
+    bottom: calc(max(16px, env(safe-area-inset-bottom, 0px)) + 60px);
+    z-index: 86;
+    max-width: min(260px, calc(100vw - 32px));
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--card);
+    color: var(--text);
+    border: 1.5px solid var(--border);
+    box-shadow: var(--shadow-hover);
+    font-size: 13px;
+    line-height: 1.4;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+.fab-pin-tip::after {
+    content: '';
+    position: absolute;
+    right: 18px;
+    bottom: -7px;
+    width: 12px;
+    height: 12px;
+    background: var(--card);
+    border-right: 1.5px solid var(--border);
+    border-bottom: 1.5px solid var(--border);
+    transform: rotate(45deg);
+}
+.fab-pin-tip-text { flex: 1; min-width: 0; }
+.fab-pin-tip-close {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.fab-pin-tip-close:hover { background: var(--ghost-hover); color: var(--text); }
 .acceso-card { margin-bottom: 8px; }
 .acceso-card .dash-icon { width: 40px; height: 40px; border-radius: 10px; }
 .acceso-empty {
@@ -494,12 +539,13 @@ body.has-fab-pin .container { padding-bottom: 76px; }
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    margin-bottom: 8px;
-    color: var(--primary);
-    background: var(--soft);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    margin-bottom: 10px;
+    color: #fff;
+    background: var(--primary);
+    box-shadow: var(--shadow);
 }
 .acceso-empty-title {
     font-size: 14px;
@@ -536,6 +582,34 @@ body.has-fab-pin .container { padding-bottom: 76px; }
     border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
     color: var(--primary);
     font-weight: 600;
+}
+.recurrente-pendiente.selected {
+    border: 1.5px solid var(--primary);
+    background: color-mix(in srgb, var(--primary) 8%, var(--card));
+}
+.recurrente-check {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 1.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--primary);
+    background: var(--card);
+}
+.recurrente-pendiente.selected .recurrente-check {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 12%, var(--card));
+}
+[data-theme="dark"] .recurrente-pendiente.selected {
+    border-color: var(--primary-text);
+    background: color-mix(in srgb, var(--primary-text) 10%, var(--card));
+}
+[data-theme="dark"] .recurrente-pendiente.selected .recurrente-check {
+    border-color: var(--primary-text);
+    color: var(--primary-text);
 }
 
 /* A11y */

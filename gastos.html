@@ -140,10 +140,13 @@
             <button type="button" class="modal-close" onclick="cerrarModal('modal-recurrentes')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
         </div>
         <p class="text-muted" style="margin-bottom:12px;font-size:13px;line-height:1.45">
-            Tocá una cuota para cargarla en este periodo. Si hace falta cambiar quién pagó o la división, editá el gasto desde la lista.
+            Marcá una o más cuotas y cargalas en este periodo. Si hace falta cambiar quién pagó o la división, editá el gasto desde la lista.
         </p>
         <div id="lista-recurrentes-pendientes"></div>
-        <div class="modal-actions" style="margin-top:14px">
+        <div class="modal-actions" style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+            <button type="button" class="btn btn-primary btn-full" id="btn-cargar-recurrentes" onclick="cargarRecurrentesSeleccionados()" disabled>
+                Cargar seleccionados
+            </button>
             <button type="button" class="btn btn-ghost btn-full" onclick="abrirGestionRecurrentes()"><i data-icon="cog-6-tooth" data-size="16"></i> Gestionar</button>
         </div>
     </div>
@@ -231,6 +234,8 @@ let gastoForm = null;
 /** @type {{ id:number, id_recurrente:number, nro:number, plantilla:object }|null} */
 let ocurrenciaAplicando = null;
 let plantillasRecurrentesCache = [];
+/** @type {Set<number>} */
+let recurrentesSeleccionados = new Set();
 
 const ICONOS_DISPONIBLES = [
     'shopping-cart', 'cake', 'shopping-bag', 'heart', 'home', 'bolt',
@@ -785,20 +790,42 @@ function listarPendientesRecurrentes() {
 
 async function abrirModalRecurrentes() {
     await refreshRecurrentesUI();
+    recurrentesSeleccionados = new Set();
     renderListaPendientesRecurrentes();
     abrirModal('modal-recurrentes');
+}
+
+function syncBtnCargarRecurrentes() {
+    const btn = document.getElementById('btn-cargar-recurrentes');
+    if (!btn) return;
+    const n = recurrentesSeleccionados.size;
+    btn.disabled = n === 0;
+    btn.textContent = n === 0
+        ? 'Cargar seleccionados'
+        : (n === 1 ? 'Cargar 1 seleccionado' : `Cargar ${n} seleccionados`);
+}
+
+function toggleRecurrenteSeleccionado(ocurrenciaId) {
+    const id = Number(ocurrenciaId);
+    if (recurrentesSeleccionados.has(id)) recurrentesSeleccionados.delete(id);
+    else recurrentesSeleccionados.add(id);
+    renderListaPendientesRecurrentes();
 }
 
 function renderListaPendientesRecurrentes() {
     const cont = document.getElementById('lista-recurrentes-pendientes');
     if (!cont) return;
     const items = listarPendientesRecurrentes();
+    const validIds = new Set(items.map(x => Number(x.ocurrencia.id)));
+    recurrentesSeleccionados = new Set([...recurrentesSeleccionados].filter(id => validIds.has(id)));
+
     if (!items.length) {
         cont.innerHTML = `<div class="empty" style="padding:24px">
             <span class="empty-icon"><i data-icon="credit-card" data-size="36"></i></span>
             No hay cuotas pendientes.<br>
             <span class="text-muted" style="font-size:13px">Creá un recurrente desde Gestionar.</span>
         </div>`;
+        syncBtnCargarRecurrentes();
         if (typeof initIconsIn === 'function') initIconsIn(cont);
         return;
     }
@@ -806,9 +833,12 @@ function renderListaPendientesRecurrentes() {
         const lab = labelPendienteRecurrente(plantilla, ocurrencia);
         const pagadorNombre = participantesActuales.find(x => Number(x.id) === Number(plantilla.id_pagador))?.nombre;
         const meta = pagadorNombre ? `${lab.meta} · ${pagadorNombre}` : lab.meta;
+        const selected = recurrentesSeleccionados.has(Number(ocurrencia.id));
         return `
-        <div class="card card-click" style="margin-bottom:8px" onclick="aplicarOcurrenciaRecurrente(${ocurrencia.id})">
+        <div class="card card-click recurrente-pendiente${selected ? ' selected' : ''}" style="margin-bottom:8px"
+            onclick="toggleRecurrenteSeleccionado(${ocurrencia.id})" role="checkbox" aria-checked="${selected ? 'true' : 'false'}">
             <div class="card-body flex-between" style="gap:10px">
+                <div class="recurrente-check" aria-hidden="true">${selected ? icon('check', 16) : ''}</div>
                 <div style="min-width:0;flex:1">
                     <div style="font-weight:700;font-size:15px">${escapeHtml(lab.titulo)}</div>
                     <div class="text-muted" style="font-size:13px">${escapeHtml(meta)}</div>
@@ -817,27 +847,69 @@ function renderListaPendientesRecurrentes() {
             </div>
         </div>`;
     }).join('');
+    syncBtnCargarRecurrentes();
 }
 
-async function aplicarOcurrenciaRecurrente(ocurrenciaId) {
+async function cargarRecurrentesSeleccionados() {
+    const ids = [...recurrentesSeleccionados];
+    if (!ids.length) return;
     if (participantesActuales.length === 0) {
         alert('Primero agregá personas al círculo.');
         return;
     }
-    if (!periodoActual || !circuloActual) return;
+
+    const btn = document.getElementById('btn-cargar-recurrentes');
+    await withBusyButton('#btn-cargar-recurrentes', async () => {
+        let ok = 0;
+        let fail = 0;
+        for (const id of ids) {
+            const result = await aplicarOcurrenciaRecurrente(id, { keepOpen: true });
+            if (result) ok += 1;
+            else fail += 1;
+        }
+        recurrentesSeleccionados = new Set();
+        await refreshRecurrentesUI();
+        renderListaPendientesRecurrentes();
+        cargarGastos();
+        if (fail && !ok) {
+            alert('No se pudieron cargar las cuotas seleccionadas.');
+            return;
+        }
+        if (fail) {
+            alert(`Se cargaron ${ok}, pero ${fail} fallaron.`);
+            return;
+        }
+        cerrarModal('modal-recurrentes');
+    });
+    syncBtnCargarRecurrentes();
+}
+
+/**
+ * @param {number} ocurrenciaId
+ * @param {{ keepOpen?: boolean }} [opts]
+ * @returns {Promise<boolean>}
+ */
+async function aplicarOcurrenciaRecurrente(ocurrenciaId, opts = {}) {
+    if (participantesActuales.length === 0) {
+        if (!opts.keepOpen) alert('Primero agregá personas al círculo.');
+        return false;
+    }
+    if (!periodoActual || !circuloActual) return false;
 
     const found = listarPendientesRecurrentes().find(x => Number(x.ocurrencia.id) === Number(ocurrenciaId));
     if (!found) {
-        alert('No se encontró esa cuota pendiente.');
-        await refreshRecurrentesUI();
-        renderListaPendientesRecurrentes();
-        return;
+        if (!opts.keepOpen) {
+            alert('No se encontró esa cuota pendiente.');
+            await refreshRecurrentesUI();
+            renderListaPendientesRecurrentes();
+        }
+        return false;
     }
     const { plantilla, ocurrencia } = found;
     const monto = Number(plantilla.monto);
     if (!(monto > 0)) {
-        alert('El recurrente no tiene un monto válido.');
-        return;
+        if (!opts.keepOpen) alert('El recurrente no tiene un monto válido.');
+        return false;
     }
 
     let splits = Array.isArray(plantilla.split_default)
@@ -856,8 +928,8 @@ async function aplicarOcurrenciaRecurrente(ocurrenciaId) {
         || participantesActuales.find(p => Number(p.id) === Number(splits[0]?.id_participante))?.id
         || participantesActuales[0]?.id;
     if (!pagador) {
-        alert('No hay quién paga definido. Agregá personas al círculo.');
-        return;
+        if (!opts.keepOpen) alert('No hay quién paga definido. Agregá personas al círculo.');
+        return false;
     }
 
     const concepto = conceptoDesdeRecurrente(plantilla, ocurrencia);
@@ -883,8 +955,8 @@ async function aplicarOcurrenciaRecurrente(ocurrenciaId) {
 
     if (e1) {
         ocurrenciaAplicando = null;
-        alert('Error al cargar el gasto: ' + e1.message);
-        return;
+        if (!opts.keepOpen) alert('Error al cargar el gasto: ' + e1.message);
+        return false;
     }
 
     const { error: e2 } = await db.from('gastos_participantes')
@@ -892,15 +964,19 @@ async function aplicarOcurrenciaRecurrente(ocurrenciaId) {
     if (e2) {
         await db.from('gastos').delete().eq('id', gastoData.id);
         ocurrenciaAplicando = null;
-        alert('Error en la división: ' + e2.message);
-        return;
+        if (!opts.keepOpen) alert('Error en la división: ' + e2.message);
+        return false;
     }
 
     await marcarOcurrenciaAplicada(gastoData.id);
     ocurrenciaAplicando = null;
-    cerrarModal('modal-recurrentes');
-    await refreshRecurrentesUI();
-    cargarGastos();
+
+    if (!opts.keepOpen) {
+        cerrarModal('modal-recurrentes');
+        await refreshRecurrentesUI();
+        cargarGastos();
+    }
+    return true;
 }
 
 async function marcarOcurrenciaAplicada(gastoId) {

@@ -410,6 +410,18 @@ function handleModalKeydown(e) {
 
 document.addEventListener('keydown', handleModalKeydown);
 
+/** Cerrar modal al tocar el fondo (fuera del panel). */
+document.addEventListener('click', (e) => {
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    if (!t.classList.contains('modal-overlay') || !t.classList.contains('open')) return;
+    if (t.id === 'modal-toris-confirm') {
+        document.getElementById('toris-confirm-cancel')?.click();
+        return;
+    }
+    if (t.id) cerrarModal(t.id);
+});
+
 /**
  * Confirmación con modal Toris (reemplaza window.confirm).
  * @returns {Promise<boolean>}
@@ -436,18 +448,17 @@ function torisConfirm({
     btnCancel.className = 'btn btn-ghost';
 
     return new Promise(resolve => {
+        let done = false;
         const finish = (value) => {
+            if (done) return;
+            done = true;
             btnOk.onclick = null;
             btnCancel.onclick = null;
-            overlay.onclick = null;
             cerrarModal('modal-toris-confirm');
             resolve(value);
         };
         btnOk.onclick = () => finish(true);
         btnCancel.onclick = () => finish(false);
-        overlay.onclick = (e) => {
-            if (e.target === overlay) finish(false);
-        };
         abrirModal('modal-toris-confirm');
         setTimeout(() => btnCancel.focus(), 50);
     });
@@ -713,6 +724,55 @@ function updateFabPinButton(btn, pinned) {
     if (typeof initIconsIn === 'function') initIconsIn(btn);
 }
 
+const PIN_TIP_STORAGE = 'toris-pin-tip-seen';
+
+function pinTipStorageKey(userId) {
+    return `${PIN_TIP_STORAGE}:${userId || 'anon'}`;
+}
+
+function hasSeenPinTip(userId) {
+    try { return localStorage.getItem(pinTipStorageKey(userId)) === '1'; } catch (_) { return true; }
+}
+
+function markPinTipSeen(userId) {
+    try { localStorage.setItem(pinTipStorageKey(userId), '1'); } catch (_) {}
+}
+
+function hideFabPinTip() {
+    document.getElementById('fab-pin-tip')?.remove();
+}
+
+async function dismissFabPinTip() {
+    const userId = await getCurrentUserId();
+    markPinTipSeen(userId);
+    hideFabPinTip();
+}
+
+async function maybeShowFabPinTip() {
+    const btn = document.getElementById('fab-pin');
+    if (!btn || btn.classList.contains('hidden')) {
+        hideFabPinTip();
+        return;
+    }
+    const userId = await getCurrentUserId();
+    if (hasSeenPinTip(userId)) {
+        hideFabPinTip();
+        return;
+    }
+    if (document.getElementById('fab-pin-tip')) return;
+
+    const tip = document.createElement('div');
+    tip.id = 'fab-pin-tip';
+    tip.className = 'fab-pin-tip';
+    tip.setAttribute('role', 'status');
+    tip.innerHTML = `
+        <div class="fab-pin-tip-text">Fijá este periodo o lista en inicio para abrirlo en un toque al volver a la app.</div>
+        <button type="button" class="fab-pin-tip-close" onclick="dismissFabPinTip()" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
+    `;
+    document.body.appendChild(tip);
+    if (typeof initIconsIn === 'function') initIconsIn(tip);
+}
+
 async function refreshFabPin(data) {
     const btn = document.getElementById('fab-pin');
     if (!btn) return;
@@ -720,6 +780,7 @@ async function refreshFabPin(data) {
         btn.classList.add('hidden');
         document.body.classList.remove('has-fab-pin');
         window._fabPinData = null;
+        hideFabPinTip();
         return;
     }
     window._fabPinData = data;
@@ -727,6 +788,7 @@ async function refreshFabPin(data) {
     document.body.classList.add('has-fab-pin');
     const userId = await getCurrentUserId();
     updateFabPinButton(btn, userId && isAccesoPinned(userId, data));
+    maybeShowFabPinTip().catch(() => {});
 }
 
 async function togglePinPaginaActual() {
@@ -736,6 +798,10 @@ async function togglePinPaginaActual() {
     const result = toggleAcceso(userId, data);
     if (result === null) return;
     updateFabPinButton(document.getElementById('fab-pin'), result);
+    if (result === true) {
+        markPinTipSeen(userId);
+        hideFabPinTip();
+    }
 }
 
 async function pintarAccesosEnIndex(userId) {
@@ -747,9 +813,9 @@ async function pintarAccesosEnIndex(userId) {
     if (!list.length) {
         cont.innerHTML = `
             <div class="acceso-empty">
-                <div class="acceso-empty-icon"><i data-icon="bookmark" data-size="22"></i></div>
+                <div class="acceso-empty-icon" aria-hidden="true"><i data-icon="bookmark" data-size="22"></i></div>
                 <div class="acceso-empty-title">Accesos directos</div>
-                <p class="acceso-empty-text">Fijá un periodo o una lista desde adentro y aparece acá para abrirlos en un toque al volver a la app.</p>
+                <p class="acceso-empty-text">En un periodo o una lista, tocá el botón redondo de abajo a la derecha (mismo ícono) para fijarlo acá y abrirlo en un toque.</p>
             </div>`;
         if (typeof initIconsIn === 'function') initIconsIn(cont);
         return;
