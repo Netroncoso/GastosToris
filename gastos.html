@@ -43,9 +43,10 @@
     <main id="main-content" class="container">
         <div id="tab-gastos" class="tab-content active" role="tabpanel">
             <div id="lista-gastos"><div class="loader" role="status" aria-live="polite">Cargando…</div></div>
-            <div style="display:flex;gap:8px;margin-top:16px">
-                <button type="button" class="btn btn-primary btn-full" onclick="abrirModalGasto()"><i data-icon="plus" data-size="16"></i> Gasto</button>
-                <button type="button" class="btn btn-ghost btn-full" onclick="abrirModalReembolso()"><i data-icon="arrow-path" data-size="16"></i> Reembolso</button>
+            <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+                <button type="button" class="btn btn-primary" style="flex:1 1 120px" onclick="abrirModalGasto()"><i data-icon="plus" data-size="16"></i> Gasto</button>
+                <button type="button" class="btn btn-ghost" id="btn-recurrente" style="flex:1 1 120px" onclick="abrirModalRecurrentes()"><i data-icon="credit-card" data-size="16"></i> Recurrente</button>
+                <button type="button" class="btn btn-ghost" style="flex:1 1 120px" onclick="abrirModalReembolso()"><i data-icon="arrow-path" data-size="16"></i> Reembolso</button>
             </div>
         </div>
         <div id="tab-balance" class="tab-content" role="tabpanel">
@@ -131,10 +132,91 @@
     </div>
 </div>
 
+<!-- MODAL: RECURRENTES PENDIENTES -->
+<div id="modal-recurrentes" class="modal-overlay">
+    <div class="modal modal-scroll-focus">
+        <div class="modal-header">
+            <h3>Gastos recurrentes</h3>
+            <button type="button" class="modal-close" onclick="cerrarModal('modal-recurrentes')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
+        </div>
+        <p class="text-muted" style="margin-bottom:12px;font-size:13px;line-height:1.45">
+            Elegí una cuota o recurrente pendiente para cargarlo en este periodo.
+        </p>
+        <div id="lista-recurrentes-pendientes"></div>
+        <div class="modal-actions" style="margin-top:14px">
+            <button type="button" class="btn btn-ghost btn-full" onclick="abrirGestionRecurrentes()"><i data-icon="cog-6-tooth" data-size="16"></i> Gestionar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: GESTIONAR RECURRENTES -->
+<div id="modal-recurrentes-gestionar" class="modal-overlay">
+    <div class="modal modal-scroll-focus">
+        <div class="modal-header">
+            <h3>Gestionar recurrentes</h3>
+            <button type="button" class="modal-close" onclick="cerrarModal('modal-recurrentes-gestionar')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
+        </div>
+        <div id="lista-recurrentes-plantillas"></div>
+        <div class="modal-actions" style="margin-top:14px">
+            <button type="button" class="btn btn-primary btn-full" onclick="abrirFormRecurrente()"><i data-icon="plus" data-size="16"></i> Nuevo recurrente</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: NUEVO / EDITAR RECURRENTE -->
+<div id="modal-recurrente-form" class="modal-overlay">
+    <div class="modal modal-scroll-focus">
+        <div class="modal-header">
+            <h3 id="modal-recurrente-form-title">Nuevo recurrente</h3>
+            <button type="button" class="modal-close" onclick="cerrarModal('modal-recurrente-form')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
+        </div>
+        <div class="form-group">
+            <label for="rec-nombre">Nombre</label>
+            <input type="text" id="rec-nombre" placeholder="Ej: Alquiler, Visa…" autocomplete="off" />
+        </div>
+        <div class="form-group">
+            <label for="rec-monto">Monto ($)</label>
+            <input type="text" id="rec-monto" class="input-monto" placeholder="0" inputmode="decimal" autocomplete="off" />
+        </div>
+        <div class="form-group">
+            <label for="rec-tipo">Categoría</label>
+            <select id="rec-tipo"></select>
+        </div>
+        <div class="form-group">
+            <label for="rec-pagador">¿Quién paga?</label>
+            <select id="rec-pagador"></select>
+        </div>
+        <div class="form-group">
+            <label for="rec-modo">Tipo</label>
+            <select id="rec-modo" onchange="onRecModoChange()">
+                <option value="cuotas">Cuotas fijas</option>
+                <option value="abierto">Recurrente (sin fin)</option>
+            </select>
+        </div>
+        <div class="form-group" id="rec-cuotas-wrap">
+            <label for="rec-cuotas">Cantidad de cuotas</label>
+            <input type="number" id="rec-cuotas" min="1" max="120" step="1" value="6" inputmode="numeric" />
+        </div>
+        <div class="form-group">
+            <label for="rec-fecha-inicio">Fecha de inicio / 1ª cuota</label>
+            <input type="date" id="rec-fecha-inicio" />
+        </div>
+        <div class="form-group">
+            <label for="rec-dia-mes">Día del mes (opcional, 1–28)</label>
+            <input type="number" id="rec-dia-mes" min="1" max="28" step="1" placeholder="Ej: 10" inputmode="numeric" />
+        </div>
+        <p class="text-muted" style="font-size:12px;line-height:1.4;margin-bottom:12px">
+            La división se guarda en partes iguales entre las personas del círculo. Podés ajustarla al cargar cada cuota.
+        </p>
+        <button type="button" class="btn btn-primary btn-full" id="btn-guardar-recurrente" onclick="guardarPlantillaRecurrente()">Guardar</button>
+    </div>
+</div>
+
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/gasto-form.js"></script>
+<script src="js/gastos-recurrentes.js"></script>
 <script>
 // =============================================
 // ESTADO GLOBAL
@@ -146,6 +228,9 @@ let currentGastos = [];
 let gastoEditando = null;
 let categoriasActuales = [];
 let gastoForm = null;
+/** @type {{ id:number, id_recurrente:number, nro:number, plantilla:object }|null} */
+let ocurrenciaAplicando = null;
+let plantillasRecurrentesCache = [];
 
 const ICONOS_DISPONIBLES = [
     'shopping-cart', 'cake', 'shopping-bag', 'heart', 'home', 'bolt',
@@ -320,6 +405,7 @@ requireAuth(async () => {
         cambiarTab(tab);
     }
     refreshFabPinGastos();
+    refreshRecurrentesUI().catch(() => {});
     suscribirGastosRealtime();
 });
 
@@ -368,6 +454,7 @@ function abrirModalGasto() {
         alert('Primero agregá personas al círculo.');
         return;
     }
+    ocurrenciaAplicando = null;
     gastoEditando = null;
     document.getElementById('modal-gasto-title').textContent = 'Nuevo gasto';
     document.getElementById('btn-guardar-gasto').textContent = 'Guardar gasto';
@@ -391,6 +478,7 @@ async function editarGasto(id) {
     const gasto = currentGastos.find(g => g.id === id);
     if (!gasto) return;
 
+    ocurrenciaAplicando = null;
     gastoEditando = id;
     document.getElementById('modal-gasto-title').textContent = 'Editar gasto';
     document.getElementById('btn-guardar-gasto').textContent = 'Guardar gasto';
@@ -637,11 +725,342 @@ async function guardarGasto() {
                 .insert(splits.map(s => ({ ...s, id_gasto: gastoData.id })));
 
             if (e2) { alert('Gasto guardado, pero error en la división: ' + e2.message); return; }
+
+            if (ocurrenciaAplicando) {
+                await marcarOcurrenciaAplicada(gastoData.id);
+            }
         }
 
         cerrarModal('modal-gasto');
+        ocurrenciaAplicando = null;
         cargarGastos();
+        refreshRecurrentesUI().catch(() => {});
     });
+}
+
+// =============================================
+// GASTOS RECURRENTES
+// =============================================
+async function refreshRecurrentesUI() {
+    if (!circuloActual) return;
+    const { data, error } = await db.from('gastos_recurrentes')
+        .select('*, gastos_recurrentes_ocurrencias(*)')
+        .eq('id_circulo', circuloActual.id)
+        .order('created_at', { ascending: false });
+    if (error) {
+        console.warn('recurrentes:', error.message);
+        plantillasRecurrentesCache = [];
+        return;
+    }
+    plantillasRecurrentesCache = (data || []).map(r => ({
+        ...r,
+        ocurrencias: (r.gastos_recurrentes_ocurrencias || []).sort((a, b) => a.nro - b.nro)
+    }));
+    const btn = document.getElementById('btn-recurrente');
+    if (!btn) return;
+    const pendientes = contarPendientesRecurrentes();
+    btn.classList.toggle('btn-recurrente-activo', pendientes > 0);
+    btn.setAttribute('aria-label', pendientes
+        ? `Recurrentes (${pendientes} pendientes)`
+        : 'Gastos recurrentes');
+}
+
+function contarPendientesRecurrentes() {
+    return plantillasRecurrentesCache
+        .filter(p => p.activo)
+        .reduce((n, p) => n + (p.ocurrencias || []).filter(o => o.estado === 'pendiente').length, 0);
+}
+
+function listarPendientesRecurrentes() {
+    const items = [];
+    plantillasRecurrentesCache.filter(p => p.activo).forEach(p => {
+        (p.ocurrencias || [])
+            .filter(o => o.estado === 'pendiente')
+            .forEach(o => items.push({ plantilla: p, ocurrencia: o }));
+    });
+    items.sort((a, b) => {
+        const fa = a.ocurrencia.fecha_prevista || '9999';
+        const fb = b.ocurrencia.fecha_prevista || '9999';
+        if (fa !== fb) return fa.localeCompare(fb);
+        return a.ocurrencia.nro - b.ocurrencia.nro;
+    });
+    return items;
+}
+
+async function abrirModalRecurrentes() {
+    await refreshRecurrentesUI();
+    renderListaPendientesRecurrentes();
+    abrirModal('modal-recurrentes');
+}
+
+function renderListaPendientesRecurrentes() {
+    const cont = document.getElementById('lista-recurrentes-pendientes');
+    if (!cont) return;
+    const items = listarPendientesRecurrentes();
+    if (!items.length) {
+        cont.innerHTML = `<div class="empty" style="padding:24px">
+            <span class="empty-icon"><i data-icon="credit-card" data-size="36"></i></span>
+            No hay cuotas pendientes.<br>
+            <span class="text-muted" style="font-size:13px">Creá un recurrente desde Gestionar.</span>
+        </div>`;
+        if (typeof initIconsIn === 'function') initIconsIn(cont);
+        return;
+    }
+    cont.innerHTML = items.map(({ plantilla, ocurrencia }) => {
+        const lab = labelPendienteRecurrente(plantilla, ocurrencia);
+        return `
+        <div class="card card-click" style="margin-bottom:8px" onclick="aplicarOcurrenciaRecurrente(${ocurrencia.id})">
+            <div class="card-body flex-between" style="gap:10px">
+                <div style="min-width:0;flex:1">
+                    <div style="font-weight:700;font-size:15px">${escapeHtml(lab.titulo)}</div>
+                    <div class="text-muted" style="font-size:13px">${escapeHtml(lab.meta)}</div>
+                </div>
+                <div style="font-weight:700;color:var(--primary)">$${fmt(lab.monto)}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function aplicarOcurrenciaRecurrente(ocurrenciaId) {
+    if (participantesActuales.length === 0) {
+        alert('Primero agregá personas al círculo.');
+        return;
+    }
+    const found = listarPendientesRecurrentes().find(x => Number(x.ocurrencia.id) === Number(ocurrenciaId));
+    if (!found) {
+        alert('No se encontró esa cuota pendiente.');
+        await refreshRecurrentesUI();
+        renderListaPendientesRecurrentes();
+        return;
+    }
+    const { plantilla, ocurrencia } = found;
+    ocurrenciaAplicando = {
+        id: ocurrencia.id,
+        id_recurrente: plantilla.id,
+        nro: ocurrencia.nro,
+        plantilla
+    };
+    gastoEditando = null;
+    cerrarModal('modal-recurrentes');
+
+    const splits = Array.isArray(plantilla.split_default) ? plantilla.split_default : [];
+    const concepto = conceptoDesdeRecurrente(plantilla, ocurrencia);
+    document.getElementById('modal-gasto-title').textContent = 'Nuevo gasto';
+    document.getElementById('btn-guardar-gasto').textContent = 'Guardar gasto';
+    gastoForm.setAutoRepartir(!splits.length);
+    gastoForm.setParticipantes(participantesActuales);
+    gastoForm.setCategoriasFromCirculo(categoriasActuales);
+    gastoForm.reset({
+        concepto,
+        fecha: ocurrencia.fecha_prevista || hoyISO(),
+        monto: Number(plantilla.monto),
+        tipo: plantilla.tipo_gasto || categoriasActuales[0]?.nombre,
+        pagadorId: plantilla.id_pagador,
+        splits,
+        autoRepartir: !splits.length
+    });
+    abrirModal('modal-gasto');
+    gastoForm.focusConcepto();
+}
+
+async function marcarOcurrenciaAplicada(gastoId) {
+    if (!ocurrenciaAplicando) return;
+    const plantilla = ocurrenciaAplicando.plantilla;
+    const { error } = await db.from('gastos_recurrentes_ocurrencias')
+        .update({ estado: 'aplicada', id_gasto: gastoId })
+        .eq('id', ocurrenciaAplicando.id);
+    if (error) {
+        alert('Gasto guardado, pero no se pudo marcar la cuota: ' + error.message);
+        return;
+    }
+    if (plantilla.modo === 'abierto') {
+        const next = siguienteOcurrenciaAbierta(plantilla, ocurrenciaAplicando.nro);
+        const { error: e2 } = await db.from('gastos_recurrentes_ocurrencias').insert({
+            id_recurrente: plantilla.id,
+            nro: next.nro,
+            fecha_prevista: next.fecha_prevista,
+            estado: 'pendiente'
+        });
+        if (e2) console.warn('siguiente recurrente:', e2.message);
+    }
+}
+
+async function abrirGestionRecurrentes() {
+    cerrarModal('modal-recurrentes');
+    await refreshRecurrentesUI();
+    renderListaPlantillasRecurrentes();
+    abrirModal('modal-recurrentes-gestionar');
+}
+
+function renderListaPlantillasRecurrentes() {
+    const cont = document.getElementById('lista-recurrentes-plantillas');
+    if (!cont) return;
+    const list = plantillasRecurrentesCache;
+    if (!list.length) {
+        cont.innerHTML = `<div class="empty" style="padding:24px">
+            <span class="empty-icon"><i data-icon="credit-card" data-size="36"></i></span>
+            Todavía no hay recurrentes.<br>
+            <span class="text-muted" style="font-size:13px">Ej: alquiler o tarjeta en cuotas.</span>
+        </div>`;
+        if (typeof initIconsIn === 'function') initIconsIn(cont);
+        return;
+    }
+    cont.innerHTML = list.map(p => {
+        const pendientes = (p.ocurrencias || []).filter(o => o.estado === 'pendiente').length;
+        const aplicadas = (p.ocurrencias || []).filter(o => o.estado === 'aplicada').length;
+        const tipoLabel = p.modo === 'cuotas'
+            ? `${aplicadas}/${p.cuotas_total} cuotas`
+            : `${aplicadas} cargadas · ${pendientes ? '1 pendiente' : 'sin pendiente'}`;
+        return `
+        <div class="card" style="margin-bottom:8px;opacity:${p.activo ? 1 : 0.55}">
+            <div class="card-body flex-between" style="gap:10px;align-items:flex-start">
+                <div style="min-width:0;flex:1">
+                    <div style="font-weight:700;font-size:15px">${escapeHtml(p.nombre)}${p.activo ? '' : ' <span class="text-muted">(pausado)</span>'}</div>
+                    <div class="text-muted" style="font-size:13px">$${fmt(p.monto)} · ${escapeHtml(tipoLabel)}</div>
+                    ${p.fecha_inicio ? `<div class="text-muted" style="font-size:12px">Desde ${escapeHtml(fmtFechaCorta(p.fecha_inicio))}</div>` : ''}
+                </div>
+                <div class="card-actions" style="flex-direction:column;align-items:stretch">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="toggleActivoRecurrente(${p.id}, ${p.activo ? 'false' : 'true'})">${p.activo ? 'Pausar' : 'Reanudar'}</button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="eliminarPlantillaRecurrente(${p.id}, '${escapeJsString(p.nombre)}')">${icon('trash',14)}</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function onRecModoChange() {
+    const modo = document.getElementById('rec-modo').value;
+    document.getElementById('rec-cuotas-wrap').style.display = modo === 'cuotas' ? '' : 'none';
+}
+
+function abrirFormRecurrente() {
+    if (participantesActuales.length === 0) {
+        alert('Primero agregá personas al círculo.');
+        return;
+    }
+    cerrarModal('modal-recurrentes-gestionar');
+    document.getElementById('modal-recurrente-form-title').textContent = 'Nuevo recurrente';
+    document.getElementById('rec-nombre').value = '';
+    const montoEl = document.getElementById('rec-monto');
+    montoEl.value = '';
+    delete montoEl.dataset.montoBound;
+    document.getElementById('rec-modo').value = 'cuotas';
+    document.getElementById('rec-cuotas').value = '6';
+    document.getElementById('rec-fecha-inicio').value = hoyISO();
+    document.getElementById('rec-dia-mes').value = '';
+    onRecModoChange();
+
+    const cats = resolverCategorias(categoriasActuales);
+    document.getElementById('rec-tipo').innerHTML = cats.map(c =>
+        `<option value="${String(c.nombre).replace(/"/g, '&quot;')}">${escapeHtml(c.nombre)}</option>`
+    ).join('');
+    document.getElementById('rec-pagador').innerHTML = participantesActuales.map(p =>
+        `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`
+    ).join('');
+
+    bindMontoInput(montoEl);
+    abrirModal('modal-recurrente-form');
+    setTimeout(() => document.getElementById('rec-nombre').focus(), 100);
+}
+
+async function guardarPlantillaRecurrente() {
+    await withBusyButton('#btn-guardar-recurrente', async () => {
+        const nombre = document.getElementById('rec-nombre').value.trim();
+        const monto = parseMonto(document.getElementById('rec-monto').value);
+        const tipo = document.getElementById('rec-tipo').value;
+        const pagador = Number(document.getElementById('rec-pagador').value);
+        const modo = document.getElementById('rec-modo').value;
+        const cuotas = parseInt(document.getElementById('rec-cuotas').value, 10);
+        const fechaInicio = document.getElementById('rec-fecha-inicio').value || hoyISO();
+        const diaMesRaw = document.getElementById('rec-dia-mes').value;
+        const diaMes = diaMesRaw ? parseInt(diaMesRaw, 10) : null;
+
+        if (!nombre) { alert('Ingresá un nombre.'); return; }
+        if (!monto || monto <= 0) { alert('Ingresá un monto válido.'); return; }
+        if (modo === 'cuotas' && (!cuotas || cuotas < 1)) { alert('Indicá la cantidad de cuotas.'); return; }
+        if (diaMes != null && (diaMes < 1 || diaMes > 28 || Number.isNaN(diaMes))) {
+            alert('El día del mes debe ser entre 1 y 28.');
+            return;
+        }
+
+        const plantillaBase = {
+            id_circulo: circuloActual.id,
+            nombre,
+            monto,
+            tipo_gasto: tipo,
+            id_pagador: pagador || null,
+            split_default: splitIgualDefault(participantesActuales, monto),
+            modo,
+            cuotas_total: modo === 'cuotas' ? cuotas : null,
+            fecha_inicio: fechaInicio,
+            dia_mes: diaMes,
+            intervalo_meses: 1,
+            activo: true
+        };
+
+        const { data: plantilla, error } = await db.from('gastos_recurrentes')
+            .insert(plantillaBase)
+            .select()
+            .single();
+        if (error) { alert('Error al crear recurrente: ' + error.message); return; }
+
+        const occs = buildOcurrenciasIniciales(plantilla).map(o => ({
+            id_recurrente: plantilla.id,
+            nro: o.nro,
+            fecha_prevista: o.fecha_prevista,
+            estado: o.estado
+        }));
+        const { error: e2 } = await db.from('gastos_recurrentes_ocurrencias').insert(occs);
+        if (e2) {
+            await db.from('gastos_recurrentes').delete().eq('id', plantilla.id);
+            alert('Error al crear cuotas: ' + e2.message);
+            return;
+        }
+
+        cerrarModal('modal-recurrente-form');
+        await refreshRecurrentesUI();
+        renderListaPlantillasRecurrentes();
+        abrirModal('modal-recurrentes-gestionar');
+    });
+}
+
+async function toggleActivoRecurrente(id, activo) {
+    const { error } = await db.from('gastos_recurrentes')
+        .update({ activo: !!activo })
+        .eq('id', id);
+    if (error) { alert('Error: ' + error.message); return; }
+    // Si reanudamos un abierto sin pendiente, crear una.
+    if (activo) {
+        const p = plantillasRecurrentesCache.find(x => Number(x.id) === Number(id));
+        if (p && p.modo === 'abierto') {
+            const pendientes = (p.ocurrencias || []).filter(o => o.estado === 'pendiente');
+            if (!pendientes.length) {
+                const maxNro = Math.max(0, ...(p.ocurrencias || []).map(o => o.nro));
+                const next = siguienteOcurrenciaAbierta(p, maxNro);
+                await db.from('gastos_recurrentes_ocurrencias').insert({
+                    id_recurrente: p.id,
+                    nro: next.nro,
+                    fecha_prevista: next.fecha_prevista,
+                    estado: 'pendiente'
+                });
+            }
+        }
+    }
+    await refreshRecurrentesUI();
+    renderListaPlantillasRecurrentes();
+}
+
+async function eliminarPlantillaRecurrente(id, nombre) {
+    if (!(await torisConfirm({
+        title: 'Eliminar recurrente',
+        message: `¿Eliminar "${nombre}" y sus cuotas pendientes? Los gastos ya cargados no se borran.`,
+        confirmLabel: 'Eliminar',
+        danger: true
+    }))) return;
+    const { error } = await db.from('gastos_recurrentes').delete().eq('id', id);
+    if (error) { alert('Error: ' + error.message); return; }
+    await refreshRecurrentesUI();
+    renderListaPlantillasRecurrentes();
 }
 
 // =============================================

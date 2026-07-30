@@ -532,6 +532,11 @@ body.has-fab-pin .container { padding-bottom: 76px; }
     border-color: var(--primary);
     background: var(--ghost-hover);
 }
+.btn-recurrente-activo {
+    border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+    color: var(--primary);
+    font-weight: 600;
+}
 
 /* A11y */
 .skip-link {
