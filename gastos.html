@@ -236,6 +236,8 @@ let ocurrenciaAplicando = null;
 let plantillasRecurrentesCache = [];
 /** @type {Set<number>} */
 let recurrentesSeleccionados = new Set();
+/** Plantillas que ya tienen al menos un gasto en el periodo actual. */
+let plantillasYaEnPeriodo = new Set();
 
 const ICONOS_DISPONIBLES = [
     'shopping-cart', 'cake', 'shopping-bag', 'heart', 'home', 'bolt',
@@ -751,12 +753,14 @@ async function refreshRecurrentesUI() {
     if (error) {
         console.warn('recurrentes:', error.message);
         plantillasRecurrentesCache = [];
+        plantillasYaEnPeriodo = new Set();
         return;
     }
     plantillasRecurrentesCache = (data || []).map(r => ({
         ...r,
         ocurrencias: (r.gastos_recurrentes_ocurrencias || []).sort((a, b) => a.nro - b.nro)
     }));
+    await actualizarPlantillasYaEnPeriodo();
     const btn = document.getElementById('btn-recurrente');
     if (!btn) return;
     const pendientes = contarPendientesRecurrentes();
@@ -764,6 +768,35 @@ async function refreshRecurrentesUI() {
     btn.setAttribute('aria-label', pendientes
         ? `Recurrentes (${pendientes} pendientes)`
         : 'Gastos recurrentes');
+}
+
+async function actualizarPlantillasYaEnPeriodo() {
+    plantillasYaEnPeriodo = new Set();
+    if (!periodoActual) return;
+
+    const gastoToPlantilla = new Map();
+    plantillasRecurrentesCache.forEach(p => {
+        (p.ocurrencias || []).forEach(o => {
+            if (o.estado === 'aplicada' && o.id_gasto) {
+                gastoToPlantilla.set(Number(o.id_gasto), Number(p.id));
+            }
+        });
+    });
+    const gastoIds = [...gastoToPlantilla.keys()];
+    if (!gastoIds.length) return;
+
+    const { data, error } = await db.from('gastos')
+        .select('id')
+        .eq('id_periodo', periodoActual.id)
+        .in('id', gastoIds);
+    if (error) {
+        console.warn('recurrentes en periodo:', error.message);
+        return;
+    }
+    (data || []).forEach(g => {
+        const pid = gastoToPlantilla.get(Number(g.id));
+        if (pid) plantillasYaEnPeriodo.add(pid);
+    });
 }
 
 function contarPendientesRecurrentes() {
@@ -834,14 +867,16 @@ function renderListaPendientesRecurrentes() {
         const pagadorNombre = participantesActuales.find(x => Number(x.id) === Number(plantilla.id_pagador))?.nombre;
         const meta = pagadorNombre ? `${lab.meta} · ${pagadorNombre}` : lab.meta;
         const selected = recurrentesSeleccionados.has(Number(ocurrencia.id));
+        const yaEnPeriodo = plantillasYaEnPeriodo.has(Number(plantilla.id));
         return `
-        <div class="card card-click recurrente-pendiente${selected ? ' selected' : ''}" style="margin-bottom:8px"
+        <div class="card card-click recurrente-pendiente${selected ? ' selected' : ''}${yaEnPeriodo ? ' ya-en-periodo' : ''}" style="margin-bottom:8px"
             onclick="toggleRecurrenteSeleccionado(${ocurrencia.id})" role="checkbox" aria-checked="${selected ? 'true' : 'false'}">
             <div class="card-body flex-between" style="gap:10px">
                 <div class="recurrente-check" aria-hidden="true">${selected ? icon('check', 16) : ''}</div>
                 <div style="min-width:0;flex:1">
                     <div style="font-weight:700;font-size:15px">${escapeHtml(lab.titulo)}</div>
                     <div class="text-muted" style="font-size:13px">${escapeHtml(meta)}</div>
+                    ${yaEnPeriodo ? `<div class="recurrente-ya-periodo">Ya cargado en este periodo</div>` : ''}
                 </div>
                 <div style="font-weight:700;color:var(--text);font-variant-numeric:tabular-nums">$${fmt(lab.monto)}</div>
             </div>
@@ -858,7 +893,29 @@ async function cargarRecurrentesSeleccionados() {
         return;
     }
 
-    const btn = document.getElementById('btn-cargar-recurrentes');
+    const pendientes = listarPendientesRecurrentes();
+    const seleccion = ids
+        .map(id => pendientes.find(x => Number(x.ocurrencia.id) === Number(id)))
+        .filter(Boolean);
+    const yaCargados = [...new Map(
+        seleccion
+            .filter(x => plantillasYaEnPeriodo.has(Number(x.plantilla.id)))
+            .map(x => [Number(x.plantilla.id), x.plantilla.nombre || 'Recurrente'])
+    ).values()];
+
+    if (yaCargados.length) {
+        const nombres = yaCargados.join(', ');
+        const ok = await torisConfirm({
+            title: 'Ya está en este periodo',
+            message: yaCargados.length === 1
+                ? `“${nombres}” ya tiene un gasto en este periodo. ¿Cargar otra vez igual?`
+                : `Estos ya tienen gasto en este periodo: ${nombres}. ¿Cargar otra vez?`,
+            confirmLabel: 'Cargar igual',
+            cancelLabel: 'Cancelar'
+        });
+        if (!ok) return;
+    }
+
     await withBusyButton('#btn-cargar-recurrentes', async () => {
         let ok = 0;
         let fail = 0;
@@ -998,6 +1055,21 @@ async function marcarOcurrenciaAplicada(gastoId) {
             estado: 'pendiente'
         });
         if (e2) console.warn('siguiente recurrente:', e2.message);
+        return;
+    }
+    if (plantilla.modo === 'cuotas') {
+        const { count, error: eCount } = await db.from('gastos_recurrentes_ocurrencias')
+            .select('id', { count: 'exact', head: true })
+            .eq('id_recurrente', plantilla.id)
+            .eq('estado', 'pendiente');
+        if (eCount) {
+            console.warn('contar pendientes:', eCount.message);
+            return;
+        }
+        if (!count) {
+            const { error: eDel } = await db.from('gastos_recurrentes').delete().eq('id', plantilla.id);
+            if (eDel) console.warn('borrar recurrente terminado:', eDel.message);
+        }
     }
 }
 

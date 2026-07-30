@@ -603,6 +603,15 @@ body.has-fab-pin .container { padding-bottom: 76px; }
     border-color: var(--primary);
     background: color-mix(in srgb, var(--primary) 12%, var(--card));
 }
+.recurrente-ya-periodo {
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #b45309;
+}
+[data-theme="dark"] .recurrente-ya-periodo {
+    color: #fbbf24;
+}
 [data-theme="dark"] .recurrente-pendiente.selected {
     border-color: var(--primary-text);
     background: color-mix(in srgb, var(--primary-text) 10%, var(--card));
