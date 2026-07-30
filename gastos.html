@@ -140,7 +140,7 @@
             <button type="button" class="modal-close" onclick="cerrarModal('modal-recurrentes')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
         </div>
         <p class="text-muted" style="margin-bottom:12px;font-size:13px;line-height:1.45">
-            Elegí una cuota o recurrente pendiente para cargarlo en este periodo.
+            Tocá una cuota para cargarla en este periodo. Si hace falta cambiar quién pagó o la división, editá el gasto desde la lista.
         </p>
         <div id="lista-recurrentes-pendientes"></div>
         <div class="modal-actions" style="margin-top:14px">
@@ -206,7 +206,7 @@
             <input type="number" id="rec-dia-mes" min="1" max="28" step="1" placeholder="Ej: 10" inputmode="numeric" />
         </div>
         <p class="text-muted" style="font-size:12px;line-height:1.4;margin-bottom:12px">
-            La división se guarda en partes iguales entre las personas del círculo. Podés ajustarla al cargar cada cuota.
+            La división se guarda en partes iguales. Si en alguna cuota cambia quién paga o cómo se reparte, editá ese gasto desde el listado.
         </p>
         <button type="button" class="btn btn-primary btn-full" id="btn-guardar-recurrente" onclick="guardarPlantillaRecurrente()">Guardar</button>
     </div>
@@ -725,10 +725,6 @@ async function guardarGasto() {
                 .insert(splits.map(s => ({ ...s, id_gasto: gastoData.id })));
 
             if (e2) { alert('Gasto guardado, pero error en la división: ' + e2.message); return; }
-
-            if (ocurrenciaAplicando) {
-                await marcarOcurrenciaAplicada(gastoData.id);
-            }
         }
 
         cerrarModal('modal-gasto');
@@ -808,12 +804,14 @@ function renderListaPendientesRecurrentes() {
     }
     cont.innerHTML = items.map(({ plantilla, ocurrencia }) => {
         const lab = labelPendienteRecurrente(plantilla, ocurrencia);
+        const pagadorNombre = participantesActuales.find(x => Number(x.id) === Number(plantilla.id_pagador))?.nombre;
+        const meta = pagadorNombre ? `${lab.meta} · ${pagadorNombre}` : lab.meta;
         return `
         <div class="card card-click" style="margin-bottom:8px" onclick="aplicarOcurrenciaRecurrente(${ocurrencia.id})">
             <div class="card-body flex-between" style="gap:10px">
                 <div style="min-width:0;flex:1">
                     <div style="font-weight:700;font-size:15px">${escapeHtml(lab.titulo)}</div>
-                    <div class="text-muted" style="font-size:13px">${escapeHtml(lab.meta)}</div>
+                    <div class="text-muted" style="font-size:13px">${escapeHtml(meta)}</div>
                 </div>
                 <div style="font-weight:700;color:var(--text);font-variant-numeric:tabular-nums">$${fmt(lab.monto)}</div>
             </div>
@@ -826,6 +824,8 @@ async function aplicarOcurrenciaRecurrente(ocurrenciaId) {
         alert('Primero agregá personas al círculo.');
         return;
     }
+    if (!periodoActual || !circuloActual) return;
+
     const found = listarPendientesRecurrentes().find(x => Number(x.ocurrencia.id) === Number(ocurrenciaId));
     if (!found) {
         alert('No se encontró esa cuota pendiente.');
@@ -834,33 +834,73 @@ async function aplicarOcurrenciaRecurrente(ocurrenciaId) {
         return;
     }
     const { plantilla, ocurrencia } = found;
+    const monto = Number(plantilla.monto);
+    if (!(monto > 0)) {
+        alert('El recurrente no tiene un monto válido.');
+        return;
+    }
+
+    let splits = Array.isArray(plantilla.split_default)
+        ? plantilla.split_default
+            .map(s => ({ id_participante: Number(s.id_participante), monto: Number(s.monto) }))
+            .filter(s => s.id_participante && s.monto > 0)
+        : [];
+    if (!splits.length) splits = splitIgualDefault(participantesActuales, monto);
+
+    const totalSplit = Math.round(splits.reduce((a, s) => a + Number(s.monto), 0) * 100) / 100;
+    if (Math.abs(totalSplit - monto) > 0.02) {
+        splits = splitIgualDefault(participantesActuales, monto);
+    }
+
+    const pagador = plantilla.id_pagador
+        || participantesActuales.find(p => Number(p.id) === Number(splits[0]?.id_participante))?.id
+        || participantesActuales[0]?.id;
+    if (!pagador) {
+        alert('No hay quién paga definido. Agregá personas al círculo.');
+        return;
+    }
+
+    const concepto = conceptoDesdeRecurrente(plantilla, ocurrencia);
+    const fecha = ocurrencia.fecha_prevista || hoyISO();
+    const tipo = plantilla.tipo_gasto || categoriasActuales[0]?.nombre || 'Otros';
+
     ocurrenciaAplicando = {
         id: ocurrencia.id,
         id_recurrente: plantilla.id,
         nro: ocurrencia.nro,
         plantilla
     };
-    gastoEditando = null;
-    cerrarModal('modal-recurrentes');
 
-    const splits = Array.isArray(plantilla.split_default) ? plantilla.split_default : [];
-    const concepto = conceptoDesdeRecurrente(plantilla, ocurrencia);
-    document.getElementById('modal-gasto-title').textContent = 'Nuevo gasto';
-    document.getElementById('btn-guardar-gasto').textContent = 'Guardar gasto';
-    gastoForm.setAutoRepartir(!splits.length);
-    gastoForm.setParticipantes(participantesActuales);
-    gastoForm.setCategoriasFromCirculo(categoriasActuales);
-    gastoForm.reset({
+    const { data: gastoData, error: e1 } = await db.from('gastos').insert({
+        id_periodo: periodoActual.id,
+        id_circulo: circuloActual.id,
+        id_pagador: pagador,
         concepto,
-        fecha: ocurrencia.fecha_prevista || hoyISO(),
-        monto: Number(plantilla.monto),
-        tipo: plantilla.tipo_gasto || categoriasActuales[0]?.nombre,
-        pagadorId: plantilla.id_pagador,
-        splits,
-        autoRepartir: !splits.length
-    });
-    abrirModal('modal-gasto');
-    gastoForm.focusConcepto();
+        monto,
+        tipo_gasto: tipo,
+        fecha_gasto: fecha
+    }).select().single();
+
+    if (e1) {
+        ocurrenciaAplicando = null;
+        alert('Error al cargar el gasto: ' + e1.message);
+        return;
+    }
+
+    const { error: e2 } = await db.from('gastos_participantes')
+        .insert(splits.map(s => ({ ...s, id_gasto: gastoData.id })));
+    if (e2) {
+        await db.from('gastos').delete().eq('id', gastoData.id);
+        ocurrenciaAplicando = null;
+        alert('Error en la división: ' + e2.message);
+        return;
+    }
+
+    await marcarOcurrenciaAplicada(gastoData.id);
+    ocurrenciaAplicando = null;
+    cerrarModal('modal-recurrentes');
+    await refreshRecurrentesUI();
+    cargarGastos();
 }
 
 async function marcarOcurrenciaAplicada(gastoId) {
@@ -911,17 +951,18 @@ function renderListaPlantillasRecurrentes() {
         const tipoLabel = p.modo === 'cuotas'
             ? `${aplicadas}/${p.cuotas_total} cuotas`
             : `${aplicadas} cargadas · ${pendientes ? '1 pendiente' : 'sin pendiente'}`;
+        const pagadorNombre = participantesActuales.find(x => Number(x.id) === Number(p.id_pagador))?.nombre;
         return `
-        <div class="card" style="margin-bottom:8px;opacity:${p.activo ? 1 : 0.55}">
+        <div class="card" style="margin-bottom:8px">
             <div class="card-body flex-between" style="gap:10px;align-items:flex-start">
                 <div style="min-width:0;flex:1">
-                    <div style="font-weight:700;font-size:15px">${escapeHtml(p.nombre)}${p.activo ? '' : ' <span class="text-muted">(pausado)</span>'}</div>
+                    <div style="font-weight:700;font-size:15px">${escapeHtml(p.nombre)}</div>
                     <div class="text-muted" style="font-size:13px">$${fmt(p.monto)} · ${escapeHtml(tipoLabel)}</div>
+                    ${pagadorNombre ? `<div class="text-muted" style="font-size:12px">Paga: ${escapeHtml(pagadorNombre)}</div>` : ''}
                     ${p.fecha_inicio ? `<div class="text-muted" style="font-size:12px">Desde ${escapeHtml(fmtFechaCorta(p.fecha_inicio))}</div>` : ''}
                 </div>
-                <div class="card-actions" style="flex-direction:column;align-items:stretch">
-                    <button type="button" class="btn btn-ghost btn-sm" onclick="toggleActivoRecurrente(${p.id}, ${p.activo ? 'false' : 'true'})">${p.activo ? 'Pausar' : 'Reanudar'}</button>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="eliminarPlantillaRecurrente(${p.id}, '${escapeJsString(p.nombre)}')">${icon('trash',14)}</button>
+                <div class="card-actions">
+                    <button type="button" class="btn btn-danger btn-sm" onclick="eliminarPlantillaRecurrente(${p.id}, '${escapeJsString(p.nombre)}')" aria-label="Eliminar">${icon('trash',14)}</button>
                 </div>
             </div>
         </div>`;
@@ -1022,32 +1063,6 @@ async function guardarPlantillaRecurrente() {
         renderListaPlantillasRecurrentes();
         abrirModal('modal-recurrentes-gestionar');
     });
-}
-
-async function toggleActivoRecurrente(id, activo) {
-    const { error } = await db.from('gastos_recurrentes')
-        .update({ activo: !!activo })
-        .eq('id', id);
-    if (error) { alert('Error: ' + error.message); return; }
-    // Si reanudamos un abierto sin pendiente, crear una.
-    if (activo) {
-        const p = plantillasRecurrentesCache.find(x => Number(x.id) === Number(id));
-        if (p && p.modo === 'abierto') {
-            const pendientes = (p.ocurrencias || []).filter(o => o.estado === 'pendiente');
-            if (!pendientes.length) {
-                const maxNro = Math.max(0, ...(p.ocurrencias || []).map(o => o.nro));
-                const next = siguienteOcurrenciaAbierta(p, maxNro);
-                await db.from('gastos_recurrentes_ocurrencias').insert({
-                    id_recurrente: p.id,
-                    nro: next.nro,
-                    fecha_prevista: next.fecha_prevista,
-                    estado: 'pendiente'
-                });
-            }
-        }
-    }
-    await refreshRecurrentesUI();
-    renderListaPlantillasRecurrentes();
 }
 
 async function eliminarPlantillaRecurrente(id, nombre) {
