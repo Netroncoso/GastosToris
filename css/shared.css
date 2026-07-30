@@ -583,10 +583,6 @@ body.has-fab-pin .container { padding-bottom: 76px; }
     color: var(--primary);
     font-weight: 600;
 }
-.recurrente-pendiente.selected {
-    border: 1.5px solid var(--primary);
-    background: color-mix(in srgb, var(--primary) 8%, var(--card));
-}
 .recurrente-check {
     width: 22px;
     height: 22px;
@@ -598,10 +594,20 @@ body.has-fab-pin .container { padding-bottom: 76px; }
     flex-shrink: 0;
     color: var(--primary);
     background: var(--card);
+    cursor: pointer;
 }
-.recurrente-pendiente.selected .recurrente-check {
+.recurrente-check.selected {
     border-color: var(--primary);
     background: color-mix(in srgb, var(--primary) 12%, var(--card));
+}
+.recurrente-check.partial {
+    border-color: var(--primary);
+}
+.recurrente-check-partial {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--primary);
 }
 .recurrente-ya-periodo {
     margin-top: 4px;
@@ -612,13 +618,116 @@ body.has-fab-pin .container { padding-bottom: 76px; }
 [data-theme="dark"] .recurrente-ya-periodo {
     color: #fbbf24;
 }
-[data-theme="dark"] .recurrente-pendiente.selected {
-    border-color: var(--primary-text);
-    background: color-mix(in srgb, var(--primary-text) 10%, var(--card));
-}
-[data-theme="dark"] .recurrente-pendiente.selected .recurrente-check {
+[data-theme="dark"] .recurrente-check.selected,
+[data-theme="dark"] .recurrente-check.partial {
     border-color: var(--primary-text);
     color: var(--primary-text);
+}
+[data-theme="dark"] .recurrente-check.selected {
+    background: color-mix(in srgb, var(--primary-text) 12%, var(--card));
+}
+[data-theme="dark"] .recurrente-check-partial {
+    background: var(--primary-text);
+}
+.recurrente-grupo {
+    overflow: hidden;
+}
+.recurrente-grupo.has-selection {
+    border: 1.5px solid color-mix(in srgb, var(--primary) 40%, var(--border));
+}
+[data-theme="dark"] .recurrente-grupo.has-selection {
+    border-color: color-mix(in srgb, var(--primary-text) 45%, var(--border));
+}
+.recurrente-grupo-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+}
+.recurrente-grupo-toggle {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    border: none;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+}
+.recurrente-grupo-info { flex: 1; min-width: 0; }
+.recurrente-grupo-title {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text);
+}
+.recurrente-grupo-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.recurrente-grupo-monto {
+    font-weight: 700;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+}
+.recurrente-grupo-chevron { color: var(--muted); display: flex; }
+.recurrente-grupo-body {
+    border-top: 1px solid var(--border);
+    padding: 4px 8px 8px;
+}
+.recurrente-fila {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 6px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.recurrente-fila:hover { background: var(--ghost-hover); }
+.recurrente-fila.selected {
+    background: color-mix(in srgb, var(--primary) 8%, var(--card));
+}
+.recurrente-fila.selected .recurrente-check {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 12%, var(--card));
+}
+.recurrente-fila-main {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+.recurrente-fila-cuota {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+}
+.recurrente-fila-fecha {
+    font-size: 12px;
+    color: var(--muted);
+}
+.recurrente-fila-fecha.vencida {
+    color: #b45309;
+    font-weight: 600;
+}
+[data-theme="dark"] .recurrente-fila.selected {
+    background: color-mix(in srgb, var(--primary-text) 10%, var(--card));
+}
+[data-theme="dark"] .recurrente-fila.selected .recurrente-check {
+    border-color: var(--primary-text);
+    color: var(--primary-text);
+    background: color-mix(in srgb, var(--primary-text) 12%, var(--card));
+}
+[data-theme="dark"] .recurrente-fila-fecha.vencida {
+    color: #fbbf24;
 }
 
 /* A11y */
