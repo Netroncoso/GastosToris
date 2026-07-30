@@ -161,6 +161,16 @@ input, select, textarea { width: 100%; padding: 10px 12px; border: 1.5px solid v
     border-radius: 8px; font-size: 15px; color: var(--text); background: var(--input-bg); transition: border-color 0.15s; font-family: inherit; }
 input::placeholder, textarea::placeholder { color: var(--placeholder); opacity: 1; }
 input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px rgba(27, 64, 121, 0.3);
+}
+[data-theme="dark"] input:focus-visible,
+[data-theme="dark"] select:focus-visible,
+[data-theme="dark"] textarea:focus-visible {
+    box-shadow: 0 0 0 1px rgba(147, 197, 253, 0.35);
+}
 input[type="number"] { -moz-appearance: textfield; }
 input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 
@@ -210,6 +220,7 @@ button.tab { background: none; border: none; font-family: inherit; width: 100%; 
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
 }
@@ -501,17 +512,12 @@ body.has-fab-pin .container { padding-bottom: 76px; }
 .skip-link:focus { left: 16px; top: 16px; width: auto; height: auto; overflow: visible; }
 :focus { outline: none; }
 :focus-visible {
-    outline: 2px solid var(--primary);
+    outline: 1.5px solid var(--primary);
     outline-offset: 2px;
 }
 [data-theme="dark"] :focus-visible { outline-color: var(--primary-text); }
 .topbar .btn-icon:focus-visible { outline-color: #fff; }
-.btn-icon-plain:focus-visible { outline-offset: 1px; }
-input:focus-visible, select:focus-visible, textarea:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: 0;
-    border-color: var(--primary);
-}
+.btn-icon-plain:focus-visible { outline-offset: 1px; outline-width: 1.5px; }
 button, .btn, .btn-icon, .btn-icon-plain, .tab, .filter-tab, .lista-check, .card-click, .fab-pin, .acceso-unpin, .modal-close {
     touch-action: manipulation;
 }

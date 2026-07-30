@@ -480,28 +480,28 @@ syncVisualViewport();
 window.addEventListener('resize', syncVisualViewport);
 if (window.visualViewport) {
     visualViewport.addEventListener('resize', syncVisualViewport);
-    visualViewport.addEventListener('scroll', syncVisualViewport);
 }
 
-// Al enfocar un campo en modal: solo reacomodar si quedaría tapado por el teclado
+// Solo modales altos (.modal-scroll-focus): reacomodar si el teclado tapa el campo
 let _modalFocusScrollTimer = null;
 document.addEventListener('focusin', (e) => {
     const field = e.target;
-    if (!field?.closest?.('.modal-overlay.open')) return;
+    const modal = field?.closest?.('.modal');
+    if (!modal?.closest?.('.modal-overlay.open')) return;
+    if (!modal.classList.contains('modal-scroll-focus')) return;
     if (!/^(INPUT|SELECT|TEXTAREA)$/.test(field.tagName)) return;
 
+    const body = modal.querySelector('.modal-body') || modal;
     clearTimeout(_modalFocusScrollTimer);
     _modalFocusScrollTimer = setTimeout(() => {
-        syncVisualViewport();
         const vv = window.visualViewport;
         const rect = field.getBoundingClientRect();
-        const viewTop = vv ? vv.offsetTop : 0;
         const viewBottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
-        const pad = 12;
-        if (rect.top >= viewTop + pad && rect.bottom <= viewBottom - pad) return;
+        if (rect.bottom <= viewBottom - 8) return;
 
-        field.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'auto' });
-    }, 80);
+        const bodyRect = body.getBoundingClientRect();
+        body.scrollTop = Math.max(0, rect.top - bodyRect.top + body.scrollTop - 24);
+    }, 120);
 });
 
 /** Evita doble submit: deshabilita el botón mientras corre la acción. */
