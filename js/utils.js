@@ -566,6 +566,8 @@ function irAlCirculo(id, seccion = null) {
 // =============================================
 const ACCESOS_STORAGE = 'toris-accesos';
 const ACCESOS_MAX = 8;
+/** Solo periodo concreto o lista concreta (no secciones del círculo). */
+const ACCESOS_TIPOS = new Set(['gastos-periodo', 'lista']);
 
 function accesosStorageKey(userId) {
     return `${ACCESOS_STORAGE}:${userId}`;
@@ -576,7 +578,44 @@ function getAccesos(userId) {
     try {
         const raw = localStorage.getItem(accesosStorageKey(userId));
         const list = raw ? JSON.parse(raw) : [];
-        return Array.isArray(list) ? list : [];
+        if (!Array.isArray(list)) return [];
+        // Limpia pines viejos de sección (Gastos/Listas/Tareas/Personas) y tabs.
+        const cleaned = list
+            .filter(a => a && ACCESOS_TIPOS.has(a.tipo))
+            .map(a => {
+                if (a.tipo === 'gastos-periodo') {
+                    const next = {
+                        id: accesoIdFrom(a),
+                        circuloId: Number(a.circuloId),
+                        circuloNombre: a.circuloNombre || '',
+                        tipo: 'gastos-periodo',
+                        periodoId: Number(a.periodoId),
+                        periodoNombre: a.periodoNombre || undefined,
+                        label: buildAccesoLabel(a)
+                    };
+                    return next;
+                }
+                return {
+                    id: accesoIdFrom(a),
+                    circuloId: Number(a.circuloId),
+                    circuloNombre: a.circuloNombre || '',
+                    tipo: 'lista',
+                    listaId: Number(a.listaId),
+                    listaNombre: a.listaNombre || undefined,
+                    label: buildAccesoLabel(a)
+                };
+            })
+            .filter(a => a.tipo !== 'gastos-periodo' || a.periodoId)
+            .filter(a => a.tipo !== 'lista' || a.listaId);
+        // Deduplicar por id (p. ej. mismo periodo con tabs distintos).
+        const seen = new Set();
+        const deduped = cleaned.filter(a => {
+            if (seen.has(a.id)) return false;
+            seen.add(a.id);
+            return true;
+        });
+        if (JSON.stringify(deduped) !== JSON.stringify(list)) saveAccesos(userId, deduped);
+        return deduped;
     } catch (_) {
         return [];
     }
@@ -592,47 +631,29 @@ function accesoIdFrom(data) {
         data.circuloId,
         data.tipo,
         data.periodoId || '',
-        data.tab || ''
+        data.listaId || ''
     ].join('-');
 }
 
 function buildAccesoLabel(data) {
     const circulo = data.circuloNombre || 'Círculo';
-    if (data.tipo === 'gastos-periodo') {
-        const tabLabels = { gastos: 'Gastos', balance: 'Balance', resumen: 'Resumen' };
-        const tab = data.tab && data.tab !== 'gastos' ? ` · ${tabLabels[data.tab] || data.tab}` : '';
-        return `${circulo} · ${data.periodoNombre || 'Periodo'}${tab}`;
-    }
-    if (data.tipo === 'gastos-periodos') return `${circulo} · Gastos`;
-    if (data.tipo === 'listas') return `${circulo} · Listas`;
-    if (data.tipo === 'tareas') return `${circulo} · Tareas`;
-    if (data.tipo === 'personas') return `${circulo} · Personas`;
+    if (data.tipo === 'gastos-periodo') return `${circulo} · ${data.periodoNombre || 'Periodo'}`;
+    if (data.tipo === 'lista') return `${circulo} · ${data.listaNombre || 'Lista'}`;
     return circulo;
 }
 
 function accesoIcon(data) {
-    if (data.tipo === 'gastos-periodo' || data.tipo === 'gastos-periodos') return 'currency-dollar';
-    if (data.tipo === 'listas') return 'shopping-cart';
-    if (data.tipo === 'tareas') return 'check-circle';
-    if (data.tipo === 'personas') return 'users';
+    if (data.tipo === 'gastos-periodo') return 'currency-dollar';
+    if (data.tipo === 'lista') return 'shopping-cart';
     return 'cube-transparent';
 }
 
 function urlAcceso(acceso) {
     switch (acceso.tipo) {
-        case 'gastos-periodo': {
-            let url = `./gastos.html?circulo=${acceso.circuloId}&periodo=${acceso.periodoId}`;
-            if (acceso.tab && acceso.tab !== 'gastos') url += `&tab=${acceso.tab}`;
-            return url;
-        }
-        case 'gastos-periodos':
-            return `./circulo.html?abrir=${acceso.circuloId}&seccion=gastos`;
-        case 'listas':
-            return `./listas.html?circulo=${acceso.circuloId}`;
-        case 'tareas':
-            return `./tareas.html?abrir=${acceso.circuloId}`;
-        case 'personas':
-            return `./circulo.html?abrir=${acceso.circuloId}&seccion=personas`;
+        case 'gastos-periodo':
+            return `./gastos.html?circulo=${acceso.circuloId}&periodo=${acceso.periodoId}`;
+        case 'lista':
+            return `./listas.html?circulo=${acceso.circuloId}&abrir=${acceso.listaId}`;
         default:
             return './index.html';
     }
@@ -645,7 +666,7 @@ function isAccesoPinned(userId, data) {
 
 /** true = fijado, false = quitado, null = límite alcanzado */
 function toggleAcceso(userId, data) {
-    if (!userId || !data?.circuloId || !data?.tipo) return null;
+    if (!userId || !data?.circuloId || !ACCESOS_TIPOS.has(data.tipo)) return null;
     const id = accesoIdFrom(data);
     const list = getAccesos(userId);
     const idx = list.findIndex(a => a.id === id);
@@ -658,16 +679,21 @@ function toggleAcceso(userId, data) {
         alert(`Máximo ${ACCESOS_MAX} accesos directos. Quitá uno desde el inicio.`);
         return null;
     }
-    list.push({
+    const entry = {
         id,
         circuloId: Number(data.circuloId),
         circuloNombre: data.circuloNombre || '',
         tipo: data.tipo,
-        periodoId: data.periodoId ? Number(data.periodoId) : undefined,
-        periodoNombre: data.periodoNombre || undefined,
-        tab: data.tab || undefined,
         label: buildAccesoLabel(data)
-    });
+    };
+    if (data.tipo === 'gastos-periodo') {
+        entry.periodoId = Number(data.periodoId);
+        entry.periodoNombre = data.periodoNombre || undefined;
+    } else if (data.tipo === 'lista') {
+        entry.listaId = Number(data.listaId);
+        entry.listaNombre = data.listaNombre || undefined;
+    }
+    list.push(entry);
     saveAccesos(userId, list);
     return true;
 }
@@ -680,7 +706,9 @@ function quitarAcceso(userId, accesoId) {
 function updateFabPinButton(btn, pinned) {
     if (!btn) return;
     btn.classList.toggle('pinned', !!pinned);
-    btn.title = pinned ? 'Quitar acceso directo' : 'Fijar en inicio';
+    const label = pinned ? 'Quitar del inicio' : 'Fijar en inicio';
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
     btn.innerHTML = `<i data-icon="${pinned ? 'bookmark-slash' : 'bookmark'}" data-size="22"></i>`;
     if (typeof initIconsIn === 'function') initIconsIn(btn);
 }
@@ -715,13 +743,20 @@ async function pintarAccesosEnIndex(userId) {
     const cont = document.getElementById('lista-accesos');
     if (!sec || !cont) return;
     const list = getAccesos(userId);
+    sec.classList.remove('hidden');
     if (!list.length) {
-        sec.classList.add('hidden');
-        cont.innerHTML = '';
+        cont.innerHTML = `
+            <div class="acceso-empty">
+                <div class="acceso-empty-icon"><i data-icon="bookmark" data-size="22"></i></div>
+                <div class="acceso-empty-title">Accesos directos</div>
+                <p class="acceso-empty-text">Fijá un periodo o una lista desde adentro y aparece acá para abrirlos en un toque al volver a la app.</p>
+            </div>`;
+        if (typeof initIconsIn === 'function') initIconsIn(cont);
         return;
     }
-    sec.classList.remove('hidden');
-    cont.innerHTML = list.map(a => `
+    cont.innerHTML = `
+        <div class="section-label" style="margin-top:0">Accesos directos</div>
+        ${list.map(a => `
         <div class="card acceso-card">
             <div class="card-body flex-between card-click" style="gap:10px" onclick="abrirAccesoDirecto('${escapeJsString(a.id)}')">
                 <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
@@ -730,10 +765,10 @@ async function pintarAccesosEnIndex(userId) {
                         <div style="font-weight:600;font-size:15px;word-break:break-word">${escapeHtml(a.label || buildAccesoLabel(a))}</div>
                     </div>
                 </div>
-                <button type="button" class="acceso-unpin" onclick="event.stopPropagation();quitarAccesoDirecto('${escapeJsString(a.id)}')" title="Quitar acceso"><i data-icon="bookmark-slash" data-size="16"></i></button>
+                <button type="button" class="acceso-unpin" onclick="event.stopPropagation();quitarAccesoDirecto('${escapeJsString(a.id)}')" title="Quitar del inicio" aria-label="Quitar del inicio"><i data-icon="bookmark-slash" data-size="16"></i></button>
             </div>
         </div>
-    `).join('');
+    `).join('')}`;
 }
 
 function abrirAccesoDirecto(accesoId) {

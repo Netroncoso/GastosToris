@@ -320,19 +320,16 @@ requireAuth(async () => {
         cambiarTab(tab);
     }
     refreshFabPinGastos();
-    window.onAfterTabChange = () => refreshFabPinGastos();
     suscribirGastosRealtime();
 });
 
 function getFabPinDataGastos() {
     if (!circuloActual || !periodoActual) return null;
-    const tab = getQueryParam('tab') || 'gastos';
     return {
         circuloId: circuloActual.id,
         circuloNombre: circuloActual.nombre,
         periodoId: periodoActual.id,
         periodoNombre: periodoActual.nombre,
-        tab,
         tipo: 'gastos-periodo'
     };
 }

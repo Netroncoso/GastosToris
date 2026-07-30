@@ -483,6 +483,36 @@ button.filter-tab { font-family: inherit; width: 100%; }
 body.has-fab-pin .container { padding-bottom: 76px; }
 .acceso-card { margin-bottom: 8px; }
 .acceso-card .dash-icon { width: 40px; height: 40px; border-radius: 10px; }
+.acceso-empty {
+    text-align: center;
+    padding: 18px 16px;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--card) 80%, var(--bg));
+}
+.acceso-empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    color: var(--primary);
+    background: var(--soft);
+}
+.acceso-empty-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+.acceso-empty-text {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--muted);
+}
 .acceso-unpin {
     width: 34px;
     height: 34px;

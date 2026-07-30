@@ -130,6 +130,10 @@
     </div>
 </div>
 
+<button type="button" id="fab-pin" class="fab-pin hidden" onclick="togglePinPaginaActual()" aria-label="Fijar en inicio">
+    <i data-icon="bookmark" data-size="22"></i>
+</button>
+
 <script src="js/supabase-client.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/utils.js"></script>
@@ -195,8 +199,24 @@ requireAuth(async () => {
         setQueryParams({ circulo: circuloId, abrir: null, filtro: null });
         appReady();
         await cargarListas();
+        refreshFabPinListas();
     }
 });
+
+function getFabPinDataListas() {
+    if (!circuloActual || !listaActual) return null;
+    return {
+        circuloId: circuloActual.id,
+        circuloNombre: circuloActual.nombre,
+        listaId: listaActual.id,
+        listaNombre: listaActual.nombre,
+        tipo: 'lista'
+    };
+}
+
+async function refreshFabPinListas() {
+    await refreshFabPin(getFabPinDataListas());
+}
 
 const FILTROS_LISTA = ['pendientes', 'todos', 'comprados'];
 
@@ -204,16 +224,20 @@ async function abrirListaPorId(id, opts = {}) {
     const { data, error } = await db.from('listas').select('*').eq('id', id).single();
     if (error || !data) {
         alert('No se encontró esa lista.');
+        listaActual = null;
         clearListaDetailParams();
         await cargarListas();
         mostrarPantalla('listas');
+        refreshFabPinListas();
         return;
     }
     if (data.id_circulo !== circuloId) {
         alert('Esa lista no pertenece a este círculo.');
+        listaActual = null;
         clearListaDetailParams();
         await cargarListas();
         mostrarPantalla('listas');
+        refreshFabPinListas();
         return;
     }
     await abrirLista(data, opts);
@@ -246,6 +270,7 @@ function volverAListas() {
         actualizarTopbarListas();
         mostrarPantalla('listas');
         cargarListas();
+        refreshFabPinListas();
         return;
     }
     irAlCirculo(circuloId);
@@ -379,6 +404,7 @@ async function abrirLista(lista, opts = {}) {
     mostrarPantalla('detalle');
     await cargarItems();
     setFiltro(filtro);
+    refreshFabPinListas();
 }
 
 // =============================================

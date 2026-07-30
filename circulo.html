@@ -94,10 +94,6 @@
     </div>
 </div>
 
-<button type="button" id="fab-pin" class="fab-pin hidden" onclick="togglePinPaginaActual()" aria-label="Fijar en inicio">
-    <i data-icon="bookmark" data-size="22"></i>
-</button>
-
 <div id="modal-periodo" class="modal-overlay">
     <div class="modal">
         <div class="modal-header">
@@ -179,21 +175,7 @@ requireAuth(async () => {
         mostrarMenu();
         appReady();
     }
-    refreshFabPinCirculo();
 });
-
-function getFabPinDataCirculo() {
-    if (!circuloActual || seccionActual !== 'gastos') return null;
-    return {
-        circuloId: circuloActual.id,
-        circuloNombre: circuloActual.nombre,
-        tipo: 'gastos-periodos'
-    };
-}
-
-async function refreshFabPinCirculo() {
-    await refreshFabPin(getFabPinDataCirculo());
-}
 
 document.addEventListener('DOMContentLoaded', () => {
     const emailInput = document.getElementById('input-email-participante');
@@ -212,7 +194,6 @@ function mostrarMenu() {
     setQueryParams({ abrir: circuloActual.id, seccion: null, tab: null });
     document.getElementById('topbar-title').textContent = circuloActual.nombre;
     mostrarPantalla('menu');
-    refreshFabPinCirculo();
 }
 
 function abrirSeccion(nombre) {
@@ -222,7 +203,6 @@ function abrirSeccion(nombre) {
         document.getElementById('topbar-title').textContent = 'Gastos';
         mostrarPantalla('gastos');
         cargarPeriodos();
-        refreshFabPinCirculo();
     } else if (nombre === 'personas') {
         document.getElementById('topbar-title').textContent = 'Personas';
         mostrarPantalla('personas');
