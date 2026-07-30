@@ -110,20 +110,24 @@
             <h3 id="modal-categorias-title"><i data-icon="tag" data-size="18"></i> Categorías de gastos</h3>
             <button type="button" class="modal-close" onclick="cerrarModal('modal-categorias')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
         </div>
-        <div id="lista-categorias" class="card" style="margin-bottom:16px;max-height:240px;overflow-y:auto"></div>
-        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Nueva categoría</div>
-        <div class="add-item-row" style="margin-bottom:12px">
-            <div class="form-group" style="flex:1;margin-bottom:0">
-                <label for="input-nueva-categoria">Nombre</label>
-                <input type="text" id="input-nueva-categoria" name="categoria_nombre" placeholder="Ej: Regalos…"
-                    onkeydown="if(event.key==='Enter') agregarCategoria()" autocomplete="off" />
-            </div>
-            <div class="form-group" style="flex:1;margin-bottom:0">
-                <label for="input-icono-categoria">Ícono</label>
-                <select id="input-icono-categoria" name="categoria_icono"></select>
+        <div class="modal-body">
+            <div id="lista-categorias" class="card modal-list-scroll"></div>
+            <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Nueva categoría</div>
+            <div class="add-item-row" style="margin-bottom:0">
+                <div class="form-group" style="flex:1;margin-bottom:0">
+                    <label for="input-nueva-categoria">Nombre</label>
+                    <input type="text" id="input-nueva-categoria" name="categoria_nombre" placeholder="Ej: Regalos…"
+                        onkeydown="if(event.key==='Enter') agregarCategoria()" autocomplete="off" />
+                </div>
+                <div class="form-group" style="flex:1;margin-bottom:0">
+                    <label for="input-icono-categoria">Ícono</label>
+                    <select id="input-icono-categoria" name="categoria_icono"></select>
+                </div>
             </div>
         </div>
-        <button type="button" class="btn btn-primary btn-full" onclick="agregarCategoria()"><i data-icon="plus" data-size="16"></i> Agregar categoría</button>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-primary btn-full" onclick="agregarCategoria()"><i data-icon="plus" data-size="16"></i> Agregar categoría</button>
+        </div>
     </div>
 </div>
 

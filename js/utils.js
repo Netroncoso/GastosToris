@@ -311,20 +311,25 @@ function mostrarPantalla(nombre) {
 }
 
 /** Sincroniza el overlay de modales con el viewport visible (sube con el teclado). */
+let _vvSyncRaf = null;
 function syncVisualViewport() {
-    const root = document.documentElement;
-    const vv = window.visualViewport;
-    if (!vv) {
-        root.style.setProperty('--vv-top', '0px');
-        root.style.setProperty('--vv-left', '0px');
-        root.style.setProperty('--vv-width', '100%');
-        root.style.setProperty('--vv-height', '100dvh');
-        return;
-    }
-    root.style.setProperty('--vv-top', `${Math.round(vv.offsetTop)}px`);
-    root.style.setProperty('--vv-left', `${Math.round(vv.offsetLeft)}px`);
-    root.style.setProperty('--vv-width', `${Math.round(vv.width)}px`);
-    root.style.setProperty('--vv-height', `${Math.round(vv.height)}px`);
+    if (_vvSyncRaf) return;
+    _vvSyncRaf = requestAnimationFrame(() => {
+        _vvSyncRaf = null;
+        const root = document.documentElement;
+        const vv = window.visualViewport;
+        if (!vv) {
+            root.style.setProperty('--vv-top', '0px');
+            root.style.setProperty('--vv-left', '0px');
+            root.style.setProperty('--vv-width', '100%');
+            root.style.setProperty('--vv-height', '100dvh');
+            return;
+        }
+        root.style.setProperty('--vv-top', `${Math.round(vv.offsetTop)}px`);
+        root.style.setProperty('--vv-left', `${Math.round(vv.offsetLeft)}px`);
+        root.style.setProperty('--vv-width', `${Math.round(vv.width)}px`);
+        root.style.setProperty('--vv-height', `${Math.round(vv.height)}px`);
+    });
 }
 
 let _modalFocusStack = [];
@@ -478,17 +483,25 @@ if (window.visualViewport) {
     visualViewport.addEventListener('scroll', syncVisualViewport);
 }
 
-// Al enfocar un campo, reacomodar y traer el input a la zona visible sobre el teclado
+// Al enfocar un campo en modal: solo reacomodar si quedaría tapado por el teclado
+let _modalFocusScrollTimer = null;
 document.addEventListener('focusin', (e) => {
     const field = e.target;
     if (!field?.closest?.('.modal-overlay.open')) return;
-    const bringIntoView = () => {
+    if (!/^(INPUT|SELECT|TEXTAREA)$/.test(field.tagName)) return;
+
+    clearTimeout(_modalFocusScrollTimer);
+    _modalFocusScrollTimer = setTimeout(() => {
         syncVisualViewport();
-        const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
-        field.scrollIntoView({ block: 'center', inline: 'nearest', behavior });
-    };
-    bringIntoView();
-    setTimeout(bringIntoView, 280);
+        const vv = window.visualViewport;
+        const rect = field.getBoundingClientRect();
+        const viewTop = vv ? vv.offsetTop : 0;
+        const viewBottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+        const pad = 12;
+        if (rect.top >= viewTop + pad && rect.bottom <= viewBottom - pad) return;
+
+        field.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'auto' });
+    }, 80);
 });
 
 /** Evita doble submit: deshabilita el botón mientras corre la acción. */
