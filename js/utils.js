@@ -250,11 +250,7 @@ async function guardarTokenGoogleIfPresent(session) {
     if (!session?.user?.id) return false;
     const refreshToken = session.provider_refresh_token;
     if (!refreshToken) return false;
-    const { error } = await db.from('google_tokens').upsert({
-        user_id: session.user.id,
-        refresh_token: refreshToken,
-        updated_at: new Date().toISOString()
-    });
+    const { error } = await db.rpc('guardar_google_token', { p_refresh_token: refreshToken });
     if (error) {
         console.error('No se pudo guardar el token de Google Calendar:', error.message);
         return false;
