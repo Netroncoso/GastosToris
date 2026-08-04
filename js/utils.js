@@ -260,6 +260,7 @@ async function tieneCalendarConectado() {
 
 /** OAuth solo para Calendar (con consent). No afecta el login diario. */
 async function conectarGoogleCalendar() {
+    await limpiarTokenGoogleCalendar();
     const { error } = await db.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -275,15 +276,25 @@ function esErrorCalendarDesconectado(msg) {
     const m = String(msg || '').toLowerCase();
     return (
         m.includes('calendar conectado') ||
+        m.includes('no tenés google calendar') ||
         m.includes('invalid_grant') ||
-        m.includes('token') ||
+        m.includes('invalid_client') ||
         m.includes('oauth client was not found') ||
-        m.includes('invalid_client')
+        m.includes('renovar el token') ||
+        m.includes('expired or revoked') ||
+        m.includes('refresh_token')
     );
+}
+
+async function limpiarTokenGoogleCalendar() {
+    const userId = await getCurrentUserId();
+    if (!userId) return;
+    await db.from('google_tokens').delete().eq('user_id', userId);
 }
 
 async function manejarErrorCalendar(e, contexto) {
     if (esErrorCalendarDesconectado(e?.message)) {
+        await limpiarTokenGoogleCalendar();
         if (await torisConfirm({
             title: 'Google Calendar',
             message: 'Google Calendar no está conectado o expiró. ¿Conectar ahora?',
