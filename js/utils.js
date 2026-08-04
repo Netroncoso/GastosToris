@@ -236,7 +236,10 @@ async function callCalendarSync(payload) {
             'Authorization': `Bearer ${session.access_token}`,
             'apikey': SUPABASE_KEY
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+            ...payload,
+            provider_token: session.provider_token || undefined
+        })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al sincronizar con Google Calendar.');
@@ -244,15 +247,35 @@ async function callCalendarSync(payload) {
 }
 
 async function guardarTokenGoogleIfPresent(session) {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id) return false;
     const refreshToken = session.provider_refresh_token;
-    if (!refreshToken) return;
+    if (!refreshToken) return false;
     const { error } = await db.from('google_tokens').upsert({
         user_id: session.user.id,
         refresh_token: refreshToken,
         updated_at: new Date().toISOString()
     });
-    if (error) console.error('No se pudo guardar el token de Google Calendar:', error.message);
+    if (error) {
+        console.error('No se pudo guardar el token de Google Calendar:', error.message);
+        return false;
+    }
+    return true;
+}
+
+/** Tras OAuth, provider_refresh_token solo viene en SIGNED_IN (no en recargas). */
+async function capturarTokenGoogleAlIniciarSesion(event, session) {
+    if (event !== 'SIGNED_IN' || !session) return;
+    if (await guardarTokenGoogleIfPresent(session)) return;
+    // A veces el token llega un tick después de parsear el hash OAuth
+    await new Promise(r => setTimeout(r, 400));
+    const { data: { session: s2 } } = await db.auth.getSession();
+    await guardarTokenGoogleIfPresent(s2);
+}
+
+async function intentarCapturarTokenGooglePostOAuth() {
+    if (!window.location.hash.includes('access_token')) return;
+    const { data: { session } } = await db.auth.getSession();
+    if (session) await capturarTokenGoogleAlIniciarSesion('SIGNED_IN', session);
 }
 
 async function tieneCalendarConectado() {
@@ -282,10 +305,13 @@ function esErrorCalendarDesconectado(msg) {
 }
 
 async function manejarErrorCalendar(e, contexto) {
+    console.warn('Calendar sync:', e?.message);
     if (esErrorCalendarDesconectado(e?.message)) {
+        if (sessionStorage.getItem('toris-calendar-aviso')) return;
+        sessionStorage.setItem('toris-calendar-aviso', '1');
         if (await torisConfirm({
             title: 'Google Calendar',
-            message: 'No se pudo sincronizar con Calendar. Cerrá sesión y volvé a entrar para renovar el permiso. ¿Cerrar sesión ahora?',
+            message: 'La tarea se guardó, pero Calendar no sincronizó. Cerrá sesión y volvé a entrar (aceptá permiso de Calendar). ¿Cerrar sesión ahora?',
             confirmLabel: 'Cerrar sesión'
         })) {
             await reconectarGoogleCalendar();

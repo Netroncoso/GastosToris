@@ -27,13 +27,16 @@ async function requireAuth(onReady) {
         window.location.href = './index.html';
         return;
     }
+    if (typeof intentarCapturarTokenGooglePostOAuth === 'function') {
+        await intentarCapturarTokenGooglePostOAuth();
+    }
     pintarTopbarUser(session.user);
     onReady(session.user);
 }
 
 db.auth.onAuthStateChange(async (event, session) => {
-    if (session && typeof guardarTokenGoogleIfPresent === 'function') {
-        await guardarTokenGoogleIfPresent(session);
+    if (typeof capturarTokenGoogleAlIniciarSesion === 'function') {
+        await capturarTokenGoogleAlIniciarSesion(event, session);
     }
     if (event === 'SIGNED_OUT') {
         window.location.href = './index.html';

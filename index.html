@@ -103,7 +103,7 @@
     let _cargarGruposSeq = 0;
 
     db.auth.onAuthStateChange(async (event, session) => {
-        if (session) await guardarTokenGoogleIfPresent(session);
+        await capturarTokenGoogleAlIniciarSesion(event, session);
         if (event === 'INITIAL_SESSION') {
             _appLista = true;
             if (session) await activarApp(session.user);
