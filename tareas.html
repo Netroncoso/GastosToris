@@ -41,10 +41,6 @@
                 <button type="button" class="filter-tab" role="tab" aria-selected="false" tabindex="-1" data-filtro="todas" onclick="setFiltro('todas')">Todas</button>
                 <button type="button" class="filter-tab" role="tab" aria-selected="false" tabindex="-1" data-filtro="hechas" onclick="setFiltro('hechas')">Hechas</button>
             </div>
-            <div id="calendar-connect-banner" class="alert alert-info hidden" style="margin-bottom:12px">
-                <div style="margin-bottom:8px"><i data-icon="calendar-days" data-size="16"></i> Conectá Google Calendar para sincronizar vencimientos.</div>
-                <button class="btn btn-primary btn-sm" type="button" onclick="conectarGoogleCalendar()">Conectar Calendar</button>
-            </div>
             <div id="tareas-stats" class="stats-row"></div>
             <div id="tareas-items" class="card"></div>
 
@@ -202,16 +198,8 @@ async function abrirGrupo(grupo, opts = {}) {
     filtroTareas = filtro;
     syncFilterTabsUI(document.getElementById('tareas-filters'), filtro);
     appReady();
-    await actualizarEstadoCalendarBanner();
     await Promise.all([cargarPersonasTareas(), cargarTareas(), cargarListasDisponibles()]);
     renderTareas();
-}
-
-async function actualizarEstadoCalendarBanner() {
-    const banner = document.getElementById('calendar-connect-banner');
-    if (!banner) return;
-    const ok = await tieneCalendarConectado();
-    banner.classList.toggle('hidden', ok);
 }
 
 function volverAlCirculo() {
@@ -441,7 +429,6 @@ async function agregarTarea() {
             const t = todasLasTareas.find(x => x.id === data.id);
             if (t) t.google_event_id = resultado.event_id;
             renderTareas();
-            await actualizarEstadoCalendarBanner();
         } catch (e) {
             await manejarErrorCalendar(e, 'La tarea se creó, pero no se pudo agregar a Google Calendar');
         }

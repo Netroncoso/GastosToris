@@ -244,10 +244,12 @@ async function callCalendarSync(payload) {
 }
 
 async function guardarTokenGoogleIfPresent(session) {
-    if (!session?.provider_refresh_token || !session.user?.id) return;
+    if (!session?.user?.id) return;
+    const refreshToken = session.provider_refresh_token;
+    if (!refreshToken) return;
     const { error } = await db.from('google_tokens').upsert({
         user_id: session.user.id,
-        refresh_token: session.provider_refresh_token,
+        refresh_token: refreshToken,
         updated_at: new Date().toISOString()
     });
     if (error) console.error('No se pudo guardar el token de Google Calendar:', error.message);
@@ -258,49 +260,35 @@ async function tieneCalendarConectado() {
     return !error && data === true;
 }
 
-/** OAuth solo para Calendar (con consent). No afecta el login diario. */
-async function conectarGoogleCalendar() {
-    await limpiarTokenGoogleCalendar();
-    const { error } = await db.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-            redirectTo: window.location.href.split('#')[0],
-            scopes: 'https://www.googleapis.com/auth/calendar.events',
-            queryParams: { access_type: 'offline', prompt: 'consent' }
-        }
-    });
-    if (error) alert('Error al conectar Calendar: ' + error.message);
+/** Renueva permiso de Calendar: requiere login completo para que Google entregue refresh_token. */
+async function reconectarGoogleCalendar() {
+    try { localStorage.setItem('toris-last-route', window.location.pathname + window.location.search); } catch (_) {}
+    await db.auth.signOut();
+    window.location.href = './index.html';
 }
 
 function esErrorCalendarDesconectado(msg) {
     const m = String(msg || '').toLowerCase();
     return (
         m.includes('calendar conectado') ||
+        m.includes('calendar expiró') ||
         m.includes('no tenés google calendar') ||
         m.includes('invalid_grant') ||
         m.includes('invalid_client') ||
         m.includes('oauth client was not found') ||
         m.includes('renovar el token') ||
-        m.includes('expired or revoked') ||
-        m.includes('refresh_token')
+        m.includes('expired or revoked')
     );
-}
-
-async function limpiarTokenGoogleCalendar() {
-    const userId = await getCurrentUserId();
-    if (!userId) return;
-    await db.from('google_tokens').delete().eq('user_id', userId);
 }
 
 async function manejarErrorCalendar(e, contexto) {
     if (esErrorCalendarDesconectado(e?.message)) {
-        await limpiarTokenGoogleCalendar();
         if (await torisConfirm({
             title: 'Google Calendar',
-            message: 'Google Calendar no está conectado o expiró. ¿Conectar ahora?',
-            confirmLabel: 'Conectar'
+            message: 'No se pudo sincronizar con Calendar. Cerrá sesión y volvé a entrar para renovar el permiso. ¿Cerrar sesión ahora?',
+            confirmLabel: 'Cerrar sesión'
         })) {
-            await conectarGoogleCalendar();
+            await reconectarGoogleCalendar();
         }
         return;
     }

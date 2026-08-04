@@ -83,7 +83,11 @@
     async function iniciarSesion() {
         const { error } = await db.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: APP_BASE_URL }
+            options: {
+                redirectTo: APP_BASE_URL,
+                scopes: 'https://www.googleapis.com/auth/calendar.events',
+                queryParams: { access_type: 'offline', prompt: 'consent' }
+            }
         });
         if (error) alert('Error al iniciar sesión: ' + error.message);
     }
@@ -132,6 +136,16 @@
         const invite = params.get('invite') || params.get('invite_gasto') || params.get('invite_tarea');
         if (invite) {
             window.location.href = `./circulo.html?abrir=${invite}`;
+            return;
+        }
+
+        let lastRoute = null;
+        try {
+            lastRoute = localStorage.getItem('toris-last-route');
+            if (lastRoute) localStorage.removeItem('toris-last-route');
+        } catch (_) {}
+        if (lastRoute && !lastRoute.includes('index.html')) {
+            window.location.href = lastRoute.startsWith('/') ? lastRoute : ('./' + lastRoute);
             return;
         }
 
