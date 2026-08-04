@@ -254,13 +254,8 @@ async function guardarTokenGoogleIfPresent(session) {
 }
 
 async function tieneCalendarConectado() {
-    const userId = await getCurrentUserId();
-    if (!userId) return false;
-    const { data, error } = await db.from('google_tokens')
-        .select('refresh_token')
-        .eq('user_id', userId)
-        .maybeSingle();
-    return !error && !!data?.refresh_token;
+    const { data, error } = await db.rpc('tiene_calendar_conectado');
+    return !error && data === true;
 }
 
 /** OAuth solo para Calendar (con consent). No afecta el login diario. */
