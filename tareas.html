@@ -416,6 +416,7 @@ async function agregarTarea() {
     renderTareas();
 
     if (fecha_vencimiento) {
+        if (!(await asegurarCalendarParaSync())) return;
         try {
             const asignadoEmail = personasTareas.find(p => p.id === id_asignado)?.email || null;
             const resultado = await callCalendarSync({
@@ -588,28 +589,32 @@ async function guardarEdicionTarea() {
     let nuevoEventId = hadEvent;
 
     try {
-        if (fecha_vencimiento && hadEvent) {
-            const asignadoEmail = personasTareas.find(p => p.id === id_asignado)?.email || null;
-            await callCalendarSync({
-                action: 'update',
-                event_id: hadEvent,
-                titulo,
-                fecha_vencimiento,
-                asignado_email: asignadoEmail,
-                invitados_emails: invitadosEmails
-            });
-        } else if (fecha_vencimiento && !hadEvent) {
-            const asignadoEmail = personasTareas.find(p => p.id === id_asignado)?.email || null;
-            const resultado = await callCalendarSync({
-                action: 'create',
-                titulo,
-                fecha_vencimiento,
-                asignado_email: asignadoEmail,
-                invitados_emails: invitadosEmails
-            });
-            nuevoEventId = resultado.event_id;
-            await db.from('tareas').update({ google_event_id: nuevoEventId }).eq('id', tareaEditando);
-        } else if (!fecha_vencimiento && hadEvent) {
+        if (fecha_vencimiento) {
+            if (!(await asegurarCalendarParaSync())) {
+                // tarea guardada sin sync
+            } else if (hadEvent) {
+                const asignadoEmail = personasTareas.find(p => p.id === id_asignado)?.email || null;
+                await callCalendarSync({
+                    action: 'update',
+                    event_id: hadEvent,
+                    titulo,
+                    fecha_vencimiento,
+                    asignado_email: asignadoEmail,
+                    invitados_emails: invitadosEmails
+                });
+            } else {
+                const asignadoEmail = personasTareas.find(p => p.id === id_asignado)?.email || null;
+                const resultado = await callCalendarSync({
+                    action: 'create',
+                    titulo,
+                    fecha_vencimiento,
+                    asignado_email: asignadoEmail,
+                    invitados_emails: invitadosEmails
+                });
+                nuevoEventId = resultado.event_id;
+                await db.from('tareas').update({ google_event_id: nuevoEventId }).eq('id', tareaEditando);
+            }
+        } else if (hadEvent) {
             await callCalendarSync({ action: 'delete', event_id: hadEvent });
             nuevoEventId = null;
             await db.from('tareas').update({ google_event_id: null }).eq('id', tareaEditando);

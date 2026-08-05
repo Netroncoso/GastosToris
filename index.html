@@ -83,11 +83,7 @@
     async function iniciarSesion() {
         const { error } = await db.auth.signInWithOAuth({
             provider: 'google',
-            options: {
-                redirectTo: APP_BASE_URL,
-                scopes: 'https://www.googleapis.com/auth/calendar.events',
-                queryParams: { access_type: 'offline', prompt: 'consent' }
-            }
+            options: { redirectTo: APP_BASE_URL }
         });
         if (error) alert('Error al iniciar sesión: ' + error.message);
     }

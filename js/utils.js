@@ -279,11 +279,35 @@ async function tieneCalendarConectado() {
     return !error && data === true;
 }
 
-/** Renueva permiso de Calendar: requiere login completo para que Google entregue refresh_token. */
-async function reconectarGoogleCalendar() {
-    try { localStorage.setItem('toris-last-route', window.location.pathname + window.location.search); } catch (_) {}
-    await db.auth.signOut();
-    window.location.href = './index.html';
+/** OAuth opt-in para Calendar (no afecta el login diario). */
+async function conectarGoogleCalendar() {
+    try {
+        localStorage.setItem('toris-last-route', window.location.pathname + window.location.search);
+        sessionStorage.setItem('toris-calendar-oauth', '1');
+    } catch (_) {}
+    const { error } = await db.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: window.location.href.split('#')[0],
+            scopes: 'https://www.googleapis.com/auth/calendar.events',
+            queryParams: { access_type: 'offline', prompt: 'consent' }
+        }
+    });
+    if (error) alert('Error al conectar Calendar: ' + error.message);
+}
+
+/** Antes de sync: si Calendar no está listo, preguntar opt-in. false = no sync (tarea ya guardada). */
+async function asegurarCalendarParaSync() {
+    if (await tieneCalendarConectado()) return true;
+    const { data: { session } } = await db.auth.getSession();
+    if (session?.provider_token) return true;
+    const ok = await torisConfirm({
+        title: 'Google Calendar',
+        message: '¿Conectar Google Calendar para agregar el vencimiento al calendario?',
+        confirmLabel: 'Conectar'
+    });
+    if (ok) await conectarGoogleCalendar();
+    return false;
 }
 
 function esErrorCalendarDesconectado(msg) {
@@ -303,14 +327,12 @@ function esErrorCalendarDesconectado(msg) {
 async function manejarErrorCalendar(e, contexto) {
     console.warn('Calendar sync:', e?.message);
     if (esErrorCalendarDesconectado(e?.message)) {
-        if (sessionStorage.getItem('toris-calendar-aviso')) return;
-        sessionStorage.setItem('toris-calendar-aviso', '1');
         if (await torisConfirm({
             title: 'Google Calendar',
-            message: 'La tarea se guardó, pero Calendar no sincronizó. Cerrá sesión y volvé a entrar (aceptá permiso de Calendar). ¿Cerrar sesión ahora?',
-            confirmLabel: 'Cerrar sesión'
+            message: 'La tarea se guardó, pero Calendar no sincronizó. ¿Conectar Google Calendar ahora?',
+            confirmLabel: 'Conectar'
         })) {
-            await reconectarGoogleCalendar();
+            await conectarGoogleCalendar();
         }
         return;
     }
