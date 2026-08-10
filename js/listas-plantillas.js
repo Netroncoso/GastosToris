@@ -83,7 +83,7 @@ const LISTAS_PLANTILLAS = [
     {
         id: 'barrio-chino',
         nombre: 'Barrio Chino',
-        icon: 'building-storefront',
+        icon: 'storefront',
         items: [
             'Aceite de sésamo',
             'Salsa de soja Riki',
@@ -103,7 +103,7 @@ const LISTAS_PLANTILLAS = [
     {
         id: 'dietetica',
         nombre: 'Dietetica',
-        icon: 'beaker',
+        icon: 'flask',
         items: [
             'Pimentón ahumado',
             'Orégano',
@@ -166,7 +166,7 @@ const LISTAS_PLANTILLAS = [
     {
         id: 'verduras-frutas',
         nombre: 'Verduras/frutas',
-        icon: 'sparkles',
+        icon: 'carrot',
         items: [
             'Papa',
             'Cebolla',
@@ -206,7 +206,7 @@ const LISTAS_PLANTILLAS = [
     {
         id: 'camping',
         nombre: 'Camping',
-        icon: 'map',
+        icon: 'tent',
         items: [
             'Alargue',
             'Almohada',

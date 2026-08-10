@@ -29,7 +29,7 @@
     <div style="display:flex;align-items:center;gap:8px">
         <span id="topbar-user" class="topbar-user"></span>
         <button type="button" class="btn-icon" data-theme-toggle onclick="toggleTheme()" aria-label="Modo oscuro"><i data-icon="moon" data-size="18"></i></button>
-        <button type="button" class="btn-icon" onclick="cerrarSesion()" aria-label="Cerrar sesión"><i data-icon="arrow-right-on-rectangle" data-size="18"></i></button>
+        <button type="button" class="btn-icon" onclick="cerrarSesion()" aria-label="Cerrar sesión"><i data-icon="sign-out" data-size="18"></i></button>
     </div>
 </div>
 
@@ -38,7 +38,7 @@
     <main id="main-content" class="container">
         <div id="lista-de-listas"><div class="loader" role="status" aria-live="polite">Cargando listas…</div></div>
         <button type="button" class="btn btn-primary btn-full mt-16" onclick="abrirModalLista()"><i data-icon="plus" data-size="16"></i> Nueva lista</button>
-        <button type="button" class="btn btn-ghost btn-full mt-12" onclick="abrirModalPlantillas()"><i data-icon="clipboard-document-list" data-size="16"></i> Cargar plantilla</button>
+        <button type="button" class="btn btn-ghost btn-full mt-12" onclick="abrirModalPlantillas()"><i data-icon="clipboard-text" data-size="16"></i> Cargar plantilla</button>
     </main>
 </div>
 
@@ -79,7 +79,7 @@
 
         <div id="acciones-comprados" class="mt-12" style="display:none;gap:8px">
             <button type="button" class="btn btn-ghost" id="btn-desmarcar-comprados" onclick="desmarcarComprados()" style="flex:0 0 20%;max-width:20%;padding:10px 4px;font-size:12px" aria-label="Desmarcar todos los comprados">
-                <i data-icon="arrow-path-rounded-square" data-size="16"></i>
+                <i data-icon="arrows-counter-clockwise" data-size="16"></i>
             </button>
             <button class="btn btn-primary" id="btn-cargar-gastos" onclick="abrirModalCargarGastos()" style="flex:1 1 80%;min-width:0">
                 <i data-icon="currency-dollar" data-size="16"></i> Cargar a gastos
@@ -93,7 +93,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3 id="modal-lista-title">Nueva lista</h3>
-            <button type="button" class="modal-close" onclick="cerrarModal('modal-lista')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
+            <button type="button" class="modal-close" onclick="cerrarModal('modal-lista')" aria-label="Cerrar"><i data-icon="x" data-size="14"></i></button>
         </div>
         <div class="form-group">
             <label for="input-nombre-lista">Nombre de la lista</label>
@@ -108,7 +108,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3 id="modal-plantillas-title">Cargar plantilla</h3>
-            <button type="button" class="modal-close" onclick="cerrarModal('modal-plantillas')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
+            <button type="button" class="modal-close" onclick="cerrarModal('modal-plantillas')" aria-label="Cerrar"><i data-icon="x" data-size="14"></i></button>
         </div>
         <p class="text-muted" style="margin-bottom:14px;font-size:13px;line-height:1.45">
             Crea una lista nueva con ítems prearmados. Podés editarla después.
@@ -122,7 +122,7 @@
     <div class="modal modal-scroll-focus">
         <div class="modal-header">
             <h3 id="modal-cargar-gastos-title">Nuevo gasto</h3>
-            <button type="button" class="modal-close" onclick="cerrarModal('modal-cargar-gastos')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
+            <button type="button" class="modal-close" onclick="cerrarModal('modal-cargar-gastos')" aria-label="Cerrar"><i data-icon="x" data-size="14"></i></button>
         </div>
         <div id="cargar-gastos-resumen" class="text-muted" style="margin-bottom:14px;font-size:13px;line-height:1.45"></div>
         <div id="cargar-gasto-form-mount"></div>
@@ -131,7 +131,7 @@
 </div>
 
 <button type="button" id="fab-pin" class="fab-pin hidden" onclick="togglePinPaginaActual()" aria-label="Fijar en inicio">
-    <i data-icon="bookmark" data-size="22"></i>
+    <i data-icon="bookmark-simple" data-size="22"></i>
 </button>
 
 <script src="js/supabase-client.js"></script>
@@ -326,7 +326,7 @@ function abrirModalPlantillas() {
     cont.innerHTML = (typeof LISTAS_PLANTILLAS !== 'undefined' ? LISTAS_PLANTILLAS : []).map(p => `
         <div class="card card-click" style="margin-bottom:8px" onclick="cargarPlantilla('${escapeJsString(p.id)}')">
             <div class="card-body dash-card" style="padding:14px 12px">
-                <div class="dash-icon" style="width:40px;height:40px"><i data-icon="${p.icon || 'clipboard-document-list'}" data-size="22"></i></div>
+                <div class="dash-icon" style="width:40px;height:40px"><i data-icon="${p.icon || 'clipboard-text'}" data-size="22"></i></div>
                 <div style="min-width:0;flex:1">
                     <div class="dash-title" style="font-size:15px">${escapeHtml(p.nombre)}</div>
                     <div class="dash-sub">${p.items.length} ítems</div>
@@ -447,7 +447,7 @@ function renderItems() {
     }
 
     if (!items.length) {
-        const msgs = { pendientes: '<i data-icon="check-circle" data-size="18"></i> No hay ítems pendientes.', comprados: 'Sin ítems comprados todavía.', todos: '<i data-icon="clipboard-document-list" data-size="18"></i> La lista está vacía. Agregá algo.' };
+        const msgs = { pendientes: '<i data-icon="check-circle" data-size="18"></i> No hay ítems pendientes.', comprados: 'Sin ítems comprados todavía.', todos: '<i data-icon="clipboard-text" data-size="18"></i> La lista está vacía. Agregá algo.' };
         cont.innerHTML = `<div class="empty" style="padding:24px"><span class="empty-icon">${filtroLista === 'pendientes' ? icon('check-circle',40) : icon('shopping-cart',40)}</span>${msgs[filtroLista]}</div>`;
         return;
     }
@@ -460,7 +460,7 @@ function renderItems() {
             </div>
             <div class="lista-nombre ${item.comprado ? 'tachado' : ''}">${escapeHtml(item.nombre)}</div>
             ${cantStr ? `<div class="lista-cantidad">${escapeHtml(cantStr)}</div>` : ''}
-            <button type="button" class="btn-icon-plain btn-icon-danger" onclick="borrarItem(${item.id})" aria-label="Eliminar ítem">${icon('x-mark',16)}</button>
+            <button type="button" class="btn-icon-plain btn-icon-danger" onclick="borrarItem(${item.id})" aria-label="Eliminar ítem">${icon('x',16)}</button>
         </div>`;
     }).join('');
 }

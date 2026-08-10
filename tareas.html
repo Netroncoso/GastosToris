@@ -29,7 +29,7 @@
     <div style="display:flex;align-items:center;gap:8px">
         <span id="topbar-user" class="topbar-user"></span>
         <button type="button" class="btn-icon" data-theme-toggle onclick="toggleTheme()" aria-label="Modo oscuro"><i data-icon="moon" data-size="18"></i></button>
-        <button type="button" class="btn-icon" onclick="cerrarSesion()" aria-label="Cerrar sesión"><i data-icon="arrow-right-on-rectangle" data-size="18"></i></button>
+        <button type="button" class="btn-icon" onclick="cerrarSesion()" aria-label="Cerrar sesión"><i data-icon="sign-out" data-size="18"></i></button>
     </div>
 </div>
 
@@ -88,8 +88,8 @@
 <div id="modal-editar-tarea" class="modal-overlay">
     <div class="modal modal-scroll-focus">
         <div class="modal-header">
-            <h3 id="modal-editar-tarea-title"><i data-icon="pencil-square" data-size="18"></i> Editar tarea</h3>
-            <button type="button" class="modal-close" onclick="cerrarModal('modal-editar-tarea')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
+            <h3 id="modal-editar-tarea-title"><i data-icon="pencil-simple" data-size="18"></i> Editar tarea</h3>
+            <button type="button" class="modal-close" onclick="cerrarModal('modal-editar-tarea')" aria-label="Cerrar"><i data-icon="x" data-size="14"></i></button>
         </div>
         <div class="form-group">
             <label for="input-edit-titulo-tarea">Título</label>
@@ -348,8 +348,8 @@ function renderTareas() {
         hechas.length > 0 ? 'flex' : 'none';
 
     if (!items.length) {
-        const msgs = { pendientes: '<i data-icon="check-circle" data-size="18"></i> No hay tareas pendientes.', hechas: 'Sin tareas hechas todavía.', todas: '<i data-icon="clipboard-document-list" data-size="18"></i> No hay tareas en este grupo. Agregá una.' };
-        cont.innerHTML = `<div class="empty" style="padding:24px"><span class="empty-icon">${filtroTareas === 'pendientes' ? icon('check-circle',40) : icon('clipboard-document-list',40)}</span>${msgs[filtroTareas]}</div>`;
+        const msgs = { pendientes: '<i data-icon="check-circle" data-size="18"></i> No hay tareas pendientes.', hechas: 'Sin tareas hechas todavía.', todas: '<i data-icon="clipboard-text" data-size="18"></i> No hay tareas en este grupo. Agregá una.' };
+        cont.innerHTML = `<div class="empty" style="padding:24px"><span class="empty-icon">${filtroTareas === 'pendientes' ? icon('check-circle',40) : icon('clipboard-text',40)}</span>${msgs[filtroTareas]}</div>`;
         return;
     }
 
@@ -366,13 +366,13 @@ function renderTareas() {
                 <div class="prio-dot prio-${t.prioridad || 'media'}" title="Prioridad ${PRIO_LABEL[t.prioridad] || 'Media'}"></div>
                 <div class="lista-nombre ${t.hecha ? 'tachado' : ''}">${escapeHtml(t.titulo)}</div>
                 <div class="tarea-actions">
-                    <button type="button" class="btn-icon-plain" onclick="abrirModalEditarTarea(${t.id})" aria-label="Editar tarea">${icon('pencil-square',18)}</button>
-                    <button type="button" class="btn-icon-plain btn-icon-danger" onclick="borrarTarea(${t.id})" aria-label="Eliminar tarea">${icon('x-mark',18)}</button>
+                    <button type="button" class="btn-icon-plain" onclick="abrirModalEditarTarea(${t.id})" aria-label="Editar tarea">${icon('pencil-simple',18)}</button>
+                    <button type="button" class="btn-icon-plain btn-icon-danger" onclick="borrarTarea(${t.id})" aria-label="Eliminar tarea">${icon('x',18)}</button>
                 </div>
             </div>
             ${tieneBadges ? `
             <div class="tarea-item-badges">
-                ${t.fecha_vencimiento ? `<span class="badge badge-purple" title="${t.google_event_id ? 'Sincronizada con Google Calendar' : 'Vencimiento'}"><i data-icon="calendar-days" data-size="14"></i> ${formatFechaHora(t.fecha_vencimiento)}</span>` : ''}
+                ${t.fecha_vencimiento ? `<span class="badge badge-purple" title="${t.google_event_id ? 'Sincronizada con Google Calendar' : 'Vencimiento'}"><i data-icon="calendar-blank" data-size="14"></i> ${formatFechaHora(t.fecha_vencimiento)}</span>` : ''}
                 ${lista ? `<a href="listas.html?circulo=${grupoActual.id}&abrir=${t.id_lista}" class="badge badge-green" style="text-decoration:none"><i data-icon="shopping-cart" data-size="14"></i> ${escapeHtml(lista)}</a>` : ''}
                 ${asignado ? `<span class="badge badge-blue">${escapeHtml(asignado)}</span>` : ''}
             </div>` : ''}

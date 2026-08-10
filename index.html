@@ -47,7 +47,7 @@
     <div style="display:flex;align-items:center;gap:8px">
         <span id="topbar-user" class="topbar-user"></span>
         <button type="button" class="btn-icon" data-theme-toggle onclick="toggleTheme()" aria-label="Modo oscuro"><i data-icon="moon" data-size="18"></i></button>
-        <button type="button" class="btn-icon" onclick="cerrarSesion()" aria-label="Cerrar sesión"><i data-icon="arrow-right-on-rectangle" data-size="18"></i></button>
+        <button type="button" class="btn-icon" onclick="cerrarSesion()" aria-label="Cerrar sesión"><i data-icon="sign-out" data-size="18"></i></button>
     </div>
 </div>
 
@@ -67,7 +67,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3 id="modal-grupo-title">Nuevo círculo</h3>
-            <button type="button" class="modal-close" onclick="cerrarModal('modal-grupo')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
+            <button type="button" class="modal-close" onclick="cerrarModal('modal-grupo')" aria-label="Cerrar"><i data-icon="x" data-size="14"></i></button>
         </div>
         <div class="form-group">
             <label for="input-nombre-grupo">Nombre</label>
@@ -212,7 +212,7 @@
                         <div class="text-muted">${new Date(g.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' })}</div>
                     </div>
                     <div class="card-actions" onclick="event.stopPropagation()">
-                        <button type="button" class="btn btn-ghost btn-sm" onclick="editarGrupo(${g.id})" aria-label="Editar">${icon('pencil-square',16)}</button>
+                        <button type="button" class="btn btn-ghost btn-sm" onclick="editarGrupo(${g.id})" aria-label="Editar">${icon('pencil-simple',16)}</button>
                         <button type="button" class="btn btn-danger btn-sm" onclick="eliminarGrupo(${g.id}, '${escapeJsString(g.nombre)}')" aria-label="Eliminar">${icon('trash',16)}</button>
                     </div>
                 </div>

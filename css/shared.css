@@ -409,7 +409,7 @@ button.filter-tab { font-family: inherit; width: 100%; }
 .input-sm { padding: 8px 10px; font-size: 14px; }
 .stats-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
 
-/* ICONOS (Heroicons via mask-image, coloreables con currentColor) */
+/* ICONOS (Phosphor/Heroicons logo via mask-image, coloreables con currentColor) */
 .hicon {
     display: inline-block;
     vertical-align: middle;

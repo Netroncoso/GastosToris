@@ -29,7 +29,7 @@
     <div style="display:flex;align-items:center;gap:8px">
         <span id="topbar-user" class="topbar-user"></span>
         <button type="button" class="btn-icon" data-theme-toggle onclick="toggleTheme()" aria-label="Modo oscuro"><i data-icon="moon" data-size="18"></i></button>
-        <button type="button" class="btn-icon" onclick="cerrarSesion()" aria-label="Cerrar sesión"><i data-icon="arrow-right-on-rectangle" data-size="18"></i></button>
+        <button type="button" class="btn-icon" onclick="cerrarSesion()" aria-label="Cerrar sesión"><i data-icon="sign-out" data-size="18"></i></button>
     </div>
 </div>
 
@@ -37,7 +37,7 @@
 <div id="screen-periodo" class="screen active">
     <div class="tabs" role="tablist" aria-label="Secciones de gastos">
         <button type="button" class="tab active" role="tab" aria-selected="true" data-tab="gastos" onclick="cambiarTab('gastos')"><i data-icon="currency-dollar" data-size="18"></i> Gastos</button>
-        <button type="button" class="tab" role="tab" aria-selected="false" tabindex="-1" data-tab="balance" onclick="cambiarTab('balance')"><i data-icon="scale" data-size="18"></i> Balance</button>
+        <button type="button" class="tab" role="tab" aria-selected="false" tabindex="-1" data-tab="balance" onclick="cambiarTab('balance')"><i data-icon="scales" data-size="18"></i> Balance</button>
         <button type="button" class="tab" role="tab" aria-selected="false" tabindex="-1" data-tab="resumen" onclick="cambiarTab('resumen')"><i data-icon="chart-bar" data-size="18"></i> Resumen</button>
     </div>
     <main id="main-content" class="container">
@@ -45,7 +45,7 @@
             <div id="lista-gastos"><div class="loader" role="status" aria-live="polite">Cargando…</div></div>
             <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
                 <button type="button" class="btn btn-primary" style="flex:1 1 120px" onclick="abrirModalGasto()"><i data-icon="plus" data-size="16"></i> Gasto</button>
-                <button type="button" class="btn btn-ghost" style="flex:1 1 120px" onclick="abrirModalReembolso()"><i data-icon="arrow-path" data-size="16"></i> Reembolso</button>
+                <button type="button" class="btn btn-ghost" style="flex:1 1 120px" onclick="abrirModalReembolso()"><i data-icon="arrows-clockwise" data-size="16"></i> Reembolso</button>
                 <button type="button" class="btn btn-ghost" id="btn-recurrente" style="flex:1 1 120px" onclick="abrirModalRecurrentes()"><i data-icon="credit-card" data-size="16"></i> Recurrente</button>
             </div>
         </div>
@@ -59,15 +59,15 @@
 </div>
 
 <button type="button" id="fab-pin" class="fab-pin hidden" onclick="togglePinPaginaActual()" aria-label="Fijar en inicio">
-    <i data-icon="bookmark" data-size="22"></i>
+    <i data-icon="bookmark-simple" data-size="22"></i>
 </button>
 
 <!-- MODAL: REEMBOLSO -->
 <div id="modal-reembolso" class="modal-overlay">
     <div class="modal">
         <div class="modal-header">
-            <h3 id="modal-reembolso-title"><i data-icon="arrow-path" data-size="18"></i> Registrar reembolso</h3>
-            <button type="button" class="modal-close" onclick="cerrarModal('modal-reembolso')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
+            <h3 id="modal-reembolso-title"><i data-icon="arrows-clockwise" data-size="18"></i> Registrar reembolso</h3>
+            <button type="button" class="modal-close" onclick="cerrarModal('modal-reembolso')" aria-label="Cerrar"><i data-icon="x" data-size="14"></i></button>
         </div>
         <div class="alert alert-info" style="margin-bottom:16px">
             Registrá cuando alguien le devuelve plata a otro. Esto actualiza el balance automáticamente.
@@ -97,7 +97,7 @@
     <div class="modal modal-scroll-focus">
         <div class="modal-header">
             <h3 id="modal-gasto-title">Nuevo gasto</h3>
-            <button type="button" class="modal-close" onclick="cerrarModal('modal-gasto')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
+            <button type="button" class="modal-close" onclick="cerrarModal('modal-gasto')" aria-label="Cerrar"><i data-icon="x" data-size="14"></i></button>
         </div>
         <div id="gasto-form-mount"></div>
         <button type="button" class="btn btn-primary btn-full" id="btn-guardar-gasto" onclick="guardarGasto()">Guardar gasto</button>
@@ -109,7 +109,7 @@
     <div class="modal modal-scroll-focus">
         <div class="modal-header">
             <h3 id="modal-categorias-title"><i data-icon="tag" data-size="18"></i> Categorías de gastos</h3>
-            <button type="button" class="modal-close" onclick="cerrarModal('modal-categorias')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
+            <button type="button" class="modal-close" onclick="cerrarModal('modal-categorias')" aria-label="Cerrar"><i data-icon="x" data-size="14"></i></button>
         </div>
         <div class="modal-body">
             <div id="lista-categorias" class="card modal-list-scroll"></div>
@@ -137,7 +137,7 @@
     <div class="modal modal-scroll-focus">
         <div class="modal-header">
             <h3>Gastos recurrentes</h3>
-            <button type="button" class="modal-close" onclick="cerrarModal('modal-recurrentes')" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
+            <button type="button" class="modal-close" onclick="cerrarModal('modal-recurrentes')" aria-label="Cerrar"><i data-icon="x" data-size="14"></i></button>
         </div>
         <p class="text-muted" style="margin-bottom:12px;font-size:13px;line-height:1.45">
             Marcá una o más cuotas y cargalas en este periodo. Si hace falta cambiar quién pagó o la división, editá el gasto desde la lista.
@@ -147,7 +147,7 @@
             <button type="button" class="btn btn-primary btn-full" id="btn-cargar-recurrentes" onclick="cargarRecurrentesSeleccionados()" disabled>
                 Cargar seleccionados
             </button>
-            <button type="button" class="btn btn-ghost btn-full" onclick="abrirGestionRecurrentes()"><i data-icon="cog-6-tooth" data-size="16"></i> Gestionar</button>
+            <button type="button" class="btn btn-ghost btn-full" onclick="abrirGestionRecurrentes()"><i data-icon="gear-six" data-size="16"></i> Gestionar</button>
         </div>
     </div>
 </div>
@@ -157,7 +157,7 @@
     <div class="modal modal-scroll-focus">
         <div class="modal-header">
             <h3>Gestionar recurrentes</h3>
-            <button type="button" class="modal-close" onclick="cerrarGestionRecurrentes()" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
+            <button type="button" class="modal-close" onclick="cerrarGestionRecurrentes()" aria-label="Cerrar"><i data-icon="x" data-size="14"></i></button>
         </div>
         <div id="lista-recurrentes-plantillas"></div>
         <div class="modal-actions" style="margin-top:14px">
@@ -171,7 +171,7 @@
     <div class="modal modal-scroll-focus">
         <div class="modal-header">
             <h3 id="modal-recurrente-form-title">Nuevo recurrente</h3>
-            <button type="button" class="modal-close" onclick="cerrarFormRecurrente()" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
+            <button type="button" class="modal-close" onclick="cerrarFormRecurrente()" aria-label="Cerrar"><i data-icon="x" data-size="14"></i></button>
         </div>
         <div class="form-group">
             <label for="rec-nombre">Nombre</label>
@@ -244,16 +244,45 @@ let plantillasYaEnPeriodo = new Set();
 let recurrentesExpandInit = false;
 
 const ICONOS_DISPONIBLES = [
-    'shopping-cart', 'cake', 'shopping-bag', 'heart', 'home', 'bolt',
-    'credit-card', 'truck', 'globe', 'film', 'archive-box', 'gift',
-    'beaker', 'building-storefront', 'sparkles', 'tag', 'currency-dollar',
-    'device-phone-mobile', 'musical-note', 'ticket', 'paper-airplane'
+    { id: 'shopping-cart', label: 'Carrito / Cart' },
+    { id: 'storefront', label: 'Tienda / Store' },
+    { id: 'basket', label: 'Canasta / Basket' },
+    { id: 'cow', label: 'Vaca / Cow' },
+    { id: 'fish', label: 'Pez / Fish' },
+    { id: 'carrot', label: 'Zanahoria / Carrot' },
+    { id: 'egg', label: 'Huevo / Egg' },
+    { id: 'bread', label: 'Pan / Bread' },
+    { id: 'chef-hat', label: 'Chef / Chef hat' },
+    { id: 'fork-knife', label: 'Cubiertos / Fork & knife' },
+    { id: 'coffee', label: 'Café / Coffee' },
+    { id: 'beer-stein', label: 'Jarra / Beer stein' },
+    { id: 'cat', label: 'Gato / Cat' },
+    { id: 'dog', label: 'Perro / Dog' },
+    { id: 'house', label: 'Casa / House' },
+    { id: 'lamp-pendant', label: 'Lámpara / Pendant lamp' },
+    { id: 'lightning', label: 'Rayo / Lightning' },
+    { id: 'fire', label: 'Fuego / Fire' },
+    { id: 'receipt', label: 'Factura / Receipt' },
+    { id: 'credit-card', label: 'Tarjeta / Credit card' },
+    { id: 'bank', label: 'Banco / Bank' },
+    { id: 'car', label: 'Auto / Car' },
+    { id: 'gas-pump', label: 'Nafta / Gas pump' },
+    { id: 'paper-plane-tilt', label: 'Avioncito / Paper plane' },
+    { id: 'suitcase-rolling', label: 'Valija / Suitcase' },
+    { id: 'island', label: 'Isla / Island' },
+    { id: 'tent', label: 'Carpa / Tent' },
+    { id: 'ticket', label: 'Entrada / Ticket' },
+    { id: 'cassette-tape', label: 'Cassette / Cassette tape' },
+    { id: 'boxing-glove', label: 'Boxeo / Boxing glove' },
+    { id: 'barbell', label: 'Pesas / Barbell' },
+    { id: 'gift', label: 'Regalo / Gift' },
+    { id: 'package', label: 'Paquete / Package' }
 ];
 
 const TABS_GASTOS = ['gastos', 'balance', 'resumen'];
 
 function normalizarCategoria(c) {
-    return { nombre: c.nombre, icono: c.icono || 'archive-box' };
+    return { nombre: c.nombre, icono: c.icono || 'package' };
 }
 
 function initCategorias() {
@@ -265,14 +294,14 @@ function initCategorias() {
 }
 
 function iconoCategoria(cat) {
-    return icon(cat?.icono || 'archive-box', 16);
+    return icon(cat?.icono || 'package', 16);
 }
 
 function getIconoTipo(nombre) {
     const cat = categoriasActuales.find(c => c.nombre === nombre);
     if (cat) return iconoCategoria(cat);
-    if (nombre === 'Reembolso') return icon('arrow-path', 16);
-    return icon('archive-box', 16);
+    if (nombre === 'Reembolso') return icon('arrows-clockwise', 16);
+    return icon('package', 16);
 }
 
 function renderSelectTipo(valorActual = null) {
@@ -283,7 +312,7 @@ function renderSelectIconos() {
     const sel = document.getElementById('input-icono-categoria');
     if (!sel) return;
     sel.innerHTML = ICONOS_DISPONIBLES.map(i =>
-        `<option value="${i}">${i.replace(/-/g, ' ')}</option>`
+        `<option value="${i.id}">${escapeHtml(i.label)}</option>`
     ).join('');
 }
 
@@ -296,7 +325,7 @@ function renderListaCategorias() {
             <div style="flex:1;min-width:0">
                 <div class="part-name">${escapeHtml(c.nombre)}</div>
             </div>
-            <button onclick="eliminarCategoria(${i})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px" title="Eliminar categoría"><i data-icon="x-mark" data-size="14"></i></button>
+            <button onclick="eliminarCategoria(${i})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px" title="Eliminar categoría"><i data-icon="x" data-size="14"></i></button>
         </div>
     `).join('');
 }
@@ -679,7 +708,7 @@ async function cargarGastos({ silent = false } = {}) {
                 </div>
                 <div class="gasto-actions">
                     <div class="gasto-monto" style="${esReembolso ? 'color:var(--success)' : ''}">$${fmt(g.monto)}</div>
-                    <button type="button" class="btn-icon-plain" onclick="editarGasto(${g.id})" aria-label="Editar gasto">${icon('pencil-square',18)}</button>
+                    <button type="button" class="btn-icon-plain" onclick="editarGasto(${g.id})" aria-label="Editar gasto">${icon('pencil-simple',18)}</button>
                     <button type="button" class="btn-icon-plain btn-icon-danger" onclick="eliminarGasto(${g.id}, '${escapeJsString(g.concepto)}')" aria-label="Eliminar gasto">${icon('trash',18)}</button>
                 </div>
             </div>
@@ -1086,7 +1115,7 @@ function renderListaPendientesRecurrentes() {
                     </div>
                     <div class="recurrente-grupo-right">
                         <div class="recurrente-grupo-monto">$${fmt(plantilla.monto)}</div>
-                        <span class="recurrente-grupo-chevron" aria-hidden="true">${icon(expanded ? 'chevron-up' : 'chevron-down', 16)}</span>
+                        <span class="recurrente-grupo-chevron" aria-hidden="true">${icon(expanded ? 'caret-up' : 'caret-down', 16)}</span>
                     </div>
                 </button>
             </div>
@@ -1472,7 +1501,7 @@ async function calcularYMostrarBalance() {
     if (e1) { cont.innerHTML = `<div class="alert alert-error">${e1.message}</div>`; return; }
 
     if (!gastos?.length) {
-        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="scale" data-size="40"></i></span>Sin gastos para calcular.</div>`;
+        cont.innerHTML = `<div class="empty"><span class="empty-icon"><i data-icon="scales" data-size="40"></i></span>Sin gastos para calcular.</div>`;
         return;
     }
 
@@ -1532,7 +1561,7 @@ async function calcularYMostrarBalance() {
                     </div>
                 `).join('')}
             </div>
-        ` : '<div class="alert alert-success"><i data-icon="sparkles" data-size="18"></i> ¡Todos están al día! No hay deudas pendientes.</div>'}
+        ` : '<div class="alert alert-success"><i data-icon="sparkle" data-size="18"></i> ¡Todos están al día! No hay deudas pendientes.</div>'}
     `;
 }
 

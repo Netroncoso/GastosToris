@@ -4,23 +4,23 @@
 
 const CATEGORIAS_DEFECTO = [
     { nombre: 'Super', icono: 'shopping-cart' },
-    { nombre: 'Carnicería', icono: 'cake' },
-    { nombre: 'Verdulería', icono: 'shopping-bag' },
-    { nombre: 'Gatos', icono: 'heart' },
-    { nombre: 'Casa alquiler', icono: 'home' },
-    { nombre: 'Casa impuestos', icono: 'bolt' },
+    { nombre: 'Carnicería', icono: 'cow' },
+    { nombre: 'Verdulería', icono: 'carrot' },
+    { nombre: 'Gatos', icono: 'cat' },
+    { nombre: 'Casa alquiler', icono: 'house' },
+    { nombre: 'Casa impuestos', icono: 'receipt' },
     { nombre: 'Tarjetas', icono: 'credit-card' },
-    { nombre: 'Auto', icono: 'truck' },
-    { nombre: 'Viajes', icono: 'paper-airplane' },
-    { nombre: 'Salidas', icono: 'film' },
-    { nombre: 'Otros', icono: 'archive-box' }
+    { nombre: 'Auto', icono: 'car' },
+    { nombre: 'Viajes', icono: 'paper-plane-tilt' },
+    { nombre: 'Salidas', icono: 'beer-stein' },
+    { nombre: 'Otros', icono: 'package' }
 ];
 
 /** Defaults de la app + custom del círculo (sin duplicar por nombre). */
 function resolverCategorias(rawCategorias) {
     const byName = new Map();
     CATEGORIAS_DEFECTO.forEach(c => {
-        byName.set(String(c.nombre).toLowerCase(), { nombre: c.nombre, icono: c.icono || 'archive-box' });
+        byName.set(String(c.nombre).toLowerCase(), { nombre: c.nombre, icono: c.icono || 'package' });
     });
     if (Array.isArray(rawCategorias)) {
         rawCategorias.forEach(c => {
@@ -30,7 +30,7 @@ function resolverCategorias(rawCategorias) {
             if (!item.nombre) return;
             const key = String(item.nombre).toLowerCase();
             if (!byName.has(key)) {
-                byName.set(key, { nombre: item.nombre, icono: item.icono || 'archive-box' });
+                byName.set(key, { nombre: item.nombre, icono: item.icono || 'package' });
             } else if (item.icono) {
                 const prev = byName.get(key);
                 byName.set(key, { nombre: prev.nombre, icono: item.icono });
@@ -256,7 +256,7 @@ function montarGastoForm(rootEl, options = {}) {
 
     function setCategorias(list, valorActual = null) {
         categorias = Array.isArray(list) && list.length
-            ? list.map(c => ({ nombre: c.nombre, icono: c.icono || 'archive-box' }))
+            ? list.map(c => ({ nombre: c.nombre, icono: c.icono || 'package' }))
             : CATEGORIAS_DEFECTO.map(c => ({ ...c }));
         renderCategorias(valorActual);
     }

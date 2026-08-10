@@ -35,7 +35,7 @@ Un **círculo** concentra personas, categorías de gasto, listas y tareas. Los *
 | Front | HTML / CSS / JS (multi-página, sin build) |
 | Hosting | GitHub Pages |
 | Backend | [Supabase](https://supabase.com) (Auth, Postgres, Realtime, Edge Functions) |
-| Íconos | Heroicons |
+| Íconos | Phosphor (logo Toris: Heroicons `cube-transparent`) |
 
 ## Estructura del repo
 
@@ -125,4 +125,4 @@ Tras cambios en CSS/JS, subí el bump de `CACHE` en `sw.js` para que la PWA no s
 
 ## Licencia
 
-Uso personal / proyecto propio. Si publicás un fork, respetá los términos de Supabase, Google OAuth y Heroicons.
+Uso personal / proyecto propio. Si publicás un fork, respetá los términos de Supabase, Google OAuth, Phosphor Icons y Heroicons.

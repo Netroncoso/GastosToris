@@ -196,11 +196,57 @@ function getDisplayNameFromUser(user) {
 }
 
 // =============================================
-// ÍCONOS (Heroicons vía CDN, coloreados con currentColor usando CSS mask)
+// ÍCONOS (Phosphor regular vía CDN; logo Toris sigue en Heroicons)
+// Coloreados con currentColor usando CSS mask
 // =============================================
+const PHOSPHOR_BASE = 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core@2.1.1/assets/regular';
 const HEROICONS_BASE = 'https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline';
+/** Logo de la app: no migrar a Phosphor. */
+const HEROICON_KEEP = new Set(['cube-transparent']);
+/** Alias Heroicons (y nombres viejos) → Phosphor, p.ej. categorías ya guardadas en DB. */
+const ICON_ALIAS = {
+    'arrow-right-on-rectangle': 'sign-out',
+    'x-mark': 'x',
+    'pencil-square': 'pencil-simple',
+    'chevron-up': 'caret-up',
+    'chevron-down': 'caret-down',
+    bookmark: 'bookmark-simple',
+    'bookmark-slash': 'push-pin-slash',
+    'cog-6-tooth': 'gear-six',
+    'calendar-days': 'calendar-blank',
+    'clipboard-document-list': 'clipboard-text',
+    'arrow-path': 'arrows-clockwise',
+    'arrow-path-rounded-square': 'arrows-counter-clockwise',
+    sparkles: 'sparkle',
+    scale: 'scales',
+    home: 'house',
+    bolt: 'lightning',
+    film: 'film-strip',
+    'archive-box': 'package',
+    beaker: 'flask',
+    'building-storefront': 'storefront',
+    'device-phone-mobile': 'device-mobile',
+    'musical-note': 'music-note',
+    'paper-airplane': 'paper-plane-tilt',
+    'airplane-tilt': 'paper-plane-tilt',
+    truck: 'car',
+    heart: 'cat',
+    cake: 'cow',
+    'shopping-bag': 'carrot',
+    map: 'map-trifold',
+    globe: 'island'
+};
+function resolveIconName(name) {
+    if (!name) return 'package';
+    return ICON_ALIAS[name] || name;
+}
+function iconUrl(name) {
+    const resolved = resolveIconName(name);
+    if (HEROICON_KEEP.has(resolved)) return `${HEROICONS_BASE}/${resolved}.svg`;
+    return `${PHOSPHOR_BASE}/${resolved}.svg`;
+}
 function icon(name, size = 20) {
-    const url = `${HEROICONS_BASE}/${name}.svg`;
+    const url = iconUrl(name);
     return `<span class="hicon" aria-hidden="true" style="width:${size}px;height:${size}px;-webkit-mask-image:url(${url});mask-image:url(${url})"></span>`;
 }
 
@@ -534,7 +580,7 @@ function ensureTorisConfirmModal() {
     <div class="modal" style="max-width:360px" role="dialog" aria-modal="true" aria-labelledby="toris-confirm-title">
         <div class="modal-header">
             <h3 id="toris-confirm-title">TorisApp</h3>
-            <button type="button" class="modal-close" id="toris-confirm-x" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
+            <button type="button" class="modal-close" id="toris-confirm-x" aria-label="Cerrar"><i data-icon="x" data-size="14"></i></button>
         </div>
         <p id="toris-confirm-message" class="toris-confirm-message"></p>
         <div class="toris-confirm-actions">
@@ -782,7 +828,7 @@ function updateFabPinButton(btn, pinned) {
     const label = pinned ? 'Quitar del inicio' : 'Fijar en inicio';
     btn.title = label;
     btn.setAttribute('aria-label', label);
-    btn.innerHTML = `<i data-icon="${pinned ? 'bookmark-slash' : 'bookmark'}" data-size="22"></i>`;
+    btn.innerHTML = `<i data-icon="${pinned ? 'push-pin-slash' : 'bookmark-simple'}" data-size="22"></i>`;
     if (typeof initIconsIn === 'function') initIconsIn(btn);
 }
 
@@ -829,7 +875,7 @@ async function maybeShowFabPinTip() {
     tip.setAttribute('role', 'status');
     tip.innerHTML = `
         <div class="fab-pin-tip-text">Fijá este periodo o lista en inicio para abrirlo en un toque al volver a la app.</div>
-        <button type="button" class="fab-pin-tip-close" onclick="dismissFabPinTip()" aria-label="Cerrar"><i data-icon="x-mark" data-size="14"></i></button>
+        <button type="button" class="fab-pin-tip-close" onclick="dismissFabPinTip()" aria-label="Cerrar"><i data-icon="x" data-size="14"></i></button>
     `;
     document.body.appendChild(tip);
     if (typeof initIconsIn === 'function') initIconsIn(tip);
@@ -875,7 +921,7 @@ async function pintarAccesosEnIndex(userId) {
     if (!list.length) {
         cont.innerHTML = `
             <div class="acceso-empty">
-                <div class="acceso-empty-icon" aria-hidden="true"><i data-icon="bookmark" data-size="22"></i></div>
+                <div class="acceso-empty-icon" aria-hidden="true"><i data-icon="bookmark-simple" data-size="22"></i></div>
                 <div class="acceso-empty-title">Accesos directos</div>
                 <p class="acceso-empty-text">En un periodo o una lista, tocá el botón redondo de abajo a la derecha (mismo ícono) para fijarlo acá y abrirlo en un toque.</p>
             </div>`;
@@ -893,7 +939,7 @@ async function pintarAccesosEnIndex(userId) {
                         <div style="font-weight:600;font-size:15px;word-break:break-word">${escapeHtml(a.label || buildAccesoLabel(a))}</div>
                     </div>
                 </div>
-                <button type="button" class="acceso-unpin" onclick="event.stopPropagation();quitarAccesoDirecto('${escapeJsString(a.id)}')" title="Quitar del inicio" aria-label="Quitar del inicio"><i data-icon="bookmark-slash" data-size="16"></i></button>
+                <button type="button" class="acceso-unpin" onclick="event.stopPropagation();quitarAccesoDirecto('${escapeJsString(a.id)}')" title="Quitar del inicio" aria-label="Quitar del inicio"><i data-icon="push-pin-slash" data-size="16"></i></button>
             </div>
         </div>
     `).join('')}`;
@@ -996,7 +1042,7 @@ async function syncInvitados({ personsTable = 'participantes', personGroupField 
 function initIcon(el) {
     const name = el.getAttribute('data-icon');
     const size = el.getAttribute('data-size') || 18;
-    const url = `${HEROICONS_BASE}/${name}.svg`;
+    const url = iconUrl(name);
     el.style.width = `${size}px`;
     el.style.height = `${size}px`;
     el.style.webkitMaskImage = `url(${url})`;
