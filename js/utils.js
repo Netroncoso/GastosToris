@@ -203,8 +203,8 @@ const PHOSPHOR_BASE = 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core@2.1.1/a
 const HEROICONS_BASE = 'https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline';
 /** Logo de la app: no migrar a Phosphor. */
 const HEROICON_KEEP = new Set(['cube-transparent']);
-/** Alias Heroicons (y nombres viejos) → Phosphor, p.ej. categorías ya guardadas en DB. */
-const ICON_ALIAS = {
+/** Iconos Heroicons viejos en categorías guardadas — migración one-shot al cargar círculo. */
+const LEGACY_ICON_MAP = {
     'arrow-right-on-rectangle': 'sign-out',
     'x-mark': 'x',
     'pencil-square': 'pencil-simple',
@@ -223,7 +223,8 @@ const ICON_ALIAS = {
     bolt: 'lightning',
     film: 'film-strip',
     'archive-box': 'package',
-    beaker: 'flask',
+    beaker: 'leaf',
+    flask: 'leaf',
     'building-storefront': 'storefront',
     'device-phone-mobile': 'device-mobile',
     'musical-note': 'music-note',
@@ -236,14 +237,25 @@ const ICON_ALIAS = {
     map: 'map-trifold',
     globe: 'island'
 };
-function resolveIconName(name) {
+function migrarIconoLegacy(name) {
     if (!name) return 'package';
-    return ICON_ALIAS[name] || name;
+    return LEGACY_ICON_MAP[name] || name;
+}
+function migrarCategorias(categorias) {
+    if (!Array.isArray(categorias)) return [];
+    return categorias.map(c => {
+        const iconoRaw = c?.icono ?? c?.icon ?? 'package';
+        return { nombre: c.nombre, icono: migrarIconoLegacy(iconoRaw) };
+    });
+}
+function categoriasIconosCambiaron(antes, despues) {
+    if (!Array.isArray(antes) || !Array.isArray(despues) || antes.length !== despues.length) return false;
+    return antes.some((c, i) => (c.icono || 'package') !== (despues[i]?.icono || 'package'));
 }
 function iconUrl(name) {
-    const resolved = resolveIconName(name);
-    if (HEROICON_KEEP.has(resolved)) return `${HEROICONS_BASE}/${resolved}.svg`;
-    return `${PHOSPHOR_BASE}/${resolved}.svg`;
+    const n = name || 'package';
+    if (HEROICON_KEEP.has(n)) return `${HEROICONS_BASE}/${n}.svg`;
+    return `${PHOSPHOR_BASE}/${n}.svg`;
 }
 function icon(name, size = 20) {
     const url = iconUrl(name);

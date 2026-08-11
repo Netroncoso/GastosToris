@@ -542,7 +542,7 @@ async function asegurarDatosGasto() {
     participantesCirculo = partes || [];
     periodosCirculo = periodos || [];
     if (circulo && circuloActual) {
-        circuloActual.categorias = circulo.categorias;
+        circuloActual.categorias = migrarCategorias(circulo.categorias || []);
         if (circulo.nombre) circuloActual.nombre = circulo.nombre;
     }
 }

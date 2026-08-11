@@ -250,6 +250,7 @@ const ICONOS_DISPONIBLES = [
     { id: 'cow', label: 'Vaca / Cow' },
     { id: 'fish', label: 'Pez / Fish' },
     { id: 'carrot', label: 'Zanahoria / Carrot' },
+    { id: 'leaf', label: 'Hoja / Leaf' },
     { id: 'egg', label: 'Huevo / Egg' },
     { id: 'bread', label: 'Pan / Bread' },
     { id: 'chef-hat', label: 'Chef / Chef hat' },
@@ -285,9 +286,14 @@ function normalizarCategoria(c) {
     return { nombre: c.nombre, icono: c.icono || 'package' };
 }
 
-function initCategorias() {
+async function initCategorias() {
     if (circuloActual?.categorias && Array.isArray(circuloActual.categorias) && circuloActual.categorias.length > 0) {
-        categoriasActuales = circuloActual.categorias.map(normalizarCategoria);
+        const raw = circuloActual.categorias.map(normalizarCategoria);
+        const migradas = migrarCategorias(raw);
+        categoriasActuales = migradas;
+        if (categoriasIconosCambiaron(raw, migradas)) {
+            await guardarCategoriasEnDB();
+        }
     } else {
         categoriasActuales = CATEGORIAS_DEFECTO.map(c => ({ ...c }));
     }
@@ -419,7 +425,7 @@ requireAuth(async () => {
 
     circuloActual = circulo;
     periodoActual = periodo;
-    initCategorias();
+    await initCategorias();
     document.getElementById('topbar-title').textContent = periodo.nombre;
 
     gastoForm = montarGastoForm(document.getElementById('gasto-form-mount'), {
@@ -428,7 +434,7 @@ requireAuth(async () => {
         onGestionarCategorias: () => abrirModalCategorias(),
         autoRepartirOnMonto: true
     });
-    gastoForm.setCategoriasFromCirculo(circuloActual.categorias);
+    gastoForm.setCategoriasFromCirculo(categoriasActuales);
 
     const tab = TABS_GASTOS.includes(params.get('tab')) ? params.get('tab') : 'gastos';
     setQueryParams({ circulo: circuloId, periodo: periodoId, tab });

@@ -30,10 +30,10 @@ function resolverCategorias(rawCategorias) {
             if (!item.nombre) return;
             const key = String(item.nombre).toLowerCase();
             if (!byName.has(key)) {
-                byName.set(key, { nombre: item.nombre, icono: item.icono || 'package' });
+                byName.set(key, { nombre: item.nombre, icono: migrarIconoLegacy(item.icono || 'package') });
             } else if (item.icono) {
                 const prev = byName.get(key);
-                byName.set(key, { nombre: prev.nombre, icono: item.icono });
+                byName.set(key, { nombre: prev.nombre, icono: migrarIconoLegacy(item.icono) });
             }
         });
     }
@@ -256,7 +256,7 @@ function montarGastoForm(rootEl, options = {}) {
 
     function setCategorias(list, valorActual = null) {
         categorias = Array.isArray(list) && list.length
-            ? list.map(c => ({ nombre: c.nombre, icono: c.icono || 'package' }))
+            ? list.map(c => ({ nombre: c.nombre, icono: migrarIconoLegacy(c.icono || 'package') }))
             : CATEGORIAS_DEFECTO.map(c => ({ ...c }));
         renderCategorias(valorActual);
     }
