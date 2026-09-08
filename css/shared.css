@@ -577,7 +577,7 @@ body.has-fab-pin .container { padding-bottom: 76px; }
     inset: 0;
     z-index: 0;
     border: none;
-    background: rgba(0, 0, 0, 0.28);
+    background: rgba(255, 255, 255, 0.92);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease;
@@ -625,10 +625,8 @@ body.has-fab-pin .container { padding-bottom: 76px; }
 .fab-speed-dial-action-title,
 .fab-speed-dial-action-desc {
     display: block;
-    color: #fff;
+    color: #0f172a;
     line-height: 1.3;
-    text-shadow: none;
-    -webkit-font-smoothing: antialiased;
 }
 .fab-speed-dial-action-title {
     font-size: 15px;
@@ -645,45 +643,53 @@ body.has-fab-pin .container { padding-bottom: 76px; }
     width: var(--fab-circle-size);
     height: var(--fab-circle-size);
     border-radius: 50%;
-    box-shadow: var(--shadow-hover);
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.16), 0 2px 6px rgba(15, 23, 42, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
     z-index: 2;
+    overflow: hidden;
 }
 .fab-speed-dial-action-icon {
-    background: var(--card);
+    background: #fff;
     color: var(--primary);
-    border: 1.5px solid var(--border);
-    transition: transform 0.12s, border-color 0.15s;
+    border: none;
+    transition: transform 0.12s, box-shadow 0.15s;
+}
+.fab-speed-dial-action-icon i,
+.fab-speed-dial-main i {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
 }
 .fab-speed-dial-action:hover .fab-speed-dial-action-icon,
 .fab-speed-dial-action:focus-visible .fab-speed-dial-action-icon {
     transform: translateY(-1px);
-    border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.2), 0 2px 8px rgba(15, 23, 42, 0.12);
 }
 .fab-speed-dial-action-highlight .fab-speed-dial-action-icon {
-    border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+    box-shadow: 0 4px 16px rgba(27, 64, 121, 0.22), 0 2px 6px rgba(15, 23, 42, 0.1);
 }
 .fab-speed-dial-action-pinned .fab-speed-dial-action-icon {
-    border-color: var(--primary);
+    box-shadow: 0 4px 16px rgba(27, 64, 121, 0.22), 0 2px 6px rgba(15, 23, 42, 0.1);
 }
 .fab-speed-dial-main {
     background: var(--primary);
     color: #fff;
-    border: 1.5px solid var(--primary);
+    border: none;
     cursor: pointer;
-    transition: transform 0.15s ease, background 0.15s, color 0.15s, border-color 0.15s;
+    transition: transform 0.15s ease, background 0.15s, color 0.15s, box-shadow 0.15s;
 }
 .fab-speed-dial-main:hover { transform: translateY(-1px); }
 .fab-speed-dial-icon-close { display: none; }
 .fab-speed-dial-open .fab-speed-dial-icon-plus { display: none; }
 .fab-speed-dial-open .fab-speed-dial-icon-close { display: block; }
 .fab-speed-dial-open .fab-speed-dial-main {
-    background: var(--card);
+    background: #fff;
     color: var(--primary);
-    border-color: var(--border);
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.16), 0 2px 6px rgba(15, 23, 42, 0.1);
 }
 
 .acceso-card { margin-bottom: 8px; }
