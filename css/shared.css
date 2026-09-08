@@ -655,7 +655,7 @@ body.has-fab-pin .container { padding-bottom: 76px; }
     background: #fff;
     color: var(--primary);
     border: none;
-    transition: transform 0.12s, box-shadow 0.15s;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 .fab-speed-dial-action-icon i,
 .fab-speed-dial-main i {
@@ -664,10 +664,24 @@ body.has-fab-pin .container { padding-bottom: 76px; }
     justify-content: center;
     line-height: 0;
 }
-.fab-speed-dial-action:hover .fab-speed-dial-action-icon,
-.fab-speed-dial-action:focus-visible .fab-speed-dial-action-icon {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.2), 0 2px 8px rgba(15, 23, 42, 0.12);
+@media (hover: hover) and (pointer: fine) {
+    .fab-speed-dial-action:hover .fab-speed-dial-action-icon,
+    .fab-speed-dial-action:focus-visible .fab-speed-dial-action-icon {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(15, 23, 42, 0.2), 0 2px 8px rgba(15, 23, 42, 0.12);
+    }
+    .fab-speed-dial-main:hover { transform: translateY(-1px); }
+}
+.fab-speed-dial-action:active .fab-speed-dial-action-icon {
+    transform: scale(0.92);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14);
+}
+.fab-speed-dial-main:active {
+    transform: scale(0.92);
+}
+.fab-speed-dial-main,
+.fab-speed-dial-action {
+    -webkit-tap-highlight-color: transparent;
 }
 .fab-speed-dial-action-highlight .fab-speed-dial-action-icon {
     box-shadow: 0 4px 16px rgba(27, 64, 121, 0.22), 0 2px 6px rgba(15, 23, 42, 0.1);
@@ -680,9 +694,8 @@ body.has-fab-pin .container { padding-bottom: 76px; }
     color: #fff;
     border: none;
     cursor: pointer;
-    transition: transform 0.15s ease, background 0.15s, color 0.15s, box-shadow 0.15s;
+    transition: transform 0.12s ease, background 0.15s, color 0.15s, box-shadow 0.15s;
 }
-.fab-speed-dial-main:hover { transform: translateY(-1px); }
 .fab-speed-dial-main .fab-speed-dial-icon-close { display: none; }
 .fab-speed-dial-open .fab-speed-dial-main .fab-speed-dial-icon-plus { display: none; }
 .fab-speed-dial-open .fab-speed-dial-main .fab-speed-dial-icon-close { display: flex; }
