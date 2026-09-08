@@ -855,7 +855,7 @@ function updateFabPinActionItem(btn, pinned) {
     if (title) title.textContent = label;
     if (desc) desc.textContent = pinned ? 'Ya está fijado en inicio' : 'Acceso rápido desde el inicio';
     if (iconWrap) {
-        iconWrap.innerHTML = `<i data-icon="${pinned ? 'push-pin-slash' : 'bookmark-simple'}" data-size="20"></i>`;
+        iconWrap.innerHTML = `<i data-icon="${pinned ? 'push-pin-slash' : 'bookmark-simple'}" data-size="22"></i>`;
         if (typeof initIconsIn === 'function') initIconsIn(iconWrap);
     }
 }
