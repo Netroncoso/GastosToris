@@ -32,6 +32,9 @@
     --alert-err-bd: #fecaca;
     --login-grad: linear-gradient(135deg, #1b4079 0%, #153566 100%);
     --placeholder: #94a3b8;
+    --topbar-icon-bg: rgba(255, 255, 255, 0.18);
+    --topbar-icon-bg-hover: rgba(255, 255, 255, 0.3);
+    --fab-scrim: rgba(255, 255, 255, 0.92);
     color-scheme: light;
 }
 [data-theme="dark"] {
@@ -69,6 +72,7 @@
     --alert-err-fg: #fecaca;
     --alert-err-bd: #991b1b;
     --login-grad: linear-gradient(135deg, #0f172a 0%, #1b4079 100%);
+    --fab-scrim: color-mix(in srgb, var(--bg) 94%, transparent);
     color-scheme: dark;
 }
 
@@ -102,9 +106,9 @@ body.app-booting #boot-splash { display: flex; }
 .topbar-left { display: flex; align-items: center; gap: 8px; }
 .topbar h1 { font-size: 17px; font-weight: 700; }
 .topbar-user { color: rgba(255,255,255,0.8); font-size: 13px; }
-.btn-icon { background: rgba(255,255,255,0.18); border: none; border-radius: 8px;
+.btn-icon { background: var(--topbar-icon-bg); border: none; border-radius: 8px;
     color: #fff; cursor: pointer; font-size: 16px; padding: 6px 10px; transition: background 0.15s; }
-.btn-icon:hover { background: rgba(255,255,255,0.3); }
+.btn-icon:hover { background: var(--topbar-icon-bg-hover); }
 .btn-icon:disabled { opacity: 0.4; cursor: default; }
 
 /* SCREENS */
@@ -577,7 +581,7 @@ body.has-fab-pin .container { padding-bottom: 76px; }
     inset: 0;
     z-index: 0;
     border: none;
-    background: rgba(255, 255, 255, 0.92);
+    background: var(--fab-scrim);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease;
@@ -625,7 +629,7 @@ body.has-fab-pin .container { padding-bottom: 76px; }
 .fab-speed-dial-action-title,
 .fab-speed-dial-action-desc {
     display: block;
-    color: #0f172a;
+    color: var(--text);
     line-height: 1.3;
 }
 .fab-speed-dial-action-title {
@@ -652,10 +656,16 @@ body.has-fab-pin .container { padding-bottom: 76px; }
     overflow: hidden;
 }
 .fab-speed-dial-action-icon {
-    background: #fff;
+    background: var(--card);
     color: var(--primary);
     border: none;
     transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+[data-theme="dark"] .fab-speed-dial-action-icon,
+[data-theme="dark"] .fab-speed-dial-open .fab-speed-dial-main {
+    background: var(--topbar-icon-bg);
+    color: #fff;
+    box-shadow: var(--shadow-hover);
 }
 .fab-speed-dial-action-icon i,
 .fab-speed-dial-main i {
@@ -700,7 +710,7 @@ body.has-fab-pin .container { padding-bottom: 76px; }
 .fab-speed-dial-open .fab-speed-dial-main .fab-speed-dial-icon-plus { display: none; }
 .fab-speed-dial-open .fab-speed-dial-main .fab-speed-dial-icon-close { display: flex; }
 .fab-speed-dial-open .fab-speed-dial-main {
-    background: #fff;
+    background: var(--card);
     color: var(--primary);
     box-shadow: 0 4px 16px rgba(15, 23, 42, 0.16), 0 2px 6px rgba(15, 23, 42, 0.1);
 }
