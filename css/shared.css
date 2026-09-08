@@ -577,12 +577,14 @@ body.has-fab-pin .container { padding-bottom: 76px; }
     inset: 0;
     z-index: 0;
     border: none;
-    background: transparent;
+    background: rgba(0, 0, 0, 0.28);
     opacity: 0;
     pointer-events: none;
+    transition: opacity 0.2s ease;
     cursor: default;
 }
 .fab-speed-dial-open .fab-speed-dial-backdrop {
+    opacity: 1;
     pointer-events: auto;
 }
 .fab-speed-dial-actions {
@@ -623,8 +625,10 @@ body.has-fab-pin .container { padding-bottom: 76px; }
 .fab-speed-dial-action-title,
 .fab-speed-dial-action-desc {
     display: block;
-    color: var(--text);
+    color: #fff;
     line-height: 1.3;
+    text-shadow: none;
+    -webkit-font-smoothing: antialiased;
 }
 .fab-speed-dial-action-title {
     font-size: 15px;
