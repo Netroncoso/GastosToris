@@ -96,3 +96,69 @@ function fmtFechaCorta(iso) {
     const d = new Date(String(iso).slice(0, 10) + 'T12:00:00');
     return d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
+
+/** Etiqueta legible del reparto guardado en split_default. */
+function labelReparto(splitDefault, monto, pagadorId, participantes) {
+    const splits = Array.isArray(splitDefault)
+        ? splitDefault.map(s => ({ id_participante: Number(s.id_participante), monto: Number(s.monto) }))
+            .filter(s => s.id_participante && s.monto > 0)
+        : [];
+    const total = Number(monto) || 0;
+    const n = Array.isArray(participantes) ? participantes.length : 0;
+    if (!total || !splits.length) return 'Partes iguales';
+    if (splits.length === 1) return 'Solo quien paga';
+    if (n > 1 && splits.length === n) {
+        const iguales = splitIgualDefault(participantes, total);
+        const match = iguales.length === splits.length && iguales.every(exp =>
+            splits.some(s => s.id_participante === exp.id_participante && Math.abs(s.monto - exp.monto) < 0.02)
+        );
+        if (match) return 'Partes iguales';
+    }
+    const pid = pagadorId != null ? Number(pagadorId) : null;
+    if (pid && splits.length === 1 && Math.abs(splits[0].monto - total) < 0.02 && splits[0].id_participante === pid) {
+        return 'Solo quien paga';
+    }
+    return 'Personalizado';
+}
+
+/**
+ * Tras editar plantilla: recalcular fechas pendientes y ajustar cuotas faltantes/sobrantes.
+ * No modifica ocurrencias ya aplicadas.
+ */
+async function syncOcurrenciasTrasEditar(plantilla, updatedPlantilla) {
+    if (!plantilla?.id) return;
+    const occs = plantilla.ocurrencias || [];
+    const pendientes = occs.filter(o => o.estado === 'pendiente');
+
+    for (const o of pendientes) {
+        const nuevaFecha = fechaPrevistaOcurrencia(updatedPlantilla, o.nro);
+        if (o.fecha_prevista !== nuevaFecha) {
+            await db.from('gastos_recurrentes_ocurrencias')
+                .update({ fecha_prevista: nuevaFecha })
+                .eq('id', o.id);
+        }
+    }
+
+    if (updatedPlantilla.modo !== 'cuotas') return;
+
+    const newTotal = Math.max(1, Number(updatedPlantilla.cuotas_total) || 1);
+    const byNro = new Map(occs.map(o => [Number(o.nro), o]));
+
+    for (let n = 1; n <= newTotal; n++) {
+        if (!byNro.has(n)) {
+            await db.from('gastos_recurrentes_ocurrencias').insert({
+                id_recurrente: plantilla.id,
+                nro: n,
+                fecha_prevista: fechaPrevistaOcurrencia(updatedPlantilla, n),
+                estado: 'pendiente'
+            });
+        }
+    }
+
+    const extras = pendientes.filter(o => o.nro > newTotal);
+    if (extras.length) {
+        await db.from('gastos_recurrentes_ocurrencias')
+            .delete()
+            .in('id', extras.map(o => o.id));
+    }
+}

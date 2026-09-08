@@ -177,18 +177,7 @@
             <label for="rec-nombre">Nombre</label>
             <input type="text" id="rec-nombre" placeholder="Ej: Alquiler, Visa…" autocomplete="off" />
         </div>
-        <div class="form-group">
-            <label for="rec-monto">Monto ($)</label>
-            <input type="text" id="rec-monto" class="input-monto" placeholder="0" inputmode="decimal" autocomplete="off" />
-        </div>
-        <div class="form-group">
-            <label for="rec-tipo">Categoría</label>
-            <select id="rec-tipo"></select>
-        </div>
-        <div class="form-group">
-            <label for="rec-pagador">¿Quién paga?</label>
-            <select id="rec-pagador"></select>
-        </div>
+        <div id="recurrente-form-mount"></div>
         <div class="form-group">
             <label for="rec-modo">Tipo</label>
             <select id="rec-modo" onchange="onRecModoChange()">
@@ -208,8 +197,8 @@
             <label for="rec-dia-mes">Día del mes (opcional, 1–28)</label>
             <input type="number" id="rec-dia-mes" min="1" max="28" step="1" placeholder="Ej: 10" inputmode="numeric" />
         </div>
-        <p class="text-muted" style="font-size:12px;line-height:1.4;margin-bottom:12px">
-            La división se guarda en partes iguales. Si en alguna cuota cambia quién paga o cómo se reparte, editá ese gasto desde el listado.
+        <p id="rec-edit-hint" class="text-muted" style="display:none;font-size:12px;line-height:1.4;margin-bottom:12px">
+            Ya hay cuotas cargadas: no se puede cambiar el tipo ni la cantidad de cuotas. Podés editar nombre, monto, categoría, pagador y división para las próximas.
         </p>
         <button type="button" class="btn btn-primary btn-full" id="btn-guardar-recurrente" onclick="guardarPlantillaRecurrente()">Guardar</button>
     </div>
@@ -231,6 +220,9 @@ let currentGastos = [];
 let gastoEditando = null;
 let categoriasActuales = [];
 let gastoForm = null;
+let recurrenteForm = null;
+/** @type {object|null} plantilla en edición */
+let plantillaRecurrenteEditando = null;
 /** @type {{ id:number, id_recurrente:number, nro:number, plantilla:object }|null} */
 let ocurrenciaAplicando = null;
 let plantillasRecurrentesCache = [];
@@ -434,6 +426,12 @@ requireAuth(async () => {
         onGestionarCategorias: () => abrirModalCategorias(),
         autoRepartirOnMonto: true
     });
+    recurrenteForm = montarGastoForm(document.getElementById('recurrente-form-mount'), {
+        idPrefix: 'rec',
+        showConcepto: false,
+        showFecha: false,
+        autoRepartirOnMonto: true
+    });
     gastoForm.setCategoriasFromCirculo(categoriasActuales);
 
     const tab = TABS_GASTOS.includes(params.get('tab')) ? params.get('tab') : 'gastos';
@@ -444,6 +442,7 @@ requireAuth(async () => {
 
     await cargarParticipantes();
     gastoForm.setParticipantes(participantesActuales);
+    recurrenteForm.setParticipantes(participantesActuales);
     if (tab === 'gastos') {
         await cargarGastos();
     } else {
@@ -1326,37 +1325,82 @@ async function cerrarGestionRecurrentes() {
     abrirModal('modal-recurrentes');
 }
 
-function abrirFormRecurrente() {
+function setRecFormLocked(locked) {
+    const modoEl = document.getElementById('rec-modo');
+    const cuotasEl = document.getElementById('rec-cuotas');
+    if (modoEl) modoEl.disabled = locked;
+    if (cuotasEl) cuotasEl.disabled = locked;
+    const hint = document.getElementById('rec-edit-hint');
+    if (hint) hint.style.display = locked ? '' : 'none';
+}
+
+function abrirFormRecurrente(plantillaId = null) {
     if (participantesActuales.length === 0) {
         alert('Primero agregá personas al círculo.');
         return;
     }
+    if (!recurrenteForm) {
+        alert('El formulario de recurrentes no está listo. Recargá la página.');
+        return;
+    }
     cerrarModalRaw('modal-recurrentes-gestionar');
-    document.getElementById('modal-recurrente-form-title').textContent = 'Nuevo recurrente';
-    document.getElementById('rec-nombre').value = '';
-    const montoEl = document.getElementById('rec-monto');
-    montoEl.value = '';
-    delete montoEl.dataset.montoBound;
-    document.getElementById('rec-modo').value = 'cuotas';
-    document.getElementById('rec-cuotas').value = '6';
-    document.getElementById('rec-fecha-inicio').value = hoyISO();
-    document.getElementById('rec-dia-mes').value = '';
+
+    plantillaRecurrenteEditando = plantillaId != null
+        ? plantillasRecurrentesCache.find(p => Number(p.id) === Number(plantillaId)) || null
+        : null;
+    const editando = !!plantillaRecurrenteEditando;
+    const aplicadas = editando ? ocurrenciasAplicadasValidas(plantillaRecurrenteEditando).length : 0;
+
+    document.getElementById('modal-recurrente-form-title').textContent = editando ? 'Editar recurrente' : 'Nuevo recurrente';
+    document.getElementById('rec-nombre').value = editando ? (plantillaRecurrenteEditando.nombre || '') : '';
+
+    recurrenteForm.setParticipantes(participantesActuales);
+    recurrenteForm.setCategoriasFromCirculo(
+        categoriasActuales,
+        editando ? plantillaRecurrenteEditando.tipo_gasto : null
+    );
+
+    if (editando) {
+        const splits = Array.isArray(plantillaRecurrenteEditando.split_default)
+            ? plantillaRecurrenteEditando.split_default.map(s => ({
+                id_participante: Number(s.id_participante),
+                monto: Number(s.monto)
+            })).filter(s => s.id_participante && s.monto > 0)
+            : [];
+        recurrenteForm.reset({
+            monto: plantillaRecurrenteEditando.monto,
+            tipo: plantillaRecurrenteEditando.tipo_gasto,
+            pagadorId: plantillaRecurrenteEditando.id_pagador,
+            splits,
+            autoRepartir: false
+        });
+        document.getElementById('rec-modo').value = plantillaRecurrenteEditando.modo || 'cuotas';
+        document.getElementById('rec-cuotas').value = String(plantillaRecurrenteEditando.cuotas_total || 6);
+        document.getElementById('rec-fecha-inicio').value = String(plantillaRecurrenteEditando.fecha_inicio || hoyISO()).slice(0, 10);
+        document.getElementById('rec-dia-mes').value = plantillaRecurrenteEditando.dia_mes != null
+            ? String(plantillaRecurrenteEditando.dia_mes)
+            : '';
+    } else {
+        recurrenteForm.reset({ autoRepartir: true });
+        document.getElementById('rec-modo').value = 'cuotas';
+        document.getElementById('rec-cuotas').value = '6';
+        document.getElementById('rec-fecha-inicio').value = hoyISO();
+        document.getElementById('rec-dia-mes').value = '';
+    }
+
+    setRecFormLocked(editando && aplicadas > 0);
     onRecModoChange();
-
-    const cats = resolverCategorias(categoriasActuales);
-    document.getElementById('rec-tipo').innerHTML = cats.map(c =>
-        `<option value="${String(c.nombre).replace(/"/g, '&quot;')}">${escapeHtml(c.nombre)}</option>`
-    ).join('');
-    document.getElementById('rec-pagador').innerHTML = participantesActuales.map(p =>
-        `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`
-    ).join('');
-
-    bindMontoInput(montoEl);
     abrirModal('modal-recurrente-form');
     setTimeout(() => document.getElementById('rec-nombre').focus(), 100);
 }
 
+function editarPlantillaRecurrente(id) {
+    abrirFormRecurrente(id);
+}
+
 async function cerrarFormRecurrente() {
+    plantillaRecurrenteEditando = null;
+    setRecFormLocked(false);
     cerrarModalRaw('modal-recurrente-form');
     await refreshRecurrentesUI();
     renderListaPlantillasRecurrentes();
@@ -1394,16 +1438,18 @@ function renderListaPlantillasRecurrentes() {
                 : (pendientes ? '1 pendiente' : 'Sin cargas');
         }
         const pagadorNombre = participantesActuales.find(x => Number(x.id) === Number(p.id_pagador))?.nombre;
+        const repartoLabel = labelReparto(p.split_default, p.monto, p.id_pagador, participantesActuales);
         return `
         <div class="card" style="margin-bottom:8px">
             <div class="card-body flex-between" style="gap:10px;align-items:flex-start">
                 <div style="min-width:0;flex:1">
                     <div style="font-weight:700;font-size:15px">${escapeHtml(p.nombre)}</div>
                     <div class="text-muted" style="font-size:13px">$${fmt(p.monto)} · ${escapeHtml(tipoLabel)}</div>
-                    ${pagadorNombre ? `<div class="text-muted" style="font-size:12px">Paga: ${escapeHtml(pagadorNombre)}</div>` : ''}
+                    ${pagadorNombre ? `<div class="text-muted" style="font-size:12px">Paga: ${escapeHtml(pagadorNombre)} · ${escapeHtml(repartoLabel)}</div>` : `<div class="text-muted" style="font-size:12px">${escapeHtml(repartoLabel)}</div>`}
                     ${p.fecha_inicio ? `<div class="text-muted" style="font-size:12px">Desde ${escapeHtml(fmtFechaCorta(p.fecha_inicio))}</div>` : ''}
                 </div>
                 <div class="card-actions">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="editarPlantillaRecurrente(${p.id})" aria-label="Editar">${icon('pencil-simple',14)}</button>
                     <button type="button" class="btn btn-danger btn-sm" onclick="eliminarPlantillaRecurrente(${p.id}, '${escapeJsString(p.nombre)}')" aria-label="Eliminar">${icon('trash',14)}</button>
                 </div>
             </div>
@@ -1418,31 +1464,43 @@ function onRecModoChange() {
 
 async function guardarPlantillaRecurrente() {
     await withBusyButton('#btn-guardar-recurrente', async () => {
+        if (!recurrenteForm) { alert('Formulario no disponible.'); return; }
+
         const nombre = document.getElementById('rec-nombre').value.trim();
-        const monto = parseMonto(document.getElementById('rec-monto').value);
-        const tipo = document.getElementById('rec-tipo').value;
-        const pagador = Number(document.getElementById('rec-pagador').value);
-        const modo = document.getElementById('rec-modo').value;
-        const cuotas = parseInt(document.getElementById('rec-cuotas').value, 10);
+        const { monto, tipo, pagador, splits, totalSplit } = recurrenteForm.getValues();
+        const modoEl = document.getElementById('rec-modo');
+        const cuotasEl = document.getElementById('rec-cuotas');
+        const modo = modoEl.disabled && plantillaRecurrenteEditando
+            ? plantillaRecurrenteEditando.modo
+            : modoEl.value;
+        const cuotas = cuotasEl.disabled && plantillaRecurrenteEditando
+            ? Number(plantillaRecurrenteEditando.cuotas_total) || 6
+            : parseInt(cuotasEl.value, 10);
         const fechaInicio = document.getElementById('rec-fecha-inicio').value || hoyISO();
         const diaMesRaw = document.getElementById('rec-dia-mes').value;
         const diaMes = diaMesRaw ? parseInt(diaMesRaw, 10) : null;
 
         if (!nombre) { alert('Ingresá un nombre.'); return; }
         if (!monto || monto <= 0) { alert('Ingresá un monto válido.'); return; }
+        if (!pagador || Number.isNaN(pagador)) { alert('Seleccioná quién paga.'); return; }
+        if (!tipo) { alert('Elegí una categoría.'); return; }
         if (modo === 'cuotas' && (!cuotas || cuotas < 1)) { alert('Indicá la cantidad de cuotas.'); return; }
         if (diaMes != null && (diaMes < 1 || diaMes > 28 || Number.isNaN(diaMes))) {
             alert('El día del mes debe ser entre 1 y 28.');
             return;
         }
+        if (!splits.length) { alert('Distribuí el gasto entre las personas (o usá "Solo quien paga").'); return; }
+        if (Math.abs(totalSplit - monto) > 0.02) {
+            alert(`La suma de la división ($${fmt(totalSplit)}) no coincide con el monto ($${fmt(monto)}).`);
+            return;
+        }
 
         const plantillaBase = {
-            id_circulo: circuloActual.id,
             nombre,
             monto,
             tipo_gasto: tipo,
-            id_pagador: pagador || null,
-            split_default: splitIgualDefault(participantesActuales, monto),
+            id_pagador: pagador,
+            split_default: splits,
             modo,
             cuotas_total: modo === 'cuotas' ? cuotas : null,
             fecha_inicio: fechaInicio,
@@ -1451,25 +1509,37 @@ async function guardarPlantillaRecurrente() {
             activo: true
         };
 
-        const { data: plantilla, error } = await db.from('gastos_recurrentes')
-            .insert(plantillaBase)
-            .select()
-            .single();
-        if (error) { alert('Error al crear recurrente: ' + error.message); return; }
+        if (plantillaRecurrenteEditando) {
+            const prev = plantillaRecurrenteEditando;
+            const { error } = await db.from('gastos_recurrentes')
+                .update(plantillaBase)
+                .eq('id', prev.id);
+            if (error) { alert('Error al actualizar recurrente: ' + error.message); return; }
 
-        const occs = buildOcurrenciasIniciales(plantilla).map(o => ({
-            id_recurrente: plantilla.id,
-            nro: o.nro,
-            fecha_prevista: o.fecha_prevista,
-            estado: o.estado
-        }));
-        const { error: e2 } = await db.from('gastos_recurrentes_ocurrencias').insert(occs);
-        if (e2) {
-            await db.from('gastos_recurrentes').delete().eq('id', plantilla.id);
-            alert('Error al crear cuotas: ' + e2.message);
-            return;
+            await syncOcurrenciasTrasEditar(prev, { ...prev, ...plantillaBase });
+            plantillaRecurrenteEditando = null;
+        } else {
+            const { data: plantilla, error } = await db.from('gastos_recurrentes')
+                .insert({ ...plantillaBase, id_circulo: circuloActual.id })
+                .select()
+                .single();
+            if (error) { alert('Error al crear recurrente: ' + error.message); return; }
+
+            const occs = buildOcurrenciasIniciales(plantilla).map(o => ({
+                id_recurrente: plantilla.id,
+                nro: o.nro,
+                fecha_prevista: o.fecha_prevista,
+                estado: o.estado
+            }));
+            const { error: e2 } = await db.from('gastos_recurrentes_ocurrencias').insert(occs);
+            if (e2) {
+                await db.from('gastos_recurrentes').delete().eq('id', plantilla.id);
+                alert('Error al crear cuotas: ' + e2.message);
+                return;
+            }
         }
 
+        setRecFormLocked(false);
         cerrarModalRaw('modal-recurrente-form');
         await refreshRecurrentesUI();
         renderListaPlantillasRecurrentes();
