@@ -683,9 +683,9 @@ body.has-fab-pin .container { padding-bottom: 76px; }
     transition: transform 0.15s ease, background 0.15s, color 0.15s, box-shadow 0.15s;
 }
 .fab-speed-dial-main:hover { transform: translateY(-1px); }
-.fab-speed-dial-icon-close { display: none; }
-.fab-speed-dial-open .fab-speed-dial-icon-plus { display: none; }
-.fab-speed-dial-open .fab-speed-dial-icon-close { display: block; }
+.fab-speed-dial-main .fab-speed-dial-icon-close { display: none; }
+.fab-speed-dial-open .fab-speed-dial-main .fab-speed-dial-icon-plus { display: none; }
+.fab-speed-dial-open .fab-speed-dial-main .fab-speed-dial-icon-close { display: flex; }
 .fab-speed-dial-open .fab-speed-dial-main {
     background: #fff;
     color: var(--primary);
