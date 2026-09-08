@@ -1854,38 +1854,27 @@ function renderComparacionPeriodos() {
     const filasCat = tipos.length ? tipos.map(tipo => {
         const a = statsA.porTipo[tipo] || 0;
         const b = statsB.porTipo[tipo] || 0;
-        const maxCat = Math.max(a, b, 1);
-        const barA = (a / maxCat) * 100;
-        const barB = (b / maxCat) * 100;
-        const shareA = statsA.total > 0 ? (a / statsA.total) * 100 : 0;
-        const shareB = statsB.total > 0 ? (b / statsB.total) * 100 : 0;
-        let diffCat = '';
-        if (a !== b) {
-            const d = a - b;
-            diffCat = d > 0
-                ? `$${fmt(Math.abs(d))} más en ${escapeHtml(actual?.nombre || 'este')}`
-                : `$${fmt(Math.abs(d))} más en ${escapeHtml(otro?.nombre || 'otro')}`;
-        }
+        const pctA = statsA.total > 0 ? (a / statsA.total) * 100 : 0;
+        const pctB = statsB.total > 0 ? (b / statsB.total) * 100 : 0;
         return `
             <div class="compare-cat-block">
                 <div class="compare-cat-title">${getIconoTipo(tipo)} ${escapeHtml(tipo)}</div>
-                ${diffCat ? `<div class="text-muted" style="font-size:12px;margin-bottom:6px">${diffCat}</div>` : ''}
                 <div class="compare-bar-row">
                     <div class="compare-bar-meta">
                         <span>Este · <strong>${escapeHtml(actual?.nombre || 'este')}</strong></span>
-                        <span>$${fmt(a)} <span class="text-muted" style="font-weight:500">(${shareA.toFixed(0)}% del total)</span></span>
+                        <span>$${fmt(a)} · ${pctA.toFixed(0)}%</span>
                     </div>
                     <div class="progress-track">
-                        <div class="progress-fill" style="width:${barA.toFixed(1)}%"></div>
+                        <div class="progress-fill" style="width:${Math.min(100, pctA).toFixed(1)}%"></div>
                     </div>
                 </div>
                 <div class="compare-bar-row">
                     <div class="compare-bar-meta">
                         <span>Otro · <strong>${escapeHtml(otro?.nombre || 'otro')}</strong></span>
-                        <span>$${fmt(b)} <span class="text-muted" style="font-weight:500">(${shareB.toFixed(0)}% del total)</span></span>
+                        <span>$${fmt(b)} · ${pctB.toFixed(0)}%</span>
                     </div>
                     <div class="progress-track">
-                        <div class="progress-fill alt" style="width:${barB.toFixed(1)}%"></div>
+                        <div class="progress-fill alt" style="width:${Math.min(100, pctB).toFixed(1)}%"></div>
                     </div>
                 </div>
             </div>`;
