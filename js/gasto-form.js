@@ -101,7 +101,6 @@ function montarGastoForm(rootEl, options = {}) {
             <label>División por persona ($)</label>
             <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
                 <button type="button" class="btn btn-ghost btn-sm" id="${p}-btn-igual">Partes iguales</button>
-                <button type="button" class="btn btn-ghost btn-sm" id="${p}-btn-solo">Solo quien paga</button>
                 <button type="button" class="btn btn-ghost btn-sm" id="${p}-btn-limpiar">Limpiar</button>
             </div>
             <div id="${p}-split-container"></div>
@@ -115,7 +114,6 @@ function montarGastoForm(rootEl, options = {}) {
         el('btn-cats').onclick = () => options.onGestionarCategorias?.();
     }
     el('btn-igual').onclick = () => repartirIgual();
-    el('btn-solo').onclick = () => repartirSoloPagador();
     el('btn-limpiar').onclick = () => limpiarSplit();
 
     bindMontoInput(el('monto'), () => onMontoInput());
@@ -195,21 +193,6 @@ function montarGastoForm(rootEl, options = {}) {
             const input = document.getElementById(`${p}-split-${part.id}`);
             if (!input) return;
             setMontoInput(input, i === 0 ? (base + resto) : base);
-            delete input.dataset.autoResto;
-        });
-        actualizarTotal();
-    }
-
-    function repartirSoloPagador() {
-        const monto = parseMonto(el('monto').value) || 0;
-        const pagadorId = el('pagador').value ? Number(el('pagador').value) : null;
-        if (!monto || !pagadorId) return;
-        syncSplitEnabled();
-        participantes.forEach(part => {
-            const input = document.getElementById(`${p}-split-${part.id}`);
-            if (!input) return;
-            const val = Number(part.id) === pagadorId ? monto : 0;
-            setMontoInput(input, val);
             delete input.dataset.autoResto;
         });
         actualizarTotal();
@@ -381,7 +364,6 @@ function montarGastoForm(rootEl, options = {}) {
         getValues,
         focusConcepto,
         repartirIgual,
-        repartirSoloPagador,
         limpiarSplit,
         refreshTipoSelect: renderCategorias,
         setAutoRepartir: (v) => { autoRepartirOnMonto = !!v; },

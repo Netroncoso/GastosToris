@@ -98,7 +98,7 @@ function fmtFechaCorta(iso) {
 }
 
 /** Etiqueta legible del reparto guardado en split_default. */
-function labelReparto(splitDefault, monto, pagadorId, participantes) {
+function labelReparto(splitDefault, monto, participantes) {
     const splits = Array.isArray(splitDefault)
         ? splitDefault.map(s => ({ id_participante: Number(s.id_participante), monto: Number(s.monto) }))
             .filter(s => s.id_participante && s.monto > 0)
@@ -106,17 +106,12 @@ function labelReparto(splitDefault, monto, pagadorId, participantes) {
     const total = Number(monto) || 0;
     const n = Array.isArray(participantes) ? participantes.length : 0;
     if (!total || !splits.length) return 'Partes iguales';
-    if (splits.length === 1) return 'Solo quien paga';
-    if (n > 1 && splits.length === n) {
+    if (n > 0 && splits.length === n) {
         const iguales = splitIgualDefault(participantes, total);
         const match = iguales.length === splits.length && iguales.every(exp =>
             splits.some(s => s.id_participante === exp.id_participante && Math.abs(s.monto - exp.monto) < 0.02)
         );
         if (match) return 'Partes iguales';
-    }
-    const pid = pagadorId != null ? Number(pagadorId) : null;
-    if (pid && splits.length === 1 && Math.abs(splits[0].monto - total) < 0.02 && splits[0].id_participante === pid) {
-        return 'Solo quien paga';
     }
     return 'Personalizado';
 }

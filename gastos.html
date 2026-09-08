@@ -1438,7 +1438,7 @@ function renderListaPlantillasRecurrentes() {
                 : (pendientes ? '1 pendiente' : 'Sin cargas');
         }
         const pagadorNombre = participantesActuales.find(x => Number(x.id) === Number(p.id_pagador))?.nombre;
-        const repartoLabel = labelReparto(p.split_default, p.monto, p.id_pagador, participantesActuales);
+        const repartoLabel = labelReparto(p.split_default, p.monto, participantesActuales);
         return `
         <div class="card" style="margin-bottom:8px">
             <div class="card-body flex-between" style="gap:10px;align-items:flex-start">
@@ -1489,7 +1489,7 @@ async function guardarPlantillaRecurrente() {
             alert('El día del mes debe ser entre 1 y 28.');
             return;
         }
-        if (!splits.length) { alert('Distribuí el gasto entre las personas (o usá "Solo quien paga").'); return; }
+        if (!splits.length) { alert('Distribuí el gasto entre las personas (usá "Partes iguales" o cargá montos manualmente).'); return; }
         if (Math.abs(totalSplit - monto) > 0.02) {
             alert(`La suma de la división ($${fmt(totalSplit)}) no coincide con el monto ($${fmt(monto)}).`);
             return;
