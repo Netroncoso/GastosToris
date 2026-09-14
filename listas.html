@@ -148,6 +148,10 @@ let circuloActual = null;
 let listaActual = null;
 let filtroLista = 'pendientes';
 let todosLosItems = [];
+/** Evita doble tap mientras hay update en vuelo; gracia antes de sacar fila en Pendientes. */
+const _toggleItemInflight = new Set();
+const _itemsCompradoGrace = new Set();
+const _itemGraceTimers = new Map();
 let participantesCirculo = [];
 let periodosCirculo = [];
 let cargarGastoForm = null;
@@ -433,8 +437,9 @@ function renderItems() {
     const comprados  = todosLosItems.filter(i => i.comprado);
 
     let items;
-    if (filtroLista === 'pendientes') items = pendientes;
-    else if (filtroLista === 'comprados') items = comprados;
+    if (filtroLista === 'pendientes') {
+        items = todosLosItems.filter(i => !i.comprado || _itemsCompradoGrace.has(i.id));
+    } else if (filtroLista === 'comprados') items = comprados;
     else items = [...pendientes, ...comprados];
 
     document.getElementById('lista-stats').innerHTML =
@@ -454,8 +459,10 @@ function renderItems() {
 
     cont.innerHTML = items.map(item => {
         const cantStr = item.cantidad ? `${item.cantidad}${item.unidad ? ' ' + item.unidad : ''}` : '';
-        return `<div class="lista-item ${item.comprado ? 'comprado' : ''}" id="item-${item.id}">
-            <div class="lista-check ${item.comprado ? 'checked' : ''}" onclick="toggleItem(${item.id}, ${item.comprado})" aria-label="${item.comprado ? 'Marcar como pendiente' : 'Marcar como comprado'}">
+        const enGracia = _itemsCompradoGrace.has(item.id);
+        const busy = _toggleItemInflight.has(item.id);
+        return `<div class="lista-item ${item.comprado ? 'comprado' : ''} ${enGracia ? 'lista-item-grace' : ''}" id="item-${item.id}">
+            <div class="lista-check ${item.comprado ? 'checked' : ''} ${busy ? 'lista-check-busy' : ''}" onclick="toggleItem(${item.id})" aria-label="${item.comprado ? 'Marcar como pendiente' : 'Marcar como comprado'}" aria-busy="${busy ? 'true' : 'false'}">
                 ${item.comprado ? icon('check',14) : ''}
             </div>
             <div class="lista-nombre ${item.comprado ? 'tachado' : ''}">${escapeHtml(item.nombre)}</div>
@@ -485,16 +492,56 @@ async function agregarItem() {
     renderItems();
 }
 
-async function toggleItem(id, estaComprado) {
-    const nuevoEstado = !estaComprado;
-    const { error } = await db.from('lista_compras').update({
-        comprado: nuevoEstado,
-        comprado_at: nuevoEstado ? new Date().toISOString() : null
-    }).eq('id', id);
-    if (error) { alert('Error: ' + error.message); return; }
+function clearItemCompradoGrace(id) {
+    _itemsCompradoGrace.delete(id);
+    const t = _itemGraceTimers.get(id);
+    if (t) {
+        clearTimeout(t);
+        _itemGraceTimers.delete(id);
+    }
+}
+
+function scheduleItemCompradoGrace(id) {
+    clearItemCompradoGrace(id);
+    _itemsCompradoGrace.add(id);
+    _itemGraceTimers.set(id, setTimeout(() => {
+        _itemsCompradoGrace.delete(id);
+        _itemGraceTimers.delete(id);
+        renderItems();
+    }, 500));
+}
+
+async function toggleItem(id) {
+    if (_toggleItemInflight.has(id)) return;
     const item = todosLosItems.find(i => i.id === id);
-    if (item) { item.comprado = nuevoEstado; item.comprado_at = nuevoEstado ? new Date().toISOString() : null; }
+    if (!item) return;
+
+    const prev = { comprado: item.comprado, comprado_at: item.comprado_at };
+    const nuevoEstado = !item.comprado;
+    if (!nuevoEstado) clearItemCompradoGrace(id);
+
+    _toggleItemInflight.add(id);
+    item.comprado = nuevoEstado;
+    item.comprado_at = nuevoEstado ? new Date().toISOString() : null;
     renderItems();
+
+    try {
+        const { error } = await db.from('lista_compras').update({
+            comprado: nuevoEstado,
+            comprado_at: item.comprado_at
+        }).eq('id', id);
+        if (error) throw error;
+        if (nuevoEstado && filtroLista === 'pendientes') scheduleItemCompradoGrace(id);
+    } catch (e) {
+        item.comprado = prev.comprado;
+        item.comprado_at = prev.comprado_at;
+        clearItemCompradoGrace(id);
+        alert('Error: ' + (e.message || e));
+        renderItems();
+    } finally {
+        _toggleItemInflight.delete(id);
+        renderItems();
+    }
 }
 
 async function borrarItem(id) {
