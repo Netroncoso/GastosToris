@@ -203,8 +203,8 @@ const PHOSPHOR_BASE = 'https://cdn.jsdelivr.net/npm/@phosphor-icons/core@2.1.1/a
 const HEROICONS_BASE = 'https://cdn.jsdelivr.net/npm/heroicons@2.2.0/24/outline';
 /** Logo de la app: no migrar a Phosphor. */
 const HEROICON_KEEP = new Set(['cube-transparent']);
-/** Alias Heroicons (y nombres viejos) → Phosphor, p.ej. categorías ya guardadas en DB. */
-const ICON_ALIAS = {
+/** Iconos Heroicons viejos en categorías guardadas — migración one-shot al cargar círculo. */
+const LEGACY_ICON_MAP = {
     'arrow-right-on-rectangle': 'sign-out',
     'x-mark': 'x',
     'pencil-square': 'pencil-simple',
@@ -223,7 +223,8 @@ const ICON_ALIAS = {
     bolt: 'lightning',
     film: 'film-strip',
     'archive-box': 'package',
-    beaker: 'flask',
+    beaker: 'leaf',
+    flask: 'leaf',
     'building-storefront': 'storefront',
     'device-phone-mobile': 'device-mobile',
     'musical-note': 'music-note',
@@ -236,14 +237,25 @@ const ICON_ALIAS = {
     map: 'map-trifold',
     globe: 'island'
 };
-function resolveIconName(name) {
+function migrarIconoLegacy(name) {
     if (!name) return 'package';
-    return ICON_ALIAS[name] || name;
+    return LEGACY_ICON_MAP[name] || name;
+}
+function migrarCategorias(categorias) {
+    if (!Array.isArray(categorias)) return [];
+    return categorias.map(c => {
+        const iconoRaw = c?.icono ?? c?.icon ?? 'package';
+        return { nombre: c.nombre, icono: migrarIconoLegacy(iconoRaw) };
+    });
+}
+function categoriasIconosCambiaron(antes, despues) {
+    if (!Array.isArray(antes) || !Array.isArray(despues) || antes.length !== despues.length) return false;
+    return antes.some((c, i) => (c.icono || 'package') !== (despues[i]?.icono || 'package'));
 }
 function iconUrl(name) {
-    const resolved = resolveIconName(name);
-    if (HEROICON_KEEP.has(resolved)) return `${HEROICONS_BASE}/${resolved}.svg`;
-    return `${PHOSPHOR_BASE}/${resolved}.svg`;
+    const n = name || 'package';
+    if (HEROICON_KEEP.has(n)) return `${HEROICONS_BASE}/${n}.svg`;
+    return `${PHOSPHOR_BASE}/${n}.svg`;
 }
 function icon(name, size = 20) {
     const url = iconUrl(name);
@@ -832,6 +844,22 @@ function updateFabPinButton(btn, pinned) {
     if (typeof initIconsIn === 'function') initIconsIn(btn);
 }
 
+function updateFabPinActionItem(btn, pinned) {
+    if (!btn) return;
+    btn.classList.toggle('fab-speed-dial-action-pinned', !!pinned);
+    const title = document.getElementById('fab-pin-title');
+    const desc = document.getElementById('fab-pin-desc');
+    const iconWrap = document.getElementById('fab-pin-icon');
+    const label = pinned ? 'Quitar del inicio' : 'Fijar en inicio';
+    btn.setAttribute('aria-label', label);
+    if (title) title.textContent = label;
+    if (desc) desc.textContent = pinned ? 'Ya está fijado en inicio' : 'Acceso rápido desde el inicio';
+    if (iconWrap) {
+        iconWrap.innerHTML = `<i data-icon="${pinned ? 'push-pin-slash' : 'bookmark-simple'}" data-size="22"></i>`;
+        if (typeof initIconsIn === 'function') initIconsIn(iconWrap);
+    }
+}
+
 const PIN_TIP_STORAGE = 'toris-pin-tip-seen';
 
 function pinTipStorageKey(userId) {
@@ -857,8 +885,9 @@ async function dismissFabPinTip() {
 }
 
 async function maybeShowFabPinTip() {
-    const btn = document.getElementById('fab-pin');
-    if (!btn || btn.classList.contains('hidden')) {
+    const btn = document.getElementById('fab-pin') || document.getElementById('fab-gastos-toggle');
+    const fabRoot = document.getElementById('fab-gastos');
+    if ((!btn && !fabRoot) || (fabRoot && fabRoot.classList.contains('hidden')) || (btn && btn.classList?.contains('hidden'))) {
         hideFabPinTip();
         return;
     }
@@ -874,7 +903,7 @@ async function maybeShowFabPinTip() {
     tip.className = 'fab-pin-tip';
     tip.setAttribute('role', 'status');
     tip.innerHTML = `
-        <div class="fab-pin-tip-text">Fijá este periodo o lista en inicio para abrirlo en un toque al volver a la app.</div>
+        <div class="fab-pin-tip-text">Tocá + y elegí «Fijar en inicio» para abrir este periodo al volver a la app.</div>
         <button type="button" class="fab-pin-tip-close" onclick="dismissFabPinTip()" aria-label="Cerrar"><i data-icon="x" data-size="14"></i></button>
     `;
     document.body.appendChild(tip);
@@ -906,6 +935,7 @@ async function togglePinPaginaActual() {
     const result = toggleAcceso(userId, data);
     if (result === null) return;
     updateFabPinButton(document.getElementById('fab-pin'), result);
+    updateFabPinActionItem(document.getElementById('fab-action-pin'), result);
     if (result === true) {
         markPinTipSeen(userId);
         hideFabPinTip();

@@ -30,10 +30,10 @@ function resolverCategorias(rawCategorias) {
             if (!item.nombre) return;
             const key = String(item.nombre).toLowerCase();
             if (!byName.has(key)) {
-                byName.set(key, { nombre: item.nombre, icono: item.icono || 'package' });
+                byName.set(key, { nombre: item.nombre, icono: migrarIconoLegacy(item.icono || 'package') });
             } else if (item.icono) {
                 const prev = byName.get(key);
-                byName.set(key, { nombre: prev.nombre, icono: item.icono });
+                byName.set(key, { nombre: prev.nombre, icono: migrarIconoLegacy(item.icono) });
             }
         });
     }
@@ -46,6 +46,8 @@ function resolverCategorias(rawCategorias) {
  * @param {{
  *   idPrefix?: string,
  *   showPeriodo?: boolean,
+ *   showConcepto?: boolean,
+ *   showFecha?: boolean,
  *   showGestionarCategorias?: boolean,
  *   onGestionarCategorias?: () => void,
  *   autoRepartirOnMonto?: boolean
@@ -55,6 +57,8 @@ function montarGastoForm(rootEl, options = {}) {
     if (!rootEl) throw new Error('montarGastoForm: rootEl requerido');
     const p = options.idPrefix || 'gf';
     const showPeriodo = !!options.showPeriodo;
+    const showConcepto = options.showConcepto !== false;
+    const showFecha = options.showFecha !== false;
     const showGestionar = !!options.showGestionarCategorias;
     let autoRepartirOnMonto = options.autoRepartirOnMonto !== false;
 
@@ -68,14 +72,16 @@ function montarGastoForm(rootEl, options = {}) {
             <label for="${p}-periodo">Periodo</label>
             <select id="${p}-periodo" name="periodo"></select>
         </div>` : ''}
+        ${showConcepto ? `
         <div class="form-group">
             <label for="${p}-concepto">Concepto</label>
             <input type="text" id="${p}-concepto" name="concepto" placeholder="Ej: Compra del sábado…" autocomplete="off" />
-        </div>
+        </div>` : ''}
+        ${showFecha ? `
         <div class="form-group">
             <label for="${p}-fecha">Fecha del gasto</label>
             <input type="date" id="${p}-fecha" name="fecha_gasto" />
-        </div>
+        </div>` : ''}
         <div class="form-group">
             <label for="${p}-monto">Monto total ($)</label>
             <input type="text" id="${p}-monto" name="monto" class="input-monto" placeholder="0" inputmode="decimal" autocomplete="off" />
@@ -93,7 +99,7 @@ function montarGastoForm(rootEl, options = {}) {
         </div>
         <div class="form-group">
             <label>División por persona ($)</label>
-            <div style="display:flex;gap:8px;margin-bottom:10px">
+            <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
                 <button type="button" class="btn btn-ghost btn-sm" id="${p}-btn-igual">Partes iguales</button>
                 <button type="button" class="btn btn-ghost btn-sm" id="${p}-btn-limpiar">Limpiar</button>
             </div>
@@ -256,7 +262,7 @@ function montarGastoForm(rootEl, options = {}) {
 
     function setCategorias(list, valorActual = null) {
         categorias = Array.isArray(list) && list.length
-            ? list.map(c => ({ nombre: c.nombre, icono: c.icono || 'package' }))
+            ? list.map(c => ({ nombre: c.nombre, icono: migrarIconoLegacy(c.icono || 'package') }))
             : CATEGORIAS_DEFECTO.map(c => ({ ...c }));
         renderCategorias(valorActual);
     }
@@ -277,8 +283,8 @@ function montarGastoForm(rootEl, options = {}) {
      */
     function reset(defaults = {}) {
         skipAutoRepartir = true;
-        el('concepto').value = defaults.concepto || '';
-        el('fecha').value = defaults.fecha || hoyISO();
+        if (showConcepto) el('concepto').value = defaults.concepto || '';
+        if (showFecha) el('fecha').value = defaults.fecha || hoyISO();
         setMontoInput(el('monto'), defaults.monto != null && Number.isFinite(Number(defaults.monto))
             ? Number(defaults.monto)
             : NaN);
@@ -323,8 +329,8 @@ function montarGastoForm(rootEl, options = {}) {
             }
         });
         const out = {
-            concepto: el('concepto').value.trim(),
-            fecha: el('fecha').value || hoyISO(),
+            concepto: showConcepto ? el('concepto').value.trim() : '',
+            fecha: showFecha ? (el('fecha').value || hoyISO()) : hoyISO(),
             monto,
             tipo: el('tipo').value,
             pagador: el('pagador').value ? Number(el('pagador').value) : null,
@@ -338,7 +344,10 @@ function montarGastoForm(rootEl, options = {}) {
     }
 
     function focusConcepto() {
-        setTimeout(() => el('concepto')?.focus(), 100);
+        setTimeout(() => {
+            if (showConcepto) el('concepto')?.focus();
+            else el('monto')?.focus();
+        }, 100);
     }
 
     // initial empty state
