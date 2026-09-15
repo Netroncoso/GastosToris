@@ -502,13 +502,20 @@ function clearItemCompradoGrace(id) {
 }
 
 function scheduleItemCompradoGrace(id) {
-    clearItemCompradoGrace(id);
+    if (_itemsCompradoGrace.has(id)) return;
     _itemsCompradoGrace.add(id);
     _itemGraceTimers.set(id, setTimeout(() => {
         _itemsCompradoGrace.delete(id);
         _itemGraceTimers.delete(id);
         renderItems();
-    }, 500));
+    }, 380));
+}
+
+function clearToggleItemBusy(id) {
+    const el = document.querySelector(`#item-${id} .lista-check`);
+    if (!el) return;
+    el.classList.remove('lista-check-busy');
+    el.setAttribute('aria-busy', 'false');
 }
 
 async function toggleItem(id) {
@@ -523,6 +530,7 @@ async function toggleItem(id) {
     _toggleItemInflight.add(id);
     item.comprado = nuevoEstado;
     item.comprado_at = nuevoEstado ? new Date().toISOString() : null;
+    if (nuevoEstado && filtroLista === 'pendientes') scheduleItemCompradoGrace(id);
     renderItems();
 
     try {
@@ -531,7 +539,6 @@ async function toggleItem(id) {
             comprado_at: item.comprado_at
         }).eq('id', id);
         if (error) throw error;
-        if (nuevoEstado && filtroLista === 'pendientes') scheduleItemCompradoGrace(id);
     } catch (e) {
         item.comprado = prev.comprado;
         item.comprado_at = prev.comprado_at;
@@ -540,7 +547,11 @@ async function toggleItem(id) {
         renderItems();
     } finally {
         _toggleItemInflight.delete(id);
-        renderItems();
+        if (_itemsCompradoGrace.has(id) && filtroLista === 'pendientes') {
+            clearToggleItemBusy(id);
+        } else {
+            renderItems();
+        }
     }
 }
 
