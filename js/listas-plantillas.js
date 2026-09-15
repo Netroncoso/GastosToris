@@ -103,7 +103,7 @@ const LISTAS_PLANTILLAS = [
     {
         id: 'dietetica',
         nombre: 'Dietetica',
-        icon: 'flask',
+        icon: 'leaf',
         items: [
             'Pimentón ahumado',
             'Orégano',
