@@ -11,5 +11,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
     }
 });
 
-// Cambiá esto si tu carpeta en GitHub Pages tiene otro nombre
-const APP_BASE_URL = 'https://netroncoso.github.io/GastosToris/';
+// Base para OAuth e invitaciones por email (debe coincidir con Supabase Redirect URLs)
+const APP_BASE_URL = typeof window !== 'undefined'
+    ? new URL('./', window.location.href).href
+    : 'https://torisapp.vercel.app/';

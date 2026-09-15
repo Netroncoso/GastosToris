@@ -2,7 +2,7 @@
 
 Círculos compartidos para **gastos**, **listas de compras** y **tareas**. Pensada para el hogar, viajes o cualquier grupo chico que necesite repartir plata y organizarse sin cinco apps distintas.
 
-**Demo:** [netroncoso.github.io/GastosToris](https://netroncoso.github.io/GastosToris/)
+**Demo:** [torisapp.vercel.app](https://torisapp.vercel.app/)
 
 ## Qué hace
 
@@ -33,7 +33,7 @@ Un **círculo** concentra personas, categorías de gasto, listas y tareas. Los *
 | Capa | Tecnología |
 |------|------------|
 | Front | HTML / CSS / JS (multi-página, sin build) |
-| Hosting | GitHub Pages |
+| Hosting | [Vercel](https://torisapp.vercel.app/) (antes GitHub Pages) |
 | Backend | [Supabase](https://supabase.com) (Auth, Postgres, Realtime, Edge Functions) |
 | Íconos | Phosphor (logo Toris: Heroicons `cube-transparent`) |
 
@@ -72,13 +72,13 @@ Un **círculo** concentra personas, categorías de gasto, listas y tareas. Los *
    Si venís de versiones viejas, revisá las migraciones `1`–`8` en orden o partí de la `9` en un proyecto limpio.
 3. (Opcional) Realtime: publicá la tabla `gastos` para ver cambios en vivo en un periodo abierto.
 4. Copiá Project URL y **anon** key a `js/supabase-client.js`.
-5. Ajustá `APP_BASE_URL` a tu URL de Pages (redirect OAuth).
+5. En Supabase → Authentication → URL Configuration, agregá tu URL de deploy (ej. `https://torisapp.vercel.app/**`) a Redirect URLs. `APP_BASE_URL` se resuelve sola desde el host actual.
 
-### 2. GitHub Pages
+### 2. Vercel
 
-1. Publicá este repo (o la carpeta raíz de la app) en Pages.
-2. En Supabase → Authentication → URL Configuration, agregá esa URL a Redirect URLs.
-3. Abrí la app, logueate y creá un círculo.
+1. Importá el repo en Vercel (preset **Other**, sin build, raíz del repo).
+2. En Supabase → Authentication → URL Configuration: **Site URL** y **Redirect URLs** con `https://tu-dominio.vercel.app/**`.
+3. Deploy, abrí la app, logueate y creá un círculo.
 
 ### 3. Google Calendar (opcional)
 
