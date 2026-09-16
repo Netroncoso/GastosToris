@@ -269,6 +269,7 @@ function mostrarPantalla(nombre) {
 
 function volverAListas() {
     if (listaActual) {
+        desuscribirListasRealtime();
         listaActual = null;
         clearListaDetailParams();
         actualizarTopbarListas();
@@ -401,6 +402,7 @@ async function eliminarLista(id, nombre) {
 }
 
 async function abrirLista(lista, opts = {}) {
+    desuscribirListasRealtime();
     listaActual = lista;
     const filtro = FILTROS_LISTA.includes(opts.filtro) ? opts.filtro : 'pendientes';
     setQueryParams({ circulo: circuloId, abrir: lista.id, filtro });
@@ -409,11 +411,60 @@ async function abrirLista(lista, opts = {}) {
     await cargarItems();
     setFiltro(filtro);
     refreshFabPinListas();
+    suscribirListasRealtime();
 }
 
 // =============================================
 // ÍTEMS DE LA LISTA ACTUAL
 // =============================================
+let listasItemsChannel = null;
+let listasRealtimeTimer = null;
+let listasRealtimeDeferTimer = null;
+
+function suscribirListasRealtime() {
+    desuscribirListasRealtime();
+    if (!listaActual?.id) return;
+    const listaId = listaActual.id;
+    listasItemsChannel = db
+        .channel(`lista-compras-${listaId}`)
+        .on(
+            'postgres_changes',
+            {
+                event: '*',
+                schema: 'public',
+                table: 'lista_compras',
+                filter: `id_lista=eq.${listaId}`
+            },
+            () => {
+                clearTimeout(listasRealtimeTimer);
+                listasRealtimeTimer = setTimeout(refrescarItemsPorRealtime, 280);
+            }
+        )
+        .subscribe();
+}
+
+function desuscribirListasRealtime() {
+    clearTimeout(listasRealtimeTimer);
+    clearTimeout(listasRealtimeDeferTimer);
+    listasRealtimeTimer = null;
+    listasRealtimeDeferTimer = null;
+    if (!listasItemsChannel) return;
+    db.removeChannel(listasItemsChannel);
+    listasItemsChannel = null;
+}
+
+function refrescarItemsPorRealtime() {
+    if (!listaActual?.id) return;
+    if (_toggleItemInflight.size > 0) {
+        clearTimeout(listasRealtimeDeferTimer);
+        listasRealtimeDeferTimer = setTimeout(refrescarItemsPorRealtime, 220);
+        return;
+    }
+    cargarItems({ silent: true });
+}
+
+window.addEventListener('pagehide', desuscribirListasRealtime);
+
 function setFiltro(f) {
     filtroLista = f;
     syncFilterTabsUI(document.getElementById('lista-filters'), f);
@@ -421,12 +472,16 @@ function setFiltro(f) {
     renderItems();
 }
 
-async function cargarItems() {
+async function cargarItems({ silent = false } = {}) {
+    if (!listaActual?.id) return;
     const cont = document.getElementById('lista-items');
-    cont.innerHTML = loaderHtml('Cargando…');
+    if (!silent) cont.innerHTML = loaderHtml('Cargando…');
     const { data, error } = await db.from('lista_compras')
         .select('*').eq('id_lista', listaActual.id).order('comprado').order('created_at');
-    if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
+    if (error) {
+        if (!silent) cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`;
+        return;
+    }
     todosLosItems = data || [];
     renderItems();
 }

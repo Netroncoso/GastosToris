@@ -710,20 +710,31 @@ let gastosRealtimeTimer = null;
 
 function suscribirGastosRealtime() {
     if (!periodoActual?.id || gastosChannel) return;
+    const periodoId = periodoActual.id;
+    const encolarRefreshGastos = () => {
+        clearTimeout(gastosRealtimeTimer);
+        gastosRealtimeTimer = setTimeout(refrescarVistaPorRealtime, 280);
+    };
     gastosChannel = db
-        .channel(`gastos-periodo-${periodoActual.id}`)
+        .channel(`gastos-periodo-${periodoId}`)
         .on(
             'postgres_changes',
             {
                 event: '*',
                 schema: 'public',
                 table: 'gastos',
-                filter: `id_periodo=eq.${periodoActual.id}`
+                filter: `id_periodo=eq.${periodoId}`
             },
-            () => {
-                clearTimeout(gastosRealtimeTimer);
-                gastosRealtimeTimer = setTimeout(refrescarVistaPorRealtime, 280);
-            }
+            encolarRefreshGastos
+        )
+        .on(
+            'postgres_changes',
+            {
+                event: '*',
+                schema: 'public',
+                table: 'gastos_participantes'
+            },
+            encolarRefreshGastos
         )
         .subscribe();
 }
