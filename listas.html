@@ -36,7 +36,7 @@
 <!-- SCREEN: LISTA DE LISTAS -->
 <div id="screen-listas" class="screen active">
     <main id="main-content" class="container">
-        <div id="lista-de-listas"><div class="loader" role="status" aria-live="polite">Cargando listas…</div></div>
+        <div id="lista-de-listas" class="card-grid"><div class="loader" role="status" aria-live="polite">Cargando listas…</div></div>
         <button type="button" class="btn btn-primary btn-full mt-16" onclick="abrirModalLista()"><i data-icon="plus" data-size="16"></i> Nueva lista</button>
         <button type="button" class="btn btn-ghost btn-full mt-12" onclick="abrirModalPlantillas()"><i data-icon="clipboard-text" data-size="16"></i> Cargar plantilla</button>
     </main>
@@ -44,7 +44,7 @@
 
 <!-- SCREEN: DETALLE DE LISTA -->
 <div id="screen-detalle" class="screen">
-    <div class="container">
+    <div class="container layout-split-wide">
         <div class="filter-tabs" id="lista-filters" role="tablist" aria-label="Filtrar ítems">
             <button type="button" class="filter-tab active" role="tab" aria-selected="true" data-filtro="pendientes" onclick="setFiltro('pendientes')">Pendientes</button>
             <button type="button" class="filter-tab" role="tab" aria-selected="false" tabindex="-1" data-filtro="todos" onclick="setFiltro('todos')">Todos</button>
