@@ -112,6 +112,9 @@ body.app-booting #boot-splash { display: flex; }
 .topbar-left { display: flex; align-items: center; gap: 8px; }
 .topbar h1 { font-size: 17px; font-weight: 700; }
 .topbar-user { color: rgba(255,255,255,0.8); font-size: 13px; }
+.topbar-user-inner { display: inline-flex; align-items: center; gap: 8px; max-width: min(200px, 42vw); }
+.topbar-user-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1.5px solid rgba(255,255,255,0.35); }
+.topbar-user-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .btn-icon { background: var(--topbar-icon-bg); border: none; border-radius: 8px;
     color: #fff; cursor: pointer; font-size: 16px; padding: 6px 10px; transition: background 0.15s; }
 .btn-icon:hover { background: var(--topbar-icon-bg-hover); }

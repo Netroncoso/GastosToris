@@ -71,8 +71,9 @@ Un **círculo** concentra personas, categorías de gasto, listas y tareas. Los *
 
    Si venís de versiones viejas, revisá las migraciones `1`–`8` en orden o partí de la `9` en un proyecto limpio.
 3. (Opcional) Realtime: `gastos` y `lista_compras` en la publicación `supabase_realtime` (ver `migrations/migracion_realtime_listas.sql`). Con eso, un periodo o lista abierta se actualiza sola cuando otro miembro edita.
-4. Copiá Project URL y **anon** key a `js/supabase-client.js`.
-5. En Supabase → Authentication → URL Configuration, agregá tu URL de deploy (ej. `https://torisapp.vercel.app/**`) a Redirect URLs. `APP_BASE_URL` se resuelve sola desde el host actual.
+4. Perfiles de usuario: `migrations/migracion_perfiles_usuario.sql` (tema, accesos directos; foto/nombre desde Google en el topbar).
+5. Copiá Project URL y **anon** key a `js/supabase-client.js`.
+6. En Supabase → Authentication → URL Configuration, agregá tu URL de deploy (ej. `https://torisapp.vercel.app/**`) a Redirect URLs. `APP_BASE_URL` se resuelve sola desde el host actual.
 
 ### 2. Vercel
 
