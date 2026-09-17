@@ -419,7 +419,14 @@ async function abrirLista(lista, opts = {}) {
 // =============================================
 let listasItemsChannel = null;
 let listasRealtimeTimer = null;
-let listasRealtimeDeferTimer = null;
+
+function compareListaNombre(a, b) {
+    return String(a?.nombre || '').localeCompare(String(b?.nombre || ''), 'es', { sensitivity: 'base' });
+}
+
+function sortListaItemsAlpha(items) {
+    return [...items].sort(compareListaNombre);
+}
 
 function suscribirListasRealtime() {
     desuscribirListasRealtime();
@@ -435,9 +442,10 @@ function suscribirListasRealtime() {
                 table: 'lista_compras',
                 filter: `id_lista=eq.${listaId}`
             },
-            () => {
+            (payload) => {
+                if (!mergeListaComprasDesdeRealtime(payload)) return;
                 clearTimeout(listasRealtimeTimer);
-                listasRealtimeTimer = setTimeout(refrescarItemsPorRealtime, 280);
+                listasRealtimeTimer = setTimeout(() => renderItems(), 120);
             }
         )
         .subscribe();
@@ -445,22 +453,36 @@ function suscribirListasRealtime() {
 
 function desuscribirListasRealtime() {
     clearTimeout(listasRealtimeTimer);
-    clearTimeout(listasRealtimeDeferTimer);
     listasRealtimeTimer = null;
-    listasRealtimeDeferTimer = null;
     if (!listasItemsChannel) return;
     db.removeChannel(listasItemsChannel);
     listasItemsChannel = null;
 }
 
-function refrescarItemsPorRealtime() {
-    if (!listaActual?.id) return;
-    if (_toggleItemInflight.size > 0) {
-        clearTimeout(listasRealtimeDeferTimer);
-        listasRealtimeDeferTimer = setTimeout(refrescarItemsPorRealtime, 220);
-        return;
+/** Aplica un evento Realtime en memoria (sin refetch). Devuelve false si se ignora. */
+function mergeListaComprasDesdeRealtime(payload) {
+    if (!listaActual?.id) return false;
+    const row = payload.new || payload.old;
+    if (row && Number(row.id_lista) !== Number(listaActual.id)) return false;
+
+    const id = row?.id;
+    if (id != null && _toggleItemInflight.has(id)) return false;
+
+    if (payload.eventType === 'INSERT' && payload.new) {
+        if (!todosLosItems.some(i => i.id === payload.new.id)) {
+            todosLosItems.push(payload.new);
+        }
+    } else if (payload.eventType === 'UPDATE' && payload.new) {
+        const idx = todosLosItems.findIndex(i => i.id === payload.new.id);
+        if (idx >= 0) todosLosItems[idx] = payload.new;
+        else todosLosItems.push(payload.new);
+    } else if (payload.eventType === 'DELETE' && payload.old) {
+        todosLosItems = todosLosItems.filter(i => i.id !== payload.old.id);
+        clearItemCompradoGrace(payload.old.id);
+    } else {
+        return false;
     }
-    cargarItems({ silent: true });
+    return true;
 }
 
 window.addEventListener('pagehide', desuscribirListasRealtime);
@@ -477,7 +499,7 @@ async function cargarItems({ silent = false } = {}) {
     const cont = document.getElementById('lista-items');
     if (!silent) cont.innerHTML = loaderHtml('Cargando…');
     const { data, error } = await db.from('lista_compras')
-        .select('*').eq('id_lista', listaActual.id).order('comprado').order('created_at');
+        .select('*').eq('id_lista', listaActual.id);
     if (error) {
         if (!silent) cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`;
         return;
@@ -493,9 +515,12 @@ function renderItems() {
 
     let items;
     if (filtroLista === 'pendientes') {
-        items = todosLosItems.filter(i => !i.comprado || _itemsCompradoGrace.has(i.id));
-    } else if (filtroLista === 'comprados') items = comprados;
-    else items = [...pendientes, ...comprados];
+        items = sortListaItemsAlpha(todosLosItems.filter(i => !i.comprado || _itemsCompradoGrace.has(i.id)));
+    } else if (filtroLista === 'comprados') {
+        items = sortListaItemsAlpha(comprados);
+    } else {
+        items = [...sortListaItemsAlpha(pendientes), ...sortListaItemsAlpha(comprados)];
+    }
 
     document.getElementById('lista-stats').innerHTML =
         `<span>${pendientes.length} pendiente${pendientes.length !== 1 ? 's' : ''}</span>
@@ -542,8 +567,7 @@ async function agregarItem() {
     document.getElementById('lista-input-unidad').value = '';
     document.getElementById('lista-input-nombre').focus();
 
-    todosLosItems = [data, ...todosLosItems];
-    todosLosItems.sort((a, b) => a.comprado - b.comprado || new Date(a.created_at) - new Date(b.created_at));
+    todosLosItems.push(data);
     renderItems();
 }
 
