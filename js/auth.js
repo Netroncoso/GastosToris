@@ -34,7 +34,7 @@ async function requireAuth(onReady) {
     if (typeof syncPerfilUsuario === 'function') {
         perfil = await syncPerfilUsuario(session.user);
     }
-    pintarTopbarUser(session.user, perfil);
+    await pintarTopbarUser(session.user, perfil);
     onReady(session.user);
 }
 

@@ -84,7 +84,10 @@
     async function iniciarSesion() {
         const { error } = await db.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: APP_BASE_URL }
+            options: {
+                redirectTo: APP_BASE_URL,
+                scopes: 'openid email profile'
+            }
         });
         if (error) alert('Error al iniciar sesión: ' + error.message);
     }
@@ -127,7 +130,7 @@
         window._indexUserId = user.id;
         document.getElementById('topbar').classList.remove('hidden');
         const perfil = typeof syncPerfilUsuario === 'function' ? await syncPerfilUsuario(user) : null;
-        pintarTopbarUser(user, perfil);
+        await pintarTopbarUser(user, perfil);
 
         const params = new URLSearchParams(window.location.search);
         const invite = params.get('invite') || params.get('invite_gasto') || params.get('invite_tarea');

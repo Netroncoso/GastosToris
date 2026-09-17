@@ -7,21 +7,58 @@ let _perfilSaveTimer = null;
 let _perfilPending = null;
 
 function getAvatarUrlFromUser(user) {
-    if (!user?.user_metadata) return null;
-    return user.user_metadata.avatar_url || user.user_metadata.picture || null;
+    if (!user) return null;
+    const m = user.user_metadata || {};
+    if (m.avatar_url) return m.avatar_url;
+    if (m.picture) return m.picture;
+    for (const id of user.identities || []) {
+        const d = id.identity_data || {};
+        if (d.avatar_url) return d.avatar_url;
+        if (d.picture) return d.picture;
+    }
+    return null;
 }
 
-function pintarTopbarUser(user, perfil) {
+async function fetchGoogleAvatarFromProviderToken() {
+    const { data: { session } } = await db.auth.getSession();
+    const token = session?.provider_token;
+    if (!token) return null;
+    try {
+        const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.picture || null;
+    } catch (_) {
+        return null;
+    }
+}
+
+async function resolveAvatarUrl(user, perfil) {
+    const { data: { user: fresh } } = await db.auth.getUser();
+    const u = fresh || user;
+    let url = getAvatarUrlFromUser(u);
+    if (!url && perfil?.avatar_url) url = perfil.avatar_url;
+    if (!url) url = await fetchGoogleAvatarFromProviderToken();
+    if (url && u?.id && url !== perfil?.avatar_url) {
+        schedulePerfilSave(u.id, { avatar_url: url });
+    }
+    return url;
+}
+
+async function pintarTopbarUser(user, perfil) {
     const el = document.getElementById('topbar-user');
     if (!el || !user) return;
     const nombre = (perfil?.display_name && String(perfil.display_name).trim())
         || (typeof getDisplayNameFromUser === 'function' ? getDisplayNameFromUser(user) : 'Usuario');
-    const avatar = getAvatarUrlFromUser(user);
+    const avatar = await resolveAvatarUrl(user, perfil);
     if (avatar) {
         el.innerHTML = `<span class="topbar-user-inner"><img class="topbar-user-avatar" src="${escapeHtml(avatar)}" alt="" width="28" height="28" referrerpolicy="no-referrer" decoding="async"><span class="topbar-user-name">${escapeHtml(nombre)}</span></span>`;
-    } else {
-        el.textContent = nombre;
+        return;
     }
+    const initial = (nombre.charAt(0) || '?').toUpperCase();
+    el.innerHTML = `<span class="topbar-user-inner"><span class="topbar-user-avatar topbar-user-avatar-fallback" aria-hidden="true">${escapeHtml(initial)}</span><span class="topbar-user-name">${escapeHtml(nombre)}</span></span>`;
 }
 
 function schedulePerfilSave(userId, patch) {
@@ -42,6 +79,7 @@ async function flushPerfilSave() {
     if (pending.tema != null) row.tema = pending.tema;
     if (pending.accesos != null) row.accesos = pending.accesos;
     if (pending.display_name !== undefined) row.display_name = pending.display_name;
+    if (pending.avatar_url !== undefined) row.avatar_url = pending.avatar_url;
     const { error } = await db.from('perfiles').upsert(row, { onConflict: 'id' });
     if (error) console.warn('No se pudo guardar el perfil:', error.message);
 }
@@ -63,7 +101,7 @@ async function syncPerfilUsuario(user) {
     window._perfilSyncing = true;
     try {
         const { data: row, error } = await db.from('perfiles')
-            .select('id, display_name, tema, accesos, updated_at')
+            .select('id, display_name, avatar_url, tema, accesos, updated_at')
             .eq('id', user.id)
             .maybeSingle();
 
