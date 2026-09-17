@@ -30,7 +30,11 @@ async function requireAuth(onReady) {
     if (typeof intentarCapturarTokenGooglePostOAuth === 'function') {
         await intentarCapturarTokenGooglePostOAuth();
     }
-    pintarTopbarUser(session.user);
+    let perfil = null;
+    if (typeof syncPerfilUsuario === 'function') {
+        perfil = await syncPerfilUsuario(session.user);
+    }
+    pintarTopbarUser(session.user, perfil);
     onReady(session.user);
 }
 
@@ -42,13 +46,6 @@ db.auth.onAuthStateChange(async (event, session) => {
         window.location.href = './index.html';
     }
 });
-
-function pintarTopbarUser(user) {
-    const el = document.getElementById('topbar-user');
-    if (!el) return;
-    const nombre = (user.user_metadata?.full_name || user.email || '').split(' ')[0];
-    el.textContent = nombre;
-}
 
 async function cerrarSesion() {
     try { localStorage.removeItem('toris-last-route'); } catch (_) {}

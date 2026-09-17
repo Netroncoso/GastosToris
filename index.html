@@ -79,6 +79,7 @@
 
 <script src="js/supabase-client.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/perfil-usuario.js"></script>
 <script>
     async function iniciarSesion() {
         const { error } = await db.auth.signInWithOAuth({
@@ -125,8 +126,8 @@
         _appActivada = true;
         window._indexUserId = user.id;
         document.getElementById('topbar').classList.remove('hidden');
-        const nombre = (user.user_metadata?.full_name || user.email || '').split(' ')[0];
-        document.getElementById('topbar-user').textContent = nombre;
+        const perfil = typeof syncPerfilUsuario === 'function' ? await syncPerfilUsuario(user) : null;
+        pintarTopbarUser(user, perfil);
 
         const params = new URLSearchParams(window.location.search);
         const invite = params.get('invite') || params.get('invite_gasto') || params.get('invite_tarea');

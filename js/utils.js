@@ -17,10 +17,15 @@ function getTheme() {
     return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
 }
 
-function applyTheme(theme) {
+function applyTheme(theme, opts = {}) {
     const next = theme === 'dark' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', next);
     try { localStorage.setItem('toris-theme', next); } catch (_) {}
+    if (!opts.skipPerfil && !window._perfilSyncing && typeof schedulePerfilSave === 'function') {
+        getCurrentUserId().then(uid => {
+            if (uid) schedulePerfilSave(uid, { tema: next });
+        }).catch(() => {});
+    }
     // Misma tinta que el topbar (arriba del notch / chrome del celu)
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', '#1b4079');
@@ -755,6 +760,9 @@ function getAccesos(userId) {
 function saveAccesos(userId, list) {
     if (!userId) return;
     try { localStorage.setItem(accesosStorageKey(userId), JSON.stringify(list)); } catch (_) {}
+    if (!window._perfilSyncing && typeof schedulePerfilSave === 'function') {
+        schedulePerfilSave(userId, { accesos: list });
+    }
 }
 
 function accesoIdFrom(data) {

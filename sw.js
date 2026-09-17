@@ -1,6 +1,6 @@
 /* Service worker liviano: cachea estáticos de GitHub Pages.
    HTML/JS/CSS van network-first para no quedar con versiones viejas en el teléfono. */
-const CACHE = 'torisapp-static-v68';
+const CACHE = 'torisapp-static-v69';
 const PRECACHE = [
   './',
   './index.html',
@@ -15,6 +15,7 @@ const PRECACHE = [
   './js/gasto-form.js',
   './js/gastos-recurrentes.js',
   './js/listas-plantillas.js',
+  './js/perfil-usuario.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png'
