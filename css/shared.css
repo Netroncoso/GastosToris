@@ -114,6 +114,7 @@ body.app-booting #boot-splash { display: flex; }
 .topbar-user { color: rgba(255,255,255,0.8); font-size: 13px; }
 .topbar-user-inner { display: inline-flex; align-items: center; gap: 8px; max-width: min(200px, 42vw); }
 .topbar-user-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1.5px solid rgba(255,255,255,0.35); }
+.topbar-user-avatar-fallback { display: inline-flex; align-items: center; justify-content: center; background: var(--topbar-icon-bg); color: #fff; font-size: 13px; font-weight: 700; object-fit: unset; }
 .topbar-user-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .btn-icon { background: var(--topbar-icon-bg); border: none; border-radius: 8px;
     color: #fff; cursor: pointer; font-size: 16px; padding: 6px 10px; transition: background 0.15s; }

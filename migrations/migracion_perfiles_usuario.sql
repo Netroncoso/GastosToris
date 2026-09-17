@@ -4,6 +4,7 @@
 CREATE TABLE IF NOT EXISTS public.perfiles (
     id uuid PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
     display_name text,
+    avatar_url text,
     tema text NOT NULL DEFAULT 'system'
         CHECK (tema IN ('light', 'dark', 'system')),
     accesos jsonb NOT NULL DEFAULT '[]'::jsonb,
