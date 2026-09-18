@@ -112,27 +112,37 @@ body.app-booting #boot-splash { display: flex; }
 }
 .topbar-left { display: flex; align-items: center; gap: 8px; }
 .topbar h1 { font-size: 17px; font-weight: 700; }
-.topbar-user-menu { position: relative; flex-shrink: 0; }
-.topbar-avatar-btn {
-    width: var(--topbar-control-size);
-    height: var(--topbar-control-size);
-    padding: 0;
-    border: none;
-    border-radius: 8px;
-    background: var(--topbar-icon-bg);
-    cursor: pointer;
+.topbar-user-menu { position: relative; flex-shrink: 0; max-width: min(260px, 52vw); }
+.topbar-account-trigger {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    overflow: hidden;
+    gap: 10px;
+    max-width: 100%;
+    padding: 4px 10px 4px 4px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
     transition: background 0.15s;
 }
-.topbar-avatar-btn:hover { background: var(--topbar-icon-bg-hover); }
-.topbar-avatar-btn[aria-expanded="true"] { background: var(--topbar-icon-bg-hover); }
+.topbar-account-trigger:hover { background: var(--topbar-icon-bg); }
+.topbar-account-trigger[aria-expanded="true"] { background: var(--topbar-icon-bg-hover); }
+.topbar-account-avatar-wrap {
+    width: var(--topbar-control-size);
+    height: var(--topbar-control-size);
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ea580c;
+}
 .topbar-user-avatar {
     width: 100%;
     height: 100%;
-    border-radius: 8px;
     object-fit: cover;
     display: block;
 }
@@ -145,6 +155,24 @@ body.app-booting #boot-splash { display: flex; }
     color: #fff;
     font-size: 15px;
     font-weight: 700;
+}
+.topbar-account-name {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 1;
+    text-align: left;
+}
+.topbar-account-chevron {
+    display: flex;
+    align-items: center;
+    opacity: 0.85;
+    flex-shrink: 0;
+    color: rgba(255,255,255,0.9);
 }
 .topbar-user-dropdown {
     position: absolute;
@@ -160,15 +188,6 @@ body.app-booting #boot-splash { display: flex; }
     z-index: 120;
 }
 .topbar-user-dropdown.hidden { display: none; }
-.topbar-user-dropdown-name {
-    padding: 10px 12px 8px;
-    font-weight: 700;
-    font-size: 14px;
-    line-height: 1.3;
-    word-break: break-word;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 6px;
-}
 .topbar-user-dropdown-item {
     width: 100%;
     display: flex;
