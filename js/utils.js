@@ -36,6 +36,7 @@ function applyTheme(theme, opts = {}) {
         btn.innerHTML = `<i data-icon="${icon}" data-size="18"></i>`;
         if (typeof initIconsIn === 'function') initIconsIn(btn);
     });
+    if (typeof updateTopbarMenuThemeLabel === 'function') updateTopbarMenuThemeLabel();
 }
 
 function toggleTheme() {

@@ -26,9 +26,7 @@
         <h1 id="topbar-title">Círculo</h1>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
-        <span id="topbar-user" class="topbar-user"></span>
-        <button type="button" class="btn-icon" data-theme-toggle onclick="toggleTheme()" aria-label="Modo oscuro"><i data-icon="moon" data-size="18"></i></button>
-        <button type="button" class="btn-icon" onclick="cerrarSesion()" aria-label="Cerrar sesión"><i data-icon="sign-out" data-size="18"></i></button>
+        <div id="topbar-user-menu" class="topbar-user-menu"></div>
     </div>
 </div>
 
@@ -311,7 +309,7 @@ async function cargarParticipantes() {
     }
     cont.innerHTML = `<div class="card">${data.map(p => `
         <div class="part-item">
-            <div class="avatar">${p.nombre.charAt(0).toUpperCase()}</div>
+            ${htmlAvatarParticipante(p)}
             <div style="flex:1;min-width:0">
                 <div class="part-name">${escapeHtml(p.nombre)}</div>
                 ${p.email ? `<div class="text-muted" style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><i data-icon="envelope" data-size="14"></i> ${escapeHtml(p.email)}</div>` : ''}
