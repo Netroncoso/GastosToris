@@ -48,9 +48,26 @@ async function resolveAvatarUrl(user, perfil) {
     return url;
 }
 
+function getFullDisplayNameForTopbar(user, perfil) {
+    if (perfil?.display_name && String(perfil.display_name).trim()) {
+        return String(perfil.display_name).trim();
+    }
+    const full = user?.user_metadata?.full_name;
+    if (full && String(full).trim()) return String(full).trim();
+    return user?.email?.split('@')[0] || 'Usuario';
+}
+
 function cacheSessionAvatar(user, avatarUrl) {
     window.__torisSessionEmail = user?.email || null;
     window.__torisSessionAvatarUrl = avatarUrl || null;
+}
+
+async function syncAvatarToParticipantes(user, avatarUrl) {
+    if (!user?.email || !avatarUrl) return;
+    const { error } = await db.from('participantes')
+        .update({ avatar_url: avatarUrl })
+        .eq('email', user.email);
+    if (error) console.warn('Avatar en participantes:', error.message);
 }
 
 function avatarUrlForParticipante(p) {
@@ -121,23 +138,24 @@ function ensureTopbarMenuDocListener() {
 async function pintarTopbarUser(user, perfil) {
     const mount = document.getElementById('topbar-user-menu');
     if (!mount || !user) return;
-    const nombre = (perfil?.display_name && String(perfil.display_name).trim())
-        || (typeof getDisplayNameFromUser === 'function' ? getDisplayNameFromUser(user) : 'Usuario');
+    const nombre = getFullDisplayNameForTopbar(user, perfil);
     const avatar = await resolveAvatarUrl(user, perfil);
     cacheSessionAvatar(user, avatar);
+    await syncAvatarToParticipantes(user, avatar);
     const initial = (nombre.charAt(0) || '?').toUpperCase();
     const triggerFace = avatar
         ? `<img class="topbar-user-avatar" src="${escapeHtml(avatar)}" alt="" referrerpolicy="no-referrer" decoding="async">`
         : `<span class="topbar-user-avatar-fallback" aria-hidden="true">${escapeHtml(initial)}</span>`;
     const dark = typeof getTheme === 'function' && getTheme() === 'dark';
     mount.innerHTML = `
-        <button type="button" class="topbar-avatar-btn" id="topbar-user-trigger"
+        <button type="button" class="topbar-account-trigger" id="topbar-user-trigger"
             onclick="toggleTopbarUserMenu()" aria-haspopup="menu" aria-expanded="false"
             aria-label="Menú de cuenta, ${escapeHtml(nombre)}">
-            ${triggerFace}
+            <span class="topbar-account-avatar-wrap">${triggerFace}</span>
+            <span class="topbar-account-name">${escapeHtml(nombre)}</span>
+            <span class="topbar-account-chevron" aria-hidden="true"><i data-icon="caret-down" data-size="14"></i></span>
         </button>
         <div class="topbar-user-dropdown hidden" id="topbar-user-dropdown" role="menu">
-            <div class="topbar-user-dropdown-name">${escapeHtml(nombre)}</div>
             <button type="button" class="topbar-user-dropdown-item" id="topbar-menu-theme" role="menuitem"
                 onclick="onTopbarThemeFromMenu()">
                 <i data-icon="${dark ? 'sun' : 'moon'}" data-size="18"></i> ${dark ? 'Modo claro' : 'Modo oscuro'}

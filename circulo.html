@@ -301,6 +301,11 @@ async function cargarParticipantes() {
     const { data, error } = await db.from('participantes')
         .select('*').eq('id_circulo', circuloActual.id).order('id');
     participantesActuales = data || [];
+    if (typeof syncAvatarToParticipantes === 'function') {
+        const { data: { user } } = await db.auth.getUser();
+        const url = window.__torisSessionAvatarUrl;
+        if (user && url) await syncAvatarToParticipantes(user, url);
+    }
     const cont = document.getElementById('lista-participantes');
     if (error) { cont.innerHTML = `<div class="alert alert-error">${error.message}</div>`; return; }
     if (!data?.length) {
