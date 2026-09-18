@@ -110,6 +110,7 @@ function toggleTopbarUserMenu() {
 }
 
 function onTopbarThemeFromMenu() {
+    closeTopbarUserMenu();
     toggleTheme();
     updateTopbarMenuThemeLabel();
 }
