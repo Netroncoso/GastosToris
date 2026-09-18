@@ -141,7 +141,7 @@ body.app-booting #boot-splash { display: flex; }
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #ea580c;
+    background: var(--soft);
 }
 .topbar-user-avatar {
     width: 100%;
@@ -155,9 +155,9 @@ body.app-booting #boot-splash { display: flex; }
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
+    color: var(--primary);
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 800;
 }
 .topbar-account-name {
     font-size: 14px;
