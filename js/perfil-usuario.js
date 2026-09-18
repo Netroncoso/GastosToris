@@ -5,6 +5,7 @@
 window._perfilSyncing = false;
 let _perfilSaveTimer = null;
 let _perfilPending = null;
+let _topbarMenuDocListener = false;
 
 function getAvatarUrlFromUser(user) {
     if (!user) return null;
@@ -47,18 +48,107 @@ async function resolveAvatarUrl(user, perfil) {
     return url;
 }
 
+function cacheSessionAvatar(user, avatarUrl) {
+    window.__torisSessionEmail = user?.email || null;
+    window.__torisSessionAvatarUrl = avatarUrl || null;
+}
+
+function avatarUrlForParticipante(p) {
+    if (!p) return null;
+    if (p.avatar_url) return p.avatar_url;
+    const email = p.email;
+    const sessionEmail = window.__torisSessionEmail;
+    const sessionAvatar = window.__torisSessionAvatarUrl;
+    if (email && sessionEmail && sessionAvatar
+        && String(email).toLowerCase() === String(sessionEmail).toLowerCase()) {
+        return sessionAvatar;
+    }
+    return null;
+}
+
+function htmlAvatarParticipante(p) {
+    const url = avatarUrlForParticipante(p);
+    const initial = (p.nombre || '?').charAt(0).toUpperCase();
+    if (url) {
+        return `<div class="avatar avatar-photo"><img src="${escapeHtml(url)}" alt="" width="36" height="36" referrerpolicy="no-referrer" decoding="async"></div>`;
+    }
+    return `<div class="avatar">${escapeHtml(initial)}</div>`;
+}
+
+function closeTopbarUserMenu() {
+    const menu = document.getElementById('topbar-user-menu');
+    const dropdown = document.getElementById('topbar-user-dropdown');
+    const trigger = document.getElementById('topbar-user-trigger');
+    dropdown?.classList.add('hidden');
+    trigger?.setAttribute('aria-expanded', 'false');
+}
+
+function toggleTopbarUserMenu() {
+    const dropdown = document.getElementById('topbar-user-dropdown');
+    const trigger = document.getElementById('topbar-user-trigger');
+    if (!dropdown || !trigger) return;
+    dropdown.classList.toggle('hidden');
+    const isOpen = !dropdown.classList.contains('hidden');
+    trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+
+function onTopbarThemeFromMenu() {
+    toggleTheme();
+    updateTopbarMenuThemeLabel();
+}
+
+function updateTopbarMenuThemeLabel() {
+    const btn = document.getElementById('topbar-menu-theme');
+    if (!btn) return;
+    const dark = typeof getTheme === 'function' && getTheme() === 'dark';
+    btn.innerHTML = `<i data-icon="${dark ? 'sun' : 'moon'}" data-size="18"></i> ${dark ? 'Modo claro' : 'Modo oscuro'}`;
+    if (typeof initIconsIn === 'function') initIconsIn(btn);
+}
+
+function ensureTopbarMenuDocListener() {
+    if (_topbarMenuDocListener) return;
+    _topbarMenuDocListener = true;
+    document.addEventListener('click', (e) => {
+        const menu = document.getElementById('topbar-user-menu');
+        if (!menu || menu.contains(e.target)) return;
+        closeTopbarUserMenu();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeTopbarUserMenu();
+    });
+}
+
 async function pintarTopbarUser(user, perfil) {
-    const el = document.getElementById('topbar-user');
-    if (!el || !user) return;
+    const mount = document.getElementById('topbar-user-menu');
+    if (!mount || !user) return;
     const nombre = (perfil?.display_name && String(perfil.display_name).trim())
         || (typeof getDisplayNameFromUser === 'function' ? getDisplayNameFromUser(user) : 'Usuario');
     const avatar = await resolveAvatarUrl(user, perfil);
-    if (avatar) {
-        el.innerHTML = `<span class="topbar-user-inner"><img class="topbar-user-avatar" src="${escapeHtml(avatar)}" alt="" width="28" height="28" referrerpolicy="no-referrer" decoding="async"><span class="topbar-user-name">${escapeHtml(nombre)}</span></span>`;
-        return;
-    }
+    cacheSessionAvatar(user, avatar);
     const initial = (nombre.charAt(0) || '?').toUpperCase();
-    el.innerHTML = `<span class="topbar-user-inner"><span class="topbar-user-avatar topbar-user-avatar-fallback" aria-hidden="true">${escapeHtml(initial)}</span><span class="topbar-user-name">${escapeHtml(nombre)}</span></span>`;
+    const triggerFace = avatar
+        ? `<img class="topbar-user-avatar" src="${escapeHtml(avatar)}" alt="" referrerpolicy="no-referrer" decoding="async">`
+        : `<span class="topbar-user-avatar-fallback" aria-hidden="true">${escapeHtml(initial)}</span>`;
+    const dark = typeof getTheme === 'function' && getTheme() === 'dark';
+    mount.innerHTML = `
+        <button type="button" class="topbar-avatar-btn" id="topbar-user-trigger"
+            onclick="toggleTopbarUserMenu()" aria-haspopup="menu" aria-expanded="false"
+            aria-label="Menú de cuenta, ${escapeHtml(nombre)}">
+            ${triggerFace}
+        </button>
+        <div class="topbar-user-dropdown hidden" id="topbar-user-dropdown" role="menu">
+            <div class="topbar-user-dropdown-name">${escapeHtml(nombre)}</div>
+            <button type="button" class="topbar-user-dropdown-item" id="topbar-menu-theme" role="menuitem"
+                onclick="onTopbarThemeFromMenu()">
+                <i data-icon="${dark ? 'sun' : 'moon'}" data-size="18"></i> ${dark ? 'Modo claro' : 'Modo oscuro'}
+            </button>
+            <button type="button" class="topbar-user-dropdown-item" role="menuitem"
+                onclick="closeTopbarUserMenu(); cerrarSesion()">
+                <i data-icon="sign-out" data-size="18"></i> Cerrar sesión
+            </button>
+        </div>`;
+    ensureTopbarMenuDocListener();
+    if (typeof initIconsIn === 'function') initIconsIn(mount);
 }
 
 function schedulePerfilSave(userId, patch) {
